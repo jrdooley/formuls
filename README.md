@@ -1,4 +1,4 @@
 # formuls
 *formuls* is an electronic music performance environment.
 
-copyright James Dooley 2020
+Copyright James Dooley 2020
