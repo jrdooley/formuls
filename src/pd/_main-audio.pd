@@ -1,5 +1,6 @@
 #N canvas 1102 56 206 435 10;
-#X declare -path Abstractions;
+#X declare -path abstractions/flib/flib;
+#X declare -path abstractions/specific;
 #N canvas 0 145 231 177 FMSYNTH_____________ 0;
 #N canvas 236 82 1140 323 SIDECHAIN_MATRIX___ 0;
 #X obj 14 99 sel 0 1;
@@ -319,13 +320,14 @@
 #X connect 28 0 19 1;
 #X coords 0 -1 1 1 100 145 1 10 10;
 #X restore 32 278 pd AUDIO_OUT___________;
-#N canvas 0 22 338 169 INIT_&_NOTES________ 0;
+#N canvas 0 23 338 169 INIT_&_NOTES________ 0;
 #X msg 18 102 MESSAGE_STRUCTURE FMSynth/<parameter><voice> value;
 #X msg 18 122 MESSAGE_STRUCTURE FMSynth/Waveshape1 0.34;
-#X obj 19 31 declare -path Abstractions;
-#X obj 223 33 loadbang;
-#X msg 223 54 \; pd dsp 1;
-#X connect 3 0 4 0;
+#X obj 243 33 loadbang;
+#X msg 243 54 \; pd dsp 1;
+#X obj 19 31 declare -path abstractions/flib/flib;
+#X obj 19 61 declare -path abstractions/specific;
+#X connect 2 0 3 0;
 #X restore 31 25 pd INIT_&_NOTES________;
 #N canvas 0 22 392 442 INTERFACE___________ 0;
 #X msg 250 343 compile;
@@ -379,7 +381,7 @@
 #X obj 287 167 int;
 #X obj 287 188 * 0.1;
 #X obj 107 124 nbx 3 30 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 20
--204786 -1 -1 89 256;
+-204786 -1 -1 5 256;
 #X connect 0 0 1 0;
 #X connect 1 0 2 0;
 #X connect 2 0 3 0;

@@ -121,17 +121,29 @@ with{
   //--------SCALE_QUANTISATION------//
   scalewrite = hslider("scalewrite",0,0,11,1) : int;
   scalevalue = hslider("scalevalue",0,0,12,0.01);
-  // scaleread = hslider("pitchread",0,0,1,0.01) : *(scalelength : *(10));
   scalelength = hslider("scalelength",12,1,12,1) : int;
   scale = _ : rwtable(12,0.0,scalewrite,scalevalue,_);
   scalequantise = _ <: (/(scalelength) : int : *(12)),(_ : int : %(scalelength) : scale) : +;
+
+  //------GENERATIVE--------//
+  // +(x) steps, -(x) steps
+  // step size
+  // repeat before note change
+  gensteps = hslider("gensteps",0,0,1,0.01) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : vbargraph("genstepsO",1,100) int;
+  genstepsize = hslider("genstepsize",1,1,12,0.1) : min(gensteps) : *(gendirection) : int;
+  gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) int;
+  genrepeatin = hslider("genrepeat",1,1,8,1) : int;
+  genrepeat = ((((ba.sAndH(gentrig))~+(1) : %(genrepeatin)) == 0) : ba.impulsify), gentrig : si.interpolate(genrepeatin < 2) : int;
+  gentrig = t : ba.impulsify : int;
+  genreset = checkbox("genreset") : int;
+  generative = (_ *(genreset) : ba.sAndH((genrepeat) | (genreset == 0 : ba.impulsify)))~+(genstepsize) : %(gensteps);
 
   op1freq = hslider("op1freq",0.5,0,1,0.001) : automRec(_,tempo,op1frecord,op1floop,trigx,op1fact) : chaos(op1fchaos) : vbargraph("op1freqO",0,1); // carrier frequency
   op1frecord = checkbox("op1frecord");
   op1floop = checkbox("op1floop");
   op1fact = checkbox("op1fact");
-  op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(4);
-  ox(i,x,y) = op1freq : *(scalelength) : *(10) : scalequantise : ba.midikey2hz : ba.sAndH((i==x) & (y==1)) : vbargraph("op1pitchO",0,22050);
+  op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(2.7);
+  ox(i,x,y) = op1freq : *(scalelength) : *(10) : +(generative) : scalequantise : ba.midikey2hz : ba.sAndH((i==x) & (y==1)) : vbargraph("op1pitchO",0,22050);
 
   op1sliderange = hslider("op1sliderange",0,0,1,0.001) : automRec(_,tempo,op1srrecord,op1srloop,trigx,op1sract) : vbargraph("op1sliderangeO",0,1); //upper frequency for carrier to "slide" down from
   op1srrecord = checkbox("op1srrecord");
@@ -149,7 +161,7 @@ with{
   op2frecord = checkbox("op2frecord");
   op2floop = checkbox("op2floop");
   op2fact = checkbox("op2fact");
-  op2fchaos = hslider("op2fchaos",0,0,1,0.01);
+  op2fchaos = hslider("op2fchaos",0,0,1,0.01) : pow(2.7);
   o2fx(i,x,y) = op2freq : ba.sAndH((i==x) & (i!=y));
 
   op2depth = hslider("op2depth",0,0,1,0.001) : automRec(_,tempo,op2drecord,op2dloop,trigx,op2dact) : chaos(op2dchaos) : vbargraph("op2depthO",0,1) : *(2); // mod depth is relative to op1 freq
@@ -157,21 +169,21 @@ with{
   op2drecord = checkbox("op2drecord");
   op2dloop = checkbox("op2dloop");
   op2dact = checkbox("op2dact");
-  op2dchaos = hslider("op2dchaos",0,0,1,0.01);
+  op2dchaos = hslider("op2dchaos",0,0,1,0.01) : pow(2.7);
   o2dx(i,x,y) = op2depth : ba.sAndH((i==x) & (i!=y));
 
   noise = hslider("noise",0,0,1,1) : automRec(_,tempo,nrecord,nloop,trigx,nact)  : chaos(nchaos) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nrecord = checkbox("nrecord");
   nloop = checkbox("nloop");
   nact = checkbox("nact");
-  nchaos = hslider("nchaos",0,0,1,0.01);
+  nchaos = hslider("nchaos",0,0,1,0.01) : pow(2.7);
   nx = noise;
 
   noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : automRec(_,tempo,nfrecord,nfloop,trigx,nfact) : chaos(nfchaos) : vbargraph("noisefilterfreqO",0,1) : pow(4.2) : *(0.999) : +(0.001) : *(22050); // noise filter amount
   nfrecord = checkbox("nfrecord");
   nfloop = checkbox("nfloop");
   nfact = checkbox("nfact");
-  nfchaos = hslider("nfchaos",0,0,1,0.01);
+  nfchaos = hslider("nfchaos",0,0,1,0.01) : pow(2.7);
 
   //---------ADSR----------//
   /* ADSR envelope for FMSynth module */
@@ -255,13 +267,13 @@ with {
   fcrecord = checkbox("fcrecord");
   fcloop = checkbox("fcloop");
   fcact = checkbox("fcact");
-  fcchaos = hslider("fcchaos",0,0,1,0.01) : pow(3);
+  fcchaos = hslider("fcchaos",0,0,1,0.01) : pow(2.7);
 
   res = hslider("filterresonance",0,0,1,0.001) : automRec(_,tempo,frrecord,frloop,0,fract) : chaos(frchaos) : vbargraph("filterresonanceO",0,1) : *(99) : +(1) : si.smoo;
   frrecord = checkbox("frrecord");
   frloop = checkbox("frloop");
   fract = checkbox("fract");
-  frchaos = hslider("frchaos",0,0,1,0.01) : pow(3);
+  frchaos = hslider("frchaos",0,0,1,0.01) : pow(2.7);
 };
 //-----------BITCRUSHER---------------//
 bitcrush(tempo,trigx) = _ : ba.downSample(bit)
@@ -279,7 +291,7 @@ with {
   pitrecord = checkbox("pitrecord");
   pitloop = checkbox("pitloop");
   pitact = checkbox("pitact");
-  pitchaos = hslider("pitchaos",0,0,1,0.01) : pow(4);
+  pitchaos = hslider("pitchaos",0,0,1,0.01) : pow(2.7);
 };
 
 delay(tempo,trigx) = _ <:_,(*(delsend) : ef.echo(1,deltime,feedback)) :> _
@@ -309,6 +321,7 @@ with {
 //----------------------------------------------------------------------------------------//
 //-----------AUTOMATION_RECORD---------------//
 /* Records incoming  values for automation playback */
+// val = value to record into automation; tem = tempo/automation read speed (0-1); rec = start/stop recording (0/1); loo = loop automation; trix = trigger one cycle of recorded automation; act = automation active
 automRec(val,tem,rec,loo,trix,act) = _ <: _,memory : si.interpolate(act)
 with {
   tempo2 = tem : *((ma.SR)/1000) : int; // read value every 1ms
