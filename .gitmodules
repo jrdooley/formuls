@@ -1,0 +1,3 @@
+[submodule "src/pd/abstractions/flib"]
+	path = src/pd/abstractions/flib
+	url = https://jrdooley@github.com/jrdooley/flib.git

@@ -1,6 +1,6 @@
 #N canvas 526 23 424 591 10;
-#X declare -path abstractions/flib;
 #X declare -path abstractions/specific;
+#X declare -path abstractions/flib/flib;
 #X obj 11 9 cnv 15 400 570 empty empty empty 20 12 0 14 -260819 -66577
 0;
 #N canvas 556 386 822 475 osc 0;
@@ -1029,8 +1029,8 @@ saturation-amount reverb;
 #X obj 198 145 pipe 40;
 #X msg 25 125 \; pd dsp 1 \; f-loadbang bang \; formuls-master-amp
 1;
-#X obj 25 13 declare -path abstractions/flib;
 #X obj 24 33 declare -path abstractions/specific;
+#X obj 25 13 declare -path abstractions/flib/flib;
 #X connect 0 0 1 0;
 #X connect 0 0 2 0;
 #X connect 1 0 13 0;
@@ -1060,7 +1060,7 @@ saturation-amount reverb;
 #X obj 226 180 int;
 #X text 271 67 <-- on/off;
 #X obj 107 123 nbx 3 30 -1e+37 1e+37 0 0 empty empty empty 0 -8 0 20
--262144 -1 -1 4 256;
+-262144 -1 -1 2 256;
 #X connect 0 0 7 0;
 #X connect 1 0 3 0;
 #X connect 2 0 5 0;
