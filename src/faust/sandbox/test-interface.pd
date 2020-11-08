@@ -241,7 +241,7 @@
 #X obj 1104 143 mod 2;
 #X obj 1104 166 sel 0;
 #X floatatom 331 44 5 0 64 0 - - -;
-#X floatatom 328 134 5 0 0 0 - - -;
+#X floatatom 320 110 5 0 0 0 - - -;
 #X floatatom 719 32 5 0 0 0 - - -;
 #N canvas 500 297 642 340 PITCH 0;
 #X floatatom 275 75 5 0 12 0 - - -;
@@ -542,6 +542,10 @@
 #X obj 1050 204 dirac~;
 #X obj 1050 227 dac~;
 #X obj 1050 136 mod 32;
+#N canvas 0 23 450 300 NOTES 0;
+#X text 73 51 am freq = pow 3.1 : *(99.9) : +(0.1);
+#X restore 778 11 pd NOTES;
+#X obj 321 153 * 2;
 #X connect 0 0 19 0;
 #X connect 1 0 78 0;
 #X connect 3 0 55 0;
@@ -554,6 +558,7 @@
 #X connect 8 0 1 0;
 #X connect 9 0 37 0;
 #X connect 10 0 38 0;
+#X connect 10 0 90 0;
 #X connect 11 0 53 0;
 #X connect 13 0 0 0;
 #X connect 14 0 12 0;
@@ -580,3 +585,4 @@
 #X connect 84 0 83 0;
 #X connect 86 0 87 0;
 #X connect 88 0 3 0;
+#X connect 90 0 88 1;

@@ -22,12 +22,12 @@ process = _,_,_ : ro.cross(3) : envelopefollower *(formuls(tempo,trigx)) : satur
 //------MASTER_AMPLITUDE----//
 masteramplitude =  *(masteramp)
 with{
-  masteramp = hslider("masteramp",0,0,1,0.01) : vbargraph("masterampO",0,1): si.smoo;
+  masteramp = hslider("masteramp",0,0,1,0.01) : vbargraph("masterampO",0,1) : si.smoo;
 };
 //------PANNING----//
 stereopanner(tempo,trigx) = *(1-panning), *(panning)
 with{
-    panning = hslider("panning",0.5,0,1,0.01) : automRec(_,tempo,precord,ploop,trigx,pact) : chaos(pchaos) : vbargraph("panningO",0,3) : si.smoo;
+    panning = hslider("panning",0.5,0,1,0.01) : automRec(_,tempo,precord,ploop,trigx,pact) : chaos(pchaos) : vbargraph("panningO",0,1) : si.smoo;
     precord = checkbox("precord"); // activates automRec recording
     ploop = checkbox("ploop"); // activates automRec read looping
     pact = checkbox("pact"); // switches automRec on and off
@@ -56,25 +56,23 @@ with{
   seqval = hslider("seqvalue",0,0,1,1) : int;
   seqread = hslider("seqread",130,0,130,1) : int;
   seqreadout = hslider("seqreadout",0,0,64,1) : *(2) : int;
-  randomadd = hslider("randomadd",0,0,1,0.01) : *(2) : -(1); // value lies between -1 and 1.
-
-  // random truth test: r = chance that random will produce "1", b = trigger the random calculation
-  random(r,b) = no.lfnoise0(32) : <(r) : ba.sAndH((b : ba.impulsify)) : *(b);
+  seqrandomadd = hslider("seqrandomadd",0,0,1,0.01) : *(2) : -(1); // value lies between -1 and 1.
   seqrandadd = (seqread : %(2)) == (0);
 
   //write and read to and from table 64 is always at 0, 65 is the dead zone that "seqwrite" always defaults to.
   seq1 = rwtable(130,0.0,seqwrite,seqval,seqread);
   seq2 = rwtable(130,0.0,seqwrite,seqval,seqreadout);
-  seqtrig = seq1, (seq2 : vbargraph("seqvalO",0,1)) : * :> _ : +(random(randomadd,seqrandadd)) : min(1);
+  seqtrig = seq1, (seq2 : vbargraph("seqvalO",0,1)) : * :> _ : +(random(seqrandomadd,seqrandadd)) : min(1);
 
   //--------EUCLID---------//
   euclidupdate = _ : ba.sAndH(seqread : %(2) : ==(0) : ba.impulsify);
   euclidon = checkbox("euclidon") : ba.sAndH(seqread : %(2));
   eucbeats = hslider("euclidbeats",0,0,64,1) : *(2) : euclidupdate : int;
-  eucoffset = hslider("euclidoffset",0,0,64,1) : euclidupdate : int;
+  eucoffset = hslider("euclidoffset",0,0,64,1) : *(2) : euclidupdate : int;
   eucbar = hslider("euclidbar",64,0,64,1) : *(2) : euclidupdate : int;
-  euccounter = +(1)~(ba.sAndH(seqread : %(2) : ba.impulsify)) : %(eucbar) : int;
+  euccounter = +(1)~(ba.sAndH(seqread : %(2) : ba.impulsify)) : int;
 
+  // euclid = euccounter : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
   euclid = euccounter : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
 
   //-----------COUNTER/VOICE_SELECT------------//
@@ -110,12 +108,14 @@ with{
     fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
   };
 
+  // extfeed: external input modulates frequency of Oscillator.
   extfeed = hslider("extfeed",0,0,1,0.01) : automRec(_,tempo,extrecord,extloop,trigx,extact)  : chaos(extchaos) : vbargraph("extfeedO",0,1) : si.smoo; // amount of noise to add to carrier frequency
   extrecord = checkbox("extrecord");
   extloop = checkbox("extloop");
   extact = checkbox("extact");
   extchaos = hslider("extchaos",0,0,1,0.01);
 
+  // waveshape: sine -> triangle -> rising sawtooth -> squarewave
   waveshape = hslider("waveshape",0,0,1,0.01) : automRec(_,tempo,wrecord,wloop,trigx,wact) : chaos(wchaos) : vbargraph("waveshapeO",0,1) : *(3); // choose between sine and sawtooth
   wrecord = checkbox("wrecord"); // activates automRec recording
   wloop = checkbox("wloop"); // activates automRec read looping
@@ -124,6 +124,7 @@ with{
   wchaos = hslider("wchaos",0,0,1,0.01) : pow(3);
 
   //--------SCALE_QUANTISATION------//
+  // writes scale values to a table, then quantises incoming op1freq values to that scale.
   scalewrite = hslider("scalewrite",0,0,11,1) : int;
   scalevalue = hslider("scalevalue",0,0,12,0.01);
   scalelength = hslider("scalelength",12,1,12,1) : int;
@@ -131,6 +132,7 @@ with{
   scalequantise = _ <: (/(scalelength) : int : *(12)),(_ : int : %(scalelength) : scale) : +;
 
   //------GENERATIVE--------//
+  // generates random pitches with existing "scale quantisation"
   gensteps = hslider("gensteps",0,0,1,0.01) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : vbargraph("genstepsO",1,100) : int;
   genstepsize = hslider("genstepsize",1,1,12,0.1) : min(gensteps) : *(gendirection) : int;
   gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
@@ -220,9 +222,9 @@ with{
   rx(i,x,y) = release : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  voiceamp = hslider("voiceamp",0,0,1,0.01) : chaos(vchaos) : pow(2.7);
+  velocity = hslider("velocity",1,0,1,0.01) : chaos(vchaos) : pow(2.7);
   vchaos = hslider("vchaos",0,0,1,0.01);
-  vx(i,x,y,z) = voiceamp : si.smoothAndH((i==x) & (y==1), 0.999) : *(i!=z);
+  vx(i,x,y,z) = velocity : si.smoothAndH((i==x) & (y==1), 0.999) : *(i!=z);
 };
 
 //----------------------------------------------------------------------------------------//
@@ -237,7 +239,7 @@ with{
   amwact = checkbox("amwact");
   amwchaos = hslider("amwchaos",0,0,1,0.01) : pow(3);
 
-  amfreq = hslider("amfreq",0,0,1,0.001) : automRec(_,tempo,amfrecord,amfloop,0,amfact) : chaos(amfchaos) : vbargraph("amfreqO",0,1) : pow(3.1) : *(99.9) : +(0.1) : si.smoo;
+  amfreq = hslider("amfreq",0,0,1,0.001) : automRec(_,tempo,amfrecord,amfloop,0,amfact) : chaos(amfchaos) : vbargraph("amfreqO",0,1) : pow(3.1) : *(99.9) : +(0.1) : vbargraph("amfreqhzO",0.1,100) : si.smoo;
   amfrecord = checkbox("amfrecord");
   amfloop = checkbox("amfloop");
   amfact = checkbox("amfact");
@@ -253,7 +255,7 @@ with{
   amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_trianglepos : si.interpolate(clip(amwave))), os.lf_sawpos : si.interpolate(clip(amwave-(1)))), os.lf_squarewavepos : si.interpolate(clip(amwave-2))));
 };
 //-----------SATURATION---------------//
-/* tan waveshape distortion */
+/* tanh waveshape distortion */
 saturation(tempo,trigx) = _ <: _, (*(1.57) : ma.tanh) : si.interpolate(saturationamount)
 with{
   saturationamount = hslider("saturation",0,0,1,0.01) : automRec(_,tempo,satrecord,satloop,0,satact) : chaos(satchaos) : vbargraph("saturationO",0,1) : si.smoo;
@@ -295,7 +297,7 @@ with {
   pitact = checkbox("pitact");
   pitchaos = hslider("pitchaos",0,0,1,0.01) : pow(2.7);
 };
-
+//-------------DELAY---------------//
 delay(tempo,trigx) = _ <:_,(*(delsend) : ef.echo(1,deltime,feedback)) :> _
 with {
   delsend = hslider("delsend",0,0,1,0.01) : automRec(_,tempo,dsrecord,dsloop,0,dsact) : chaos(dschaos) : vbargraph("delsendO",0,1) : si.smoo;
@@ -303,7 +305,6 @@ with {
   dsloop = checkbox("dsloop");
   dsact = checkbox("dsact");
   dschaos = hslider("dschaos",0,0,1,0.01);
-
 
   deltime = hslider("deltime",0,0,1,0.01) : automRec(_,tempo,dtrecord,dtloop,0,dtact) : chaos(dtchaos) : vbargraph("deltimeO",0,1) : si.smoo;
   dtrecord = checkbox("dtrecord");
@@ -327,7 +328,7 @@ with {
 automRec(val,tem,rec,loo,trix,act) = _ <: _,memory : si.interpolate(act)
 with {
   tempo2 = tem : *((ma.SR)/1000) : int; // read value every 1ms
-  tableSize = 48000; //
+  tableSize = 48000; // with a read periodicity of 1ms, @48kHz SR this creates 48 seconds of memory to record automation to.
 
   /* calculate the sample duration */
   I = int(rec);		// convert button "Record" signal from float to integer
@@ -340,6 +341,7 @@ with {
   counter = ba.countup(D2,trix), ba.sweep(D2,loo) : si.interpolate(loo) : /(tempo2) : *(act) : int; // counter to read from the table
 
   memory = _ <: rwtable(tableSize,0.0,recIndex,_,counter), _ : si.interpolate(rec) :> si.smoo ; //write and read automation to and from table
+  // ADD REVERSE READ FUNCTION
 };
 
 /* automRec global params */
@@ -347,6 +349,10 @@ tempo = hslider("tempo",1,0.01,1,0.01); // controls automRec read speed
 trigx = button("trigx"); //triggers automation read
 
 //----------------------------------------------------------------------------------------//
-//----------------------------------CHAOS-------------------------------------------------//
+//----------------------------------CHAOS_RANDOM------------------------------------------//
 //----------------------------------------------------------------------------------------//
+//chaos: generates a continual stream of random values between 0 and 1 and adds it to the incoming signal
 chaos(value) = _ : +(no.lfnoise0(8) : *(value) : si.smoo) : (_,1 : min) : (_,0 : max);
+
+// random : random truth test: r = chance that random will produce "1", b = trigger the random calculation
+random(r,b) = no.lfnoise0(32) : <(r) : ba.sAndH((b : ba.impulsify)) : *(b);

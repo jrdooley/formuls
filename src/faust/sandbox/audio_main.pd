@@ -1,5 +1,5 @@
 #N canvas 23 492 689 386 12;
-#X obj 25 12 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1 1
+#X obj 25 12 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0 1
 ;
 #X msg 25 32 active \$1;
 #X obj 110 80 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
@@ -7,7 +7,7 @@
 #X obj 54 358 dac~;
 #X obj 21 186 s~ \$0-1;
 #X obj 67 101 r~ \$0-1;
-#X floatatom 105 299 5 0 99 0 - - -;
+#X floatatom 108 298 5 0 99 0 - - -;
 #X obj 80 123 osc~ 0.5;
 #X obj 43 80 spigot 1;
 #X obj 42 158 formuls~;
@@ -26,10 +26,10 @@
 #X obj 46 254 catch~ \$0-l;
 #X obj 66 274 catch~ \$0-r;
 #X obj 531 21 test-interface 0;
-#X obj 228 33 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X obj 228 33 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X msg 228 53 active \$1;
-#X obj 313 101 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 313 101 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #X obj 246 101 spigot 1;
 #X obj 245 179 formuls~;
@@ -108,7 +108,7 @@
 #X obj 47 211 throw~ \$0-l;
 #X obj 67 231 throw~ \$0-r;
 #X obj 121 187 _dac~;
-#N canvas 0 23 465 690 compressor 1;
+#N canvas 0 23 465 690 compressor 0;
 #X obj 28 28 inlet~;
 #X obj 176 20 inlet~;
 #X obj 27 543 outlet~;
