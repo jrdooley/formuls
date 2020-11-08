@@ -47,16 +47,16 @@ with{
 //-------------------------------------SYNTH_FUNCTIONS------------------------------------//
 //----------------------------------------------------------------------------------------//
 //------FORMULS------//
-/* main synth function */
+/* main synth function */ //: si.smooth(0.99) was after *(extfeed)
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-formuls(tempo,trigx,sigtrig) = _ *(extfeed) : si.smooth(0.99) <: par(i,16,(_ : (Oscillator((ox(i,c,t)),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2))) <: *(ADSR(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2),adsrsel(i,c,t))) : *(vx(i,c,t,c2)))) :> _
+formuls(tempo,trigx,sigtrig) = _ : *(extfeed) <: par(i,16,(_ : (Oscillator((ox(i,c,t)),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2))) : (ADSR(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2),adsrsel(i,c,t))) : *(vx(i,c,t,c2)))) :> _
 with{
   //-----------SEQUENCER------------//
   seqwrite = hslider("seqwrite",0,0,64,1) : *(2) : int;
   seqval = hslider("seqvalue",0,0,1,1) : int;
   seqread = hslider("seqread",130,0,130,1) : int;
   seqreadout = hslider("seqreadout",0,0,64,1) : *(2) : int;
-  randomadd = hslider("randomadd",0,0,1,0.01) : *(2) : -(1);
+  randomadd = hslider("randomadd",0,0,1,0.01) : *(2) : -(1); // value lies between -1 and 1.
 
   // random truth test: r = chance that random will produce "1", b = trigger the random calculation
   random(r,b) = no.lfnoise0(32) : <(r) : ba.sAndH((b : ba.impulsify)) : *(b);
@@ -65,16 +65,18 @@ with{
   //write and read to and from table 64 is always at 0, 65 is the dead zone that "seqwrite" always defaults to.
   seq1 = rwtable(130,0.0,seqwrite,seqval,seqread);
   seq2 = rwtable(130,0.0,seqwrite,seqval,seqreadout);
-  seqtrig = seq1, (seq2 : vbargraph("seqvalO",0,1)) :> _ : +(random(randomadd,seqrandadd)) : min(1);
+  seqtrig = seq1, (seq2 : vbargraph("seqvalO",0,1)) : * :> _ : +(random(randomadd,seqrandadd)) : min(1);
 
   //--------EUCLID---------//
   euclidupdate = _ : ba.sAndH(seqread : %(2) : ==(0) : ba.impulsify);
-  euclidon = checkbox("euclidon");
-  eucbeats = hslider("euclidbeats",0,0,64,1) : euclidupdate : int;
-  eucoffset = hslider("euclidoffset",0,0,64,1) : *(2) : euclidupdate : int;
+  euclidon = checkbox("euclidon") : ba.sAndH(seqread : %(2));
+  eucbeats = hslider("euclidbeats",0,0,64,1) : *(2) : euclidupdate : int;
+  eucoffset = hslider("euclidoffset",0,0,64,1) : euclidupdate : int;
   eucbar = hslider("euclidbar",64,0,64,1) : *(2) : euclidupdate : int;
+  euccounter = +(1)~(ba.sAndH(seqread : %(2) : ba.impulsify)) : %(eucbar) : int;
 
-  euclid = seqread : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
+  euclid = euccounter : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
+
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
   /* Oscillator controls */
@@ -83,11 +85,11 @@ with{
 
   thresh = hslider("threshold",1,0,1,0.01); // sets ADSR trigger threshold for incomgin signal
   st = sigtrig : an.amp_follower_ud(0.005,0.01) : >(thresh) : ba.impulsify : int;
-  t = button("triggerx") : +(st) : +((seqtrig,euclid : si.interpolate(euclidon))) : min(1) : int; // triggers synth voice
+  t = button("triggerx") : +(st) : +((seqtrig,euclid : ba.selectn(2,euclidon))) : min(1) : int; // triggers synth voice
 
   //Counter to select voice
-  monophonic(tri) = checkbox("monophonic") : vbargraph("monophonicO",0,3) : ba.sAndH(tri) : int;
-  counterMod = 16,2 :> si.interpolate(monophonic(t));
+  monophonic(tri) = checkbox("monophonic") : vbargraph("monophonicO",0,1) : ba.sAndH(tri) : int;
+  counterMod = 16,2 :> ba.selectn(2,monophonic(t));
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
   tx2(i,x,y) = int((i==x) | (i!=y)) : @(4800); //ADSR trigger, delay by 4800 samps to ensure oscillator values are set before sounding.
   c = +(adsron)~(ba.sAndH(t : ba.impulsify)) : %(counterMod) : int; // Incremental counter for voice select.
@@ -96,13 +98,16 @@ with{
   //----SYNTH_PARAMETERS----//
   //------OSCILLATOR-------//
   /* FM Oscillator: sine -> triangle -> sawtooth -> square. */
+  // o1f = op1 freq, o1sr = op1 slide range, o1st = op1 slide time,o2f = op2 freq, o2d = op2 depth, na = noise, wa = waveshape, ta = trigger
   Oscillator(o1f,o1sr,o1st,o2f,o2d,na,wa,ta) = freqset : fmosc
     with{
-    cf = o1f : +(o1f : *((en.ar(0.001,o1st,ta) : pow(4)) : *(o1sr))); //calculate op1 freq during freq slide
+    cf = o1f : +(o1f : *((en.ar(0.001,o1st,ta) : pow(2.7)) : *(o1sr))) : min(19000); //calculate op1 freq during freq slide
     freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
     freqset = _ : *(freqcontrol) : +(freqcontrol);
     clip(x) = x : min(1,_) : max(0,_);
-    fmosc = _ <: (((os.oscsin, (os.lf_triangle *(2) : -(1)) : si.interpolate(clip(wa))), (os.lf_sawpos *(2) : -(1)) : si.interpolate(clip(wa-(1)))), os.square : si.interpolate(clip(wa-(2))));
+    oscphase = ta == (0);
+    wa1 = wa : si.smoo;
+    fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
   };
 
   extfeed = hslider("extfeed",0,0,1,0.01) : automRec(_,tempo,extrecord,extloop,trigx,extact)  : chaos(extchaos) : vbargraph("extfeedO",0,1) : si.smoo; // amount of noise to add to carrier frequency
@@ -126,12 +131,9 @@ with{
   scalequantise = _ <: (/(scalelength) : int : *(12)),(_ : int : %(scalelength) : scale) : +;
 
   //------GENERATIVE--------//
-  // +(x) steps, -(x) steps
-  // step size
-  // repeat before note change
-  gensteps = hslider("gensteps",0,0,1,0.01) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : vbargraph("genstepsO",1,100) int;
+  gensteps = hslider("gensteps",0,0,1,0.01) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : vbargraph("genstepsO",1,100) : int;
   genstepsize = hslider("genstepsize",1,1,12,0.1) : min(gensteps) : *(gendirection) : int;
-  gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) int;
+  gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
   genrepeatin = hslider("genrepeat",1,1,8,1) : int;
   genrepeat = ((((ba.sAndH(gentrig))~+(1) : %(genrepeatin)) == 0) : ba.impulsify), gentrig : si.interpolate(genrepeatin < 2) : int;
   gentrig = t : ba.impulsify : int;
@@ -143,19 +145,19 @@ with{
   op1floop = checkbox("op1floop");
   op1fact = checkbox("op1fact");
   op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(2.7);
-  ox(i,x,y) = op1freq : *(scalelength) : *(10) : +(generative) : scalequantise : ba.midikey2hz : ba.sAndH((i==x) & (y==1)) : vbargraph("op1pitchO",0,22050);
+  ox(i,x,y) = op1freq : *(scalelength) : *(10) : +(generative) : scalequantise : ba.midikey2hz : ba.sAndH((i==x) & (y==1) : ba.impulsify) : vbargraph("op1pitchO",0,22050);
 
-  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : automRec(_,tempo,op1srrecord,op1srloop,trigx,op1sract) : vbargraph("op1sliderangeO",0,1); //upper frequency for carrier to "slide" down from
+  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : automRec(_,tempo,op1srrecord,op1srloop,trigx,op1sract) : vbargraph("op1sliderangeO",0,1) : *(5); //upper frequency for carrier to "slide" down from
   op1srrecord = checkbox("op1srrecord");
   op1srloop = checkbox("op1srloop");
   op1sract = checkbox("op1sract");
-  orx(i,x,y) = op1sliderange : ba.sAndH((i==x) & (y == 1));
+  orx(i,x,y) = op1sliderange : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
-  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : automRec(_,tempo,op1strecord,op1stloop,trigx,op1stact) : vbargraph("op1slidetimeO",0,1) : *(2); // time taken for carrier frequency slide
+  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : automRec(_,tempo,op1strecord,op1stloop,trigx,op1stact) : vbargraph("op1slidetimeO",0,1) : pow(1.7) : *(2); // time taken for carrier frequency slide
   op1strecord = checkbox("op1strecord");
   op1stloop = checkbox("op1stloop");
   op1stact = checkbox("op1stact");
-  otx(i,x,y) = op1slidetime : ba.sAndH((i==x) & (y == 1));
+  otx(i,x,y) = op1slidetime : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   op2freq = hslider("op2freq",0,0,1,0.001) : automRec(_,tempo,op2frecord,op2floop,trigx,op2fact)  : chaos(op2fchaos) : vbargraph("op2freqO",0,1) : *(1.999) : +(0.001); // mod freq is relative to op1 freq
   op2frecord = checkbox("op2frecord");
@@ -187,40 +189,40 @@ with{
 
   //---------ADSR----------//
   /* ADSR envelope for FMSynth module */
-  ADSR(a,d,s,r,t,ON) = _,(en.dx7envelope(a,d,r,1,1,s,0,0,t) : pow(4)) : si.interpolate(ON);
+  ADSR(a,d,s,r,t,ON) = _ <: _, *(en.dx7envelope(a,d,r,1,1,s,0,0,t) : pow(4)) : ba.selectn(2,ON);
   /* ADSR controls */
   attack = hslider("attack",0,0,1,0.001) : automRec(_,tempo,arecord,aloop,trigx,aact)  : chaos(achaos) : vbargraph("attackO",0,1) : pow(3.1) : *(0.999) : +(0.001) : *(10);
   arecord = checkbox("arecord");
   aloop = checkbox("aloop");
   aact = checkbox("aact");
   achaos = hslider("achaos",0,0,1,0.01);
-  ax(i,x,y) = attack : ba.sAndH((i==x) & (y == 1));
+  ax(i,x,y) = attack : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   decay = hslider("decay",0,0,1,0.001) : automRec(_,tempo,drecord,dloop,trigx,dact)  : chaos(dchaos) : vbargraph("decayO",0,1) : pow(3.1) : *(0.999) : +(0.001) : *(10);
   drecord = checkbox("drecord");
   dloop = checkbox("dloop");
   dact = checkbox("dact");
   dchaos = hslider("dchaos",0,0,1,0.01);
-  dx(i,x,y) = decay : ba.sAndH((i==x) & (y == 1));
+  dx(i,x,y) = decay : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
-  sustain = hslider("sustain",1,0,1,0.01) : automRec(_,tempo,srecord,sloop,trigx,sact)  : chaos(schaos) : vbargraph("sustainO",0,1) : pow(2);
+  sustain = hslider("sustain",1,0,1,0.01) : automRec(_,tempo,srecord,sloop,trigx,sact)  : chaos(schaos) : vbargraph("sustainO",0,1) : pow(1.7);
   srecord = checkbox("srecord");
   sloop = checkbox("sloop");
   sact = checkbox("sact");
   schaos = hslider("schaos",0,0,1,0.01);
-  sx(i,x,y) = sustain : ba.sAndH((i==x) & (y == 1));
+  sx(i,x,y) = sustain : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   release = hslider("release",0,0,1,0.001) : automRec(_,tempo,rrecord,rloop,trigx,ract)  : chaos(rchaos) : vbargraph("releaseO",0,1) : pow(3.1) : *(0.999) : +(0.001) : *(10);
   rrecord = checkbox("rrecord");
   rloop = checkbox("rloop");
   ract = checkbox("ract");
   rchaos = hslider("rchaos",0,0,1,0.01);
-  rx(i,x,y) = release : ba.sAndH((i==x) & (y == 1));
+  rx(i,x,y) = release : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
   voiceamp = hslider("voiceamp",0,0,1,0.01) : chaos(vchaos) : pow(2.7);
   vchaos = hslider("vchaos",0,0,1,0.01);
-  vx(i,x,y,z) = voiceamp : ba.sAndH((i==x) & (y==1)) : *(i!=z) : si.smoo;
+  vx(i,x,y,z) = voiceamp : si.smoothAndH((i==x) & (y==1), 0.999) : *(i!=z);
 };
 
 //----------------------------------------------------------------------------------------//
@@ -248,7 +250,7 @@ with{
   amdchaos = hslider("amdchaos",0,0,1,0.01);
 
   clip(x) = x : min(1,_) : max(0,_);
-  amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_triangle : si.interpolate(clip(amwave))), os.lf_sawpos : si.interpolate(clip(amwave-(1)))), os.lf_squarewave : si.interpolate(clip(amwave-2))));
+  amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_trianglepos : si.interpolate(clip(amwave))), os.lf_sawpos : si.interpolate(clip(amwave-(1)))), os.lf_squarewavepos : si.interpolate(clip(amwave-2))));
 };
 //-----------SATURATION---------------//
 /* tan waveshape distortion */
