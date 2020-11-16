@@ -1,4 +1,4 @@
-#N canvas 28 421 588 309 10;
+#N canvas 19 423 588 309 10;
 #X text 269 17 \$1 = \$0;
 #X obj 142 218 r \$0-out;
 #X obj 52 261 outlet;
