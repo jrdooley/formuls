@@ -49,7 +49,7 @@ with{
 //------FORMULS------//
 /* main synth function */ //: si.smooth(0.99) was after *(extfeed)
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-formuls(tempo,trigx,sigtrig) = _ : *(extfeed) <: par(i,16,(_ : (Oscillator((ox(i,c,t)),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2))) : (ADSR(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2),adsrsel(i,c,t))) : *(vx(i,c,t,c2)))) :> _
+formuls(tempo,trigx,sigtrig) = _ : *(extmod) <: par(i,16,(_ : (Oscillator((ox(i,c,t)),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2))) : (ADSR(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2),adsrsel(i,c,t))) : *(vx(i,c,t,c2)))) :> _
 with{
   //-----------SEQUENCER------------//
   seqwrite = hslider("seqwrite",0,0,64,1) : *(2) : int;
@@ -108,8 +108,8 @@ with{
     fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
   };
 
-  // extfeed: external input modulates frequency of Oscillator.
-  extfeed = hslider("extfeed",0,0,1,0.01) : automRec(_,tempo,extrecord,extloop,trigx,extact)  : chaos(extchaos) : vbargraph("extfeedO",0,1) : si.smoo; // amount of noise to add to carrier frequency
+  // extmod: external input modulates frequency of Oscillator.
+  extmod = hslider("extmodulation",0,0,1,0.01) : automRec(_,tempo,extrecord,extloop,trigx,extact)  : chaos(extchaos) : vbargraph("extmodulationO",0,1) : si.smoo; // amount of noise to add to carrier frequency
   extrecord = checkbox("extrecord");
   extloop = checkbox("extloop");
   extact = checkbox("extact");
@@ -133,14 +133,14 @@ with{
 
   //------GENERATIVE--------//
   // generates random pitches with existing "scale quantisation"
-  gensteps = hslider("gensteps",0,0,1,0.01) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : vbargraph("genstepsO",1,100) : int;
-  genstepsize = hslider("genstepsize",1,1,12,0.1) : min(gensteps) : *(gendirection) : int;
+  genrange = hslider("genrange",0,0,1,0.01) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : vbargraph("genstepsO",1,100) : int;
+  genstepsize = hslider("genstepsize",1,1,12,0.1) : min(genrange) : *(gendirection) : int;
   gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
   genrepeatin = hslider("genrepeat",1,1,8,1) : int;
   genrepeat = ((((ba.sAndH(gentrig))~+(1) : %(genrepeatin)) == 0) : ba.impulsify), gentrig : si.interpolate(genrepeatin < 2) : int;
   gentrig = t : ba.impulsify : int;
-  genreset = checkbox("genreset") : int;
-  generative = (_ *(genreset) : ba.sAndH((genrepeat) | (genreset == 0 : ba.impulsify)))~+(genstepsize) : %(gensteps);
+  genon = checkbox("genon") : int;
+  generative = (_ *(genon) : ba.sAndH((genrepeat) | (genon == 0 : ba.impulsify)))~+(genstepsize) : %(genrange);
 
   op1freq = hslider("op1freq",0.5,0,1,0.001) : automRec(_,tempo,op1frecord,op1floop,trigx,op1fact) : chaos(op1fchaos) : vbargraph("op1freqO",0,1); // carrier frequency
   op1frecord = checkbox("op1frecord");
