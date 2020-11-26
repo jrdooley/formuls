@@ -11,6 +11,9 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 
 //-----MAIN-----//
+//Signal inputs: 1)input synth voice ; 2)input from fx (pre-flooper processing);
+//Signal outputs: 1)output of flooper to fx for processing; 2)output to
+
 process = flooper(tempo,trigx);
 
 //----------------------------------------------------------------------------------------//

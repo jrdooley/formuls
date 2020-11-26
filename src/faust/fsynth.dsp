@@ -11,9 +11,10 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 
 //-------------------------------------------MAIN----------------------------------------//
-//Signal inputs: 1st input synth voice frequency modulation;  2nd input ADSR trigger; 3rd input envelope follower; Though, currently 2 and 3 are swapped **TO FIX**
+//Signal inputs: 1)input synth voice frequency modulation; 2)input ADSR trigger;
+//Signal outputs: 1)output of synth; 2)automrec trigger;
 
-process = _,_,_ : ro.cross(3) : formuls(tempo);
+process = _,_ : ro.cross(2) : formuls(tempo);
 
 //------------------------------------------FUNCTIONS------------------------------------//
 
@@ -21,9 +22,9 @@ process = _,_,_ : ro.cross(3) : formuls(tempo);
 //-------------------------------------SYNTH----------------------------------------------//
 //----------------------------------------------------------------------------------------//
 //------FORMULS------//
-/* main synth function */ //: si.smooth(0.99) was after *(extfeed)
+/* main synth function */
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-formuls(tempo,sigtrig) = envelopefollower *(_ : *(extmod) <: par(i,16,(_ : (Oscillator((ox(i,c,t)),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2))) : (ADSR(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2),adsrsel(i,c,t))) : *(vx(i,c,t)))) :> _ : saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : delay(tempo,t) : am(tempo,t) : resfilter(tempo,t)) : masteramplitude : stereopanner(tempo,t)
+formuls(tempo,sigtrig) = (_ : *(extmod) <: par(i,16,(_ : (Oscillator((ox(i,c,t)),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2))) : (ADSR(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2),adsrsel(i,c,t))) : *(vx(i,c,t)))) :> _),t
 with{
   //-----------SEQUENCER------------//
   seqwrite = hslider("seqwrite",0,0,64,1) : *(2) : int;
@@ -56,7 +57,7 @@ with{
   adsrsel(i,x,y) = adsron : ba.sAndH((i==x) & (y == 1)); // this allows adsr selection for each voice. It is embedded in the ADSR function: ADSR(a,d,s,r,t,adsrSel(i,x,y))
 
   thresh = hslider("threshold",1,0,1,0.01); // sets ADSR trigger threshold for incomgin signal
-  st = sigtrig : an.amp_follower_ud(0.005,0.01) : >(thresh) : ba.impulsify : int;
+  st = sigtrig : >(thresh) : ba.impulsify : int;
   t = button("triggerx") : +(st) : +((seqtrig,euclid : ba.selectn(2,euclidon))) : min(1) : int; // triggers synth voice
   //Counter to select voice
   monophonic(tri) = checkbox("monophonic") : vbargraph("monophonicO",0,1) : ba.sAndH(tri) : int;
@@ -122,7 +123,6 @@ with{
   op1fact = checkbox("op1fact");
   op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(2.7);
   ox(i,x,y) = op1freq : *(scalelength) : *(10) : +(generative) : scalequantise : ba.midikey2hz : ba.sAndH((i==x) & (y==1) : ba.impulsify) : vbargraph("op1pitchO%i",0,22050);
-
 
   op1sliderange = hslider("op1sliderange",0,0,1,0.001) : automrec(_,tempo,op1srrecord,op1srloop,t,op1sract) : chaos(op1srchaos,4) : vbargraph("op1sliderangeO",0,1) : *(5); //upper frequency for carrier to "slide" down from
   op1srrecord = checkbox("op1srrecord");
@@ -202,127 +202,6 @@ with{
   velocity = hslider("velocity",1,0,1,0.01) : chaos(vchaos,14) : pow(2.7);
   vchaos = hslider("vchaos",0,0,1,0.01);
   vx(i,x,y) = velocity : si.smoothAndH((i==x) & (y==1), 0.999);
-  // vx(i,x,y,z) = velocity : si.smoothAndH((i==x) & (y==1), 0.999) : *(i!=z);
-
-};
-
-//----------------------------------------------------------------------------------------//
-//-------------------------------MASTER_AMPLITUDE,PANNING_&_SIDECHAIN---------------------//
-//----------------------------------------------------------------------------------------//
-//------MASTER_AMPLITUDE----//
-masteramplitude =  _ : *(masteramp)
-with{
-  masteramp = hslider("masteramp",0,0,1,0.01) : vbargraph("masterampO",0,1) : si.smoo;
-};
-//------PANNING----//
-stereopanner(tempo,trigxx) = _ : sp.panner(panning)
-with{
-    panning = hslider("panning",0.5,0,1,0.01) : automrec(_,tempo,precord,ploop,trigxx,pact) : chaos(pchaos,15) : vbargraph("panningO",0,1) : si.smoo;
-    precord = checkbox("precord"); // activates automrec recording
-    ploop = checkbox("ploop"); // activates automrec read looping
-    pact = checkbox("pact"); // switches automrec on and off
-    pchaos = hslider("pchaos",0,0,1,0.01) : pow(4);
-};
-//------ENVELOPE_FOLLOWER/SIDECHAIN----//
-envelopefollower = _ : *(1): an.amp_follower_ar(0.005, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
-with{
-  enveloperelease = hslider("enveloperelease",0,0,1,0.01) : vbargraph("envelopereleaseO",0,1) : *(0.99) : +(0.01) : si.smoo;
-  envelopedepth = hslider("envelopedepth",0,0,1,0.01) : vbargraph("envelopedepthO",0,1) : si.smoo;
-  envelopeside = checkbox("envelopeside") : vbargraph("envelopesideO",0,1);
-  env = *(envelopedepth) : +(1-envelopedepth); // envelope follow algorithm
-  side = 1-(_) *(envelopedepth); // sidechain algorithm
-};
-
-//----------------------------------------------------------------------------------------//
-//---------------------------------------FX_FUNCTIONS-------------------------------------//
-//----------------------------------------------------------------------------------------//
-//------AMPLITUDE_MODULATION-----//
-am(tempo,trigx) = _ : *(1-(amdepth *(amfreq : amosc)))
-with{
-  amwave = hslider("amwave",0,0,1,0.001) : automrec(_,tempo,amwrecord,amwloop,trigx,amwact) : chaos(amwchaos,16) : vbargraph("amwaveO",0,1) : *(3);
-  amwrecord = checkbox("amwrecord");
-  amwloop = checkbox("amwloop");
-  amwact = checkbox("amwact");
-  amwchaos = hslider("amwchaos",0,0,1,0.01) : pow(3);
-
-  amfreq = hslider("amfreq",0,0,1,0.001) : automrec(_,tempo,amfrecord,amfloop,trigx,amfact) : chaos(amfchaos,17) : vbargraph("amfreqO",0,1) : pow(3.1) : *(99.9) : +(0.1) : vbargraph("amfreqhzO",0.1,100) : si.smoo;
-  amfrecord = checkbox("amfrecord");
-  amfloop = checkbox("amfloop");
-  amfact = checkbox("amfact");
-  amfchaos = hslider("amfchaos",0,0,1,0.01) : pow(3);
-
-  amdepth = hslider("amdepth",0,0,1,0.01) : automrec(_,tempo,amdrecord,amdloop,trigx,amdact) : chaos(amdchaos,18) : vbargraph("amdepthO",0,1) : pow(3.1) : si.smoo;
-  amdrecord = checkbox("amdrecord");
-  amdloop = checkbox("amdloop");
-  amdact = checkbox("amdact");
-  amdchaos = hslider("amdchaos",0,0,1,0.01);
-
-  clip(x) = x : min(1,_) : max(0,_);
-  amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_trianglepos : si.interpolate(clip(amwave))), os.lf_sawpos : si.interpolate(clip(amwave-(1)))), os.lf_squarewavepos : si.interpolate(clip(amwave-2))));
-};
-//-----------SATURATION---------------//
-/* tanh waveshape distortion */
-saturation(tempo,trigx) = _ <: _, (*(1.57) : ma.tanh) : si.interpolate(saturationamount)
-with{
-  saturationamount = hslider("saturation",0,0,1,0.01) : automrec(_,tempo,satrecord,satloop,trigx,satact) : chaos(satchaos,19) : vbargraph("saturationO",0,1) : si.smoo;
-  satrecord = checkbox("satrecord");
-  satloop = checkbox("satloop");
-  satact = checkbox("satact");
-  satchaos = hslider("satchaos",0,0,1,0.01);
-};
-//-----------RESONANT_FILTER---------------//
-resfilter(tempo,trigx) = _ : fi.resonlp(fc,res,1)
-with {
-  fc = hslider("filtercutoff",1,0,1,0.001) : automrec(_,tempo,fcrecord,fcloop,trigx,fcact) : chaos(fcchaos,20) : vbargraph("filtercutoffO",0,1) : pow(3.1) : *(22030) : +(20) : si.smoo;
-  fcrecord = checkbox("fcrecord");
-  fcloop = checkbox("fcloop");
-  fcact = checkbox("fcact");
-  fcchaos = hslider("fcchaos",0,0,1,0.01) : pow(2.7);
-
-  res = hslider("filterresonance",0,0,1,0.001) : automrec(_,tempo,frrecord,frloop,trigx,fract) : chaos(frchaos,21) : vbargraph("filterresonanceO",0,1) : *(99) : +(1) : si.smoo;
-  frrecord = checkbox("frrecord");
-  frloop = checkbox("frloop");
-  fract = checkbox("fract");
-  frchaos = hslider("frchaos",0,0,1,0.01) : pow(2.7);
-};
-//-----------BITCRUSHER---------------//
-bitcrush(tempo,trigx) = _ : ba.downSample(bit)
-with {
-  bit = hslider("bitcrush",0,0,1,0.01) : automrec(_,tempo,bitrecord,bitloop,trigx,bitact) : chaos(bitchaos,22) : vbargraph("bitcrushO",0,1) : 1-(_) : pow(3) : *(47950) : +(50) : si.smoo;
-  bitrecord = checkbox("bitrecord");
-  bitloop = checkbox("bitloop");
-  bitact = checkbox("bitact");
-  bitchaos = hslider("bitchaos",0,0,1,0.01);
-};
-//------------PITCHSHIFT------------//
-pitchshift(tempo,trigx) = _ : ef.transpose(100,50,pshift)
-with {
-  pshift = hslider("pitchshift",0.5,0,1,0.1) : automrec(_,tempo,pitrecord,pitloop,trigx,pitact) : chaos(pitchaos,23) : vbargraph("pitchshiftO",0,1) : *(48) : -(24) : si.smoo;
-  pitrecord = checkbox("pitrecord");
-  pitloop = checkbox("pitloop");
-  pitact = checkbox("pitact");
-  pitchaos = hslider("pitchaos",0,0,1,0.01) : pow(2.7);
-};
-//-------------DELAY---------------//
-delay(tempo,trigx) = _ <:_,(*(delsend) : ef.echo(1,deltime,feedback)) :> _
-with {
-  delsend = hslider("delaysend",0,0,1,0.01) : automrec(_,tempo,dsrecord,dsloop,trigx,dsact) : chaos(dschaos,24) : vbargraph("delaysendO",0,1) : si.smoo;
-  dsrecord = checkbox("dsrecord");
-  dsloop = checkbox("dsloop");
-  dsact = checkbox("dsact");
-  dschaos = hslider("dschaos",0,0,1,0.01);
-
-  deltime = hslider("delaytime",0,0,1,0.01) : automrec(_,tempo,dtrecord,dtloop,trigx,dtact) : chaos(dtchaos,25) : vbargraph("delaytimeO",0,1) : si.smoo;
-  dtrecord = checkbox("dtrecord");
-  dtloop = checkbox("dtloop");
-  dtact = checkbox("dtact");
-  dtchaos = hslider("dtchaos",0,0,1,0.01);
-
-  feedback = hslider("delayfeedback",0,0,1,0.01) : automrec(_,tempo,dfrecord,dfloop,trigx,dfact) : chaos(dfchaos,26) : vbargraph("delayfeedbackO",0,1) : si.smoo;
-  dfrecord = checkbox("dfrecord");
-  dfloop = checkbox("dfloop");
-  dfact = checkbox("dfact");
-  dfchaos = hslider("dfchaos",0,0,1,0.01);
 };
 
 //----------------------------------------------------------------------------------------//
@@ -344,7 +223,7 @@ with {
 
   /* table write and read */
   recindex = (+(1) : *(rec))~_ : _/(tempo2) : *(rec) : int; // records audio to tables below
-  counter = ba.countup(D2,trix), ba.sweep(D2,loo) : si.interpolate(loo) : /(tempo2) : *(act) : int; // counter to read from the table
+  counter = ba.countup(D2,trix), ba.sweep(D2,loo) : ba.selectn(2,loo) : /(tempo2) : *(act) : int; // counter to read from the table
 
   memory = _ <: rwtable(tableSize,0.0,recindex,_,counter), _ : ba.selectn(2,rec) :> si.smoo ; //write and read automation to and from table
   // ADD REVERSE READ FUNCTION
@@ -363,9 +242,9 @@ with{
 	randomx = +(10000 +(seed)) ~ *(1103515245) & mask; // "linear congruential"
 	RANDMAX	= 2147483647.0; // = 2^31-1 = MAX_SIGNED_INT in 32 bits
 };
+
 //chaos: generates a continual stream of random values between 0 and 1 and adds it to the incoming signal
 chaos(value,seed) = _ : +(randomnoise(8,seed) : *(value) : si.smoo) : min(1,_) : max(0,_) : _;
-
 
 // random : random truth test: r = chance that random will produce "1", b = trigger the random calculation
 random(chance,trigger,seed) = randomnoise(32,seed) : <(chance) : ba.sAndH((trigger : ba.impulsify)) : *(trigger);
