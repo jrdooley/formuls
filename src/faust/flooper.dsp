@@ -17,7 +17,7 @@ process = flooper(tempo,trigx);
 //----------------------------------FLOOPER-----------------------------------------------//
 //----------------------------------------------------------------------------------------//
 //---------------flooper-------------//
-flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : pitchshift(tempo,trigx) : *(level))
+flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : pitchshift(tempo,trigx) : *(level)) : *(play :si.smoo)
   with {
     //-------- paramter control interface
     record = button("record") : int;
@@ -42,7 +42,7 @@ flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : amp
     rearecord = checkbox("rearecord");
     realoop = checkbox("realoop");
     reaact = checkbox("reaact");
-    reachaos = hslider("offchaos",0,0,1,0.01);
+    reachaos = hslider("reachaos",0,0,1,0.01);
 
     envelope = hslider("envelope",0,0,1,0.01) : automrec(_,tempo,envrecord,envloop,trigx,envact) : vbargraph("envelopeO",0,1) : 1-(_) : pow(10) : *(9999) : +(1) : si.smoo;
     envrecord = checkbox("envrecord");
@@ -69,9 +69,9 @@ flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : amp
 
     countforward = ba.countup(samplelength,play==(0)), ba.sweep(samplelength,play) : ba.selectn(2,loop); // forward playback of sample
     countbackward = ba.countdown(samplelength,play==(0)), ((<=(0) : ba.countdown(samplelength,play*(_)))~(_)) : ba.selectn(2,loop); // reverse/backward playback of sample
-    countmaster = countforward,countbackward : ba.selectn(2,reverse) : *(speed2); //aggregate of countforward and countbackward functions
+    countmaster = countforward,countbackward : ba.selectn(2,reverse); //aggregate of countforward and countbackward functions
     sampledropout = no.lfnoise0(32) : *(0.5) : +(0.5) : ba.sAndH(countmaster <=(1) : ba.impulsify) : >(dropout); // calculate whether a sample/grain should play or not
-    readindex = countmaster : +((readoffset *(D)) : ba.sAndH(countmaster ==(0))) : %(D) : *(sampledropout) : int; //the main counter that reads from the rwtable
+    readindex = countmaster <: *(speed2 : ba.sAndH(countmaster ==(0))) +(readoffset *(D) : ba.sAndH(countmaster ==(0))) : %(D) : *(sampledropout) : int; //the main counter that reads from the rwtable
     // Grain/sample envelope: raised cosine envelope applied to amplitude
     ampenvelope = _ : *(cos(readindex/(samplelength*(speed)) : *(ma.PI *(2))) : *(0.5) : +(0.5) : 1-(_) : *(envelope) : (_,1 : min));
 
