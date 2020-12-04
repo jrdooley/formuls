@@ -1,4 +1,4 @@
-#N canvas 984 5 364 873 10;
+#N canvas 984 23 364 873 10;
 #X obj 40 798 outlet;
 #X msg 111 350 looptrig \$1;
 #X obj 111 307 loadbang;
@@ -48,6 +48,7 @@
 #X msg 231 839 seqtranstime \$1;
 #X obj 85 726 \$2;
 #X msg 199 669 seqplay \$1;
+#X msg 248 337 1;
 #X connect 1 0 5 0;
 #X connect 2 0 26 0;
 #X connect 3 0 4 0;
@@ -96,3 +97,4 @@
 #X connect 45 0 5 0;
 #X connect 46 0 30 0;
 #X connect 47 0 5 0;
+#X connect 48 0 22 0;
