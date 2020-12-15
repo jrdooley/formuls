@@ -32,24 +32,26 @@ with{
   seqval = hslider("seqvalue",0,0,1,1) : int;
   seqread = hslider("seqread",130,0,130,1) : int;
   seqreadout = hslider("seqreadout",0,0,64,1) : *(2) : int;
-  seqrandomadd = hslider("seqrandomadd",0,0,1,0.01) : *(2) : -(1); // value lies between -1 and 1.
-  seqrandadd = (seqread : %(2)) == (0);
+  seqrandomadd = hslider("seqrandomadd",0,0,1,0.01) : fo.chaos(srachaos,17) : vbargraph("seqrandomaddO",0,1) : *(2) : -(1); // value lies between -1 and 1.
+  srachaos = hslider("srachaos",0,0,1,0.1) : pow(2);
+  seqrandadd = fo.random(seqrandomadd,((seqread : %(2)) == (0)),0);
 
   //write and read to and from table 64 is always at 0, 65 is the dead zone that "seqwrite" always defaults to.
   seq1 = rwtable(130,0.0,seqwrite,seqval,seqread);
-  seq2 = rwtable(130,0.0,seqwrite,seqval,seqreadout);
-  seqtrig = seq1, (seq2 : vbargraph("seqvalO",0,1)) : * :> _ : +(fo.random(seqrandomadd,seqrandadd,0)) : min(1);
+  seq2 = rwtable(130,0.0,seqwrite,seqval,seqreadout) : vbargraph("seqvalO",0,1) : *(0);
+  seqtrig = seq1, seq2 :> _ : +(seqrandadd) : min(1);
+  // seqtrig = seq1, seq2 : + :> _ : +(fo.random(seqrandomadd,seqrandadd,0) : *(seqread : +(1) : %(2))) : min(1);
 
   //--------EUCLID---------//
-  euclidupdate = _ : ba.sAndH(seqread : %(2) : ==(0) : ba.impulsify);
-  euclidon = checkbox("euclidon") : ba.sAndH(seqread : %(2));
-  eucbeats = hslider("euclidbeats",0,0,64,1) : *(2) : euclidupdate : int;
-  eucoffset = hslider("euclidoffset",0,0,64,1) : *(2) : euclidupdate : int;
-  eucbar = hslider("euclidbar",64,0,64,1) : *(2) : euclidupdate : int;
-  euccounter = +(1)~(ba.sAndH(seqread : %(2) : ba.impulsify)) : int;
-
+  // euclidupdate = _ : ba.sAndH(seqread : %(2) : ==(0) : ba.impulsify);
+  // euclidon = checkbox("euclidon") : ba.sAndH(seqread : %(2));
+  // eucbeats = hslider("euclidbeats",0,0,64,1) : *(2) : euclidupdate : int;
+  // eucoffset = hslider("euclidoffset",0,0,64,1) : *(2) : euclidupdate : int;
+  // eucbar = hslider("euclidbar",64,0,64,1) : *(2) : euclidupdate : int;
+  // euccounter = +(1)~(ba.sAndH(seqread : %(2) : ba.impulsify)) : int;
+  //
+  // // euclid = euccounter : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
   // euclid = euccounter : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
-  euclid = euccounter : +(eucoffset) : *(eucbeats) : %(eucbar) : <(eucbeats) : ba.impulsify;
 
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -57,9 +59,11 @@ with{
   adsron = checkbox("adsron") : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
   adsrsel(i,x,y) = adsron : ba.sAndH((i==x) & (y == 1)); // this allows adsr selection for each voice. It is embedded in the ADSR function: ADSR(a,d,s,r,t,adsrSel(i,x,y))
 
-  thresh = hslider("threshold",1,0,1,0.01); // sets ADSR trigger threshold for incomgin signal
+  thresh = hslider("threshold",1,0,1,0.01) : fo.chaos(thchaos,16) : vbargraph("thresholdO",0,1); // sets ADSR trigger threshold for incomgin signal
+  thchaos = hslider("thchaos",0,0,1,0.01) : pow(3);
   st = sigtrig : >(thresh) : ba.impulsify : int;
-  t = button("triggerx") : +(st) : +((seqtrig,euclid : ba.selectn(2,euclidon))) : min(1) : int; // triggers synth voice
+  t = button("triggerx") : +(st) : +(seqtrig) : min(1) : int; // triggers synth voice
+  // t = button("triggerx") : +(st) : +(seqtrig,euclid : ba.selectn(2,euclidon)) : min(1) : int; // triggers synth voice
   //Counter to select voice
   monophonic(tri) = checkbox("monophonic") : vbargraph("monophonicO",0,1) : ba.sAndH(tri) : int;
   counterMod = 16,2 :> ba.selectn(2,monophonic(t));
@@ -80,7 +84,8 @@ with{
   // generates random pitches with existing "scale quantisation"
   genrange = hslider("genrange",0,0,1,0.01) : fo.chaos(grchaos,0) : vbargraph("genrangeO",0,1) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : int;
   grchaos = hslider("grchaos",0,0,1,0.01) : pow(3);
-  genstepsize = hslider("genstepsize",1,1,12,0.1) : min(genrange) : *(gendirection) : int;
+  genstepsize = hslider("genstepsize",1,1,12,0.1) : +(gschaos) : min(genrange) : *(gendirection) : int : vbargraph("genstepsizeO",1,12);
+  gschaos = hslider("gschaos",0,0,1,0.1) : *(fo.randomnoise(8,15)) : si.smoo : *(8) : min(12,_) : max(0,_);
   gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
   genrepeatin = hslider("genrepeat",1,1,8,1) : int;
   genrepeat = ((((ba.sAndH(gentrig))~+(1) : %(genrepeatin)) == 0) : ba.impulsify), gentrig : ba.selectn(2,genrepeatin <(2)) : int;
@@ -132,7 +137,7 @@ with{
   op1srchaos = hslider("op1srchaos",0,0,1,0.01);
   orx(i,x,y) = op1sliderange : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
-  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : fo.automrec(_,tempo,op1strecord,op1stloop,t,op1stact) : fo.chaos(op1stchaos,5) : vbargraph("op1slidetimeO",0,1) : pow(1.7) : *(2); // time taken for carrier frequency slide
+  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : fo.automrec(_,tempo,op1strecord,op1stloop,t,op1stact) : fo.chaos(op1stchaos,5) : vbargraph("op1slidetimeO",0,1) : pow(2.7) : *(2); // time taken for carrier frequency slide
   op1strecord = checkbox("op1strecord");
   op1stloop = checkbox("op1stloop");
   op1stact = checkbox("op1stact");
@@ -169,7 +174,7 @@ with{
 
   //---------ADSR----------//
   /* ADSR envelope for FMSynth module */
-  ADSR(a,d,s,r,t,ON) = _ <: _, *(en.dx7envelope(a,d,r,1,1,s,0,0,t) : pow(4)) : ba.selectn(2,ON);
+  ADSR(a,d,s,r,t,ON) = _ <: _, *(en.dx7envelope(a,d,r,1,1,s,0,0,t) : pow(2.7)) : ba.selectn(2,ON);
   /* ADSR controls */
   attack = hslider("attack",0,0,1,0.001) : fo.automrec(_,tempo,arecord,aloop,t,aact)  : fo.chaos(achaos,10) : vbargraph("attackO",0,1) : pow(3.1) : *(0.999) : +(0.001) : *(10);
   arecord = checkbox("arecord");
@@ -185,7 +190,7 @@ with{
   dchaos = hslider("dchaos",0,0,1,0.01);
   dx(i,x,y) = decay : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
-  sustain = hslider("sustain",1,0,1,0.01) : fo.automrec(_,tempo,srecord,sloop,t,sact)  : fo.chaos(schaos,12) : vbargraph("sustainO",0,1) : pow(1.7);
+  sustain = hslider("sustain",1,0,1,0.01) : fo.automrec(_,tempo,srecord,sloop,t,sact)  : fo.chaos(schaos,12) : vbargraph("sustainO",0,1);
   srecord = checkbox("srecord");
   sloop = checkbox("sloop");
   sact = checkbox("sact");
@@ -200,7 +205,7 @@ with{
   rx(i,x,y) = release : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  velocity = hslider("velocity",1,0,1,0.01) : fo.chaos(vchaos,14) : pow(2.7);
+  velocity = hslider("velocity",1,0,1,0.01) : fo.chaos(vchaos,14) : vbargraph("velocityO",0,1) : pow(2.7);
   vchaos = hslider("vchaos",0,0,1,0.01);
   vx(i,x,y) = velocity : si.smoothAndH((i==x) & (y==1), 0.999);
 };

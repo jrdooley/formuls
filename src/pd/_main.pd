@@ -1,8 +1,8 @@
-#N canvas 27 559 264 313 10;
+#N canvas 30 497 264 313 10;
 #X declare -path abstractions;
-#X obj 37 201 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 37 201 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
-#X obj 37 109 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
+#X obj 37 109 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
 1;
 #N canvas 0 473 291 114 ABLETON_LINK_&_TIMING 0;
 #N canvas 0 94 375 215 AUTOMATER_TIMING 0;
@@ -35,14 +35,22 @@
 #X obj 162 138 r master-seq-on-off;
 #X obj 40 31 r \$0-bpm;
 #X obj 117 237 outlet;
+#X msg 297 58 60000 \$1;
+#X obj 297 79 /;
+#X obj 297 100 * 16;
+#X obj 297 121 s recordtime;
 #X connect 0 0 1 0;
 #X connect 0 0 8 0;
 #X connect 2 2 5 0;
 #X connect 3 0 2 0;
 #X connect 4 0 3 0;
+#X connect 4 0 9 0;
 #X connect 5 0 0 0;
 #X connect 6 0 5 1;
 #X connect 7 0 4 0;
+#X connect 9 0 10 0;
+#X connect 10 0 11 0;
+#X connect 11 0 12 0;
 #X restore 21 32 pd SEQUENCER_TIMING;
 #X connect 1 0 0 0;
 #X restore 54 146 pd ABLETON_LINK_&_TIMING;
