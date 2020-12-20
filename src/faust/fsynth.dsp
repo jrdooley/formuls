@@ -82,14 +82,14 @@ with{
 
   //------GENERATIVE--------//
   // generates random pitches with existing "scale quantisation"
-  genrange = hslider("genrange",0,0,1,0.01) : fo.chaos(grchaos,0) : vbargraph("genrangeO",0,1) : *(4) : *(scalelength) : ba.sAndH(gentrig) : +(1) : int;
+  genrange = hslider("genrange",0,0,1,0.01) : fo.chaos(grchaos,0) : vbargraph("genrangeO",0,1) : *(4) : *(scalelength) : +(1) : int;
   grchaos = hslider("grchaos",0,0,1,0.01) : pow(3);
   genstepsize = hslider("genstepsize",1,1,12,0.1) : +(gschaos) : min(genrange) : *(gendirection) : int : vbargraph("genstepsizeO",1,12);
-  gschaos = hslider("gschaos",0,0,1,0.1) : *(fo.randomnoise(8,15)) : si.smoo : *(8) : min(12,_) : max(0,_);
+  gschaos = hslider("gschaos",0,0,1,0.1) : *(fo.randomnoise(8,15)) : si.smoo : *(8) : min(12) : max(0);
   gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
   genrepeatin = hslider("genrepeat",1,1,8,1) : int;
-  genrepeat = ((((ba.sAndH(gentrig))~+(1) : %(genrepeatin)) == 0) : ba.impulsify), gentrig : ba.selectn(2,genrepeatin <(2)) : int;
   gentrig = t : ba.impulsify : int;
+  genrepeat = ((((ba.sAndH(gentrig))~+(1) : %(genrepeatin)) == 0) : ba.impulsify), gentrig : ba.selectn(2,genrepeatin <(2)) : int;
   genon = checkbox("genon") : int;
   generative = (_ *(genon) : ba.sAndH((genrepeat) | (genon == 0 : ba.impulsify)))~+(genstepsize) : %(genrange);
 
@@ -128,7 +128,8 @@ with{
   op1floop = checkbox("op1floop");
   op1fact = checkbox("op1fact");
   op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(2.7);
-  ox(i,x,y) = op1freq : *(scalelength) : *(10) : +(generative) : scalequantise : ba.midikey2hz : ba.sAndH((i==x) & (y==1) : ba.impulsify) : vbargraph("op1pitchO%i",0,22050);
+  oxO = op1freq : *(scalelength) : *(10) : +(generative) : scalequantise : ba.midikey2hz : vbargraph("op1pitchO",0,22050);
+  ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
 
   op1sliderange = hslider("op1sliderange",0,0,1,0.001) : fo.automrec(_,tempo,op1srrecord,op1srloop,t,op1sract) : fo.chaos(op1srchaos,4) : vbargraph("op1sliderangeO",0,1) : *(5); //upper frequency for carrier to "slide" down from
   op1srrecord = checkbox("op1srrecord");
@@ -152,7 +153,7 @@ with{
   o2fx(i,x,y) = op2freq : ba.sAndH((i==x) & (i!=y));
 
   op2depth = hslider("op2depth",0,0,1,0.001) : fo.automrec(_,tempo,op2drecord,op2dloop,t,op2dact) : fo.chaos(op2dchaos,7) : vbargraph("op2depthO",0,1) : *(2);// mod depth is relative to op1 freq
-  o2out = op2depth;
+  // o2out = op2depth;
   op2drecord = checkbox("op2drecord");
   op2dloop = checkbox("op2dloop");
   op2dact = checkbox("op2dact");

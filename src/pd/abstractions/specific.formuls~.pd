@@ -1,7 +1,7 @@
 #N canvas 661 70 621 807 10;
 #X text 443 37 \$1 = \$0 \; \$2 = instance;
 #X obj 450 118 hradio 25 1 0 2 empty empty POST_PRE 0 -8 0 10 -262144
--1 -1 0;
+-1 -1 1;
 #X obj 450 148 s \$0-fx-routing;
 #X obj 103 179 s~ \$0-fynth-2;
 #X obj 321 343 r~ \$0-fynth-2;
@@ -17,7 +17,7 @@
 #X obj 49 49 s \$0-formuls-param-in;
 #X obj 46 93 r \$0-formuls-param-in;
 #X obj 48 285 r \$0-formuls-param-in;
-#X obj 282 303 r \$0-formuls-param-in;
+#X obj 282 283 r \$0-formuls-param-in;
 #X obj 42 501 r \$0-formuls-param-in;
 #X obj 41 718 r \$0-formuls-param-out;
 #X obj 42 683 s \$0-formuls-param-out;
@@ -138,7 +138,7 @@
 #X obj 49 26 specific.oscinparse \$2 \$1;
 #X obj 218 50 specific.modroute~;
 #X obj 111 396 s~ \$0-flooper-out-1;
-#X obj 301 322 catch~ \$0-fx-in-1;
+#X obj 301 303 catch~ \$0-fx-in-1;
 #X obj 74 199 s~ \$0-fynth-1;
 #X obj 41 740 specific.oscoutparse \$2 \$1 fsynth ffx fmix flooper
 ;
@@ -179,6 +179,32 @@
 #X obj 48 372 flooper~, f 11;
 #X obj 282 364 ffx~, f 7;
 #X obj 46 157 fsynth~, f 10;
+#N canvas 0 23 301 300 FXSEND 0;
+#X obj 147 32 inlet~;
+#X obj 28 234 outlet~;
+#X obj 149 225 outlet~;
+#X obj 28 210 *~;
+#X obj 43 185 lop~ 200;
+#X obj 164 155 sig~;
+#X obj 149 202 *~;
+#X obj 164 178 lop~ 200;
+#X obj 43 162 sig~ 1;
+#X msg 164 114 1 \$1;
+#X obj 164 135 -;
+#X obj 43 46 r fxsend\$2;
+#X connect 0 0 6 0;
+#X connect 0 0 3 0;
+#X connect 3 0 1 0;
+#X connect 4 0 3 1;
+#X connect 5 0 7 0;
+#X connect 6 0 2 0;
+#X connect 7 0 6 1;
+#X connect 8 0 4 0;
+#X connect 9 0 10 0;
+#X connect 10 0 5 0;
+#X connect 11 0 9 0;
+#X connect 11 0 8 0;
+#X restore 301 324 pd FXSEND;
 #X connect 1 0 2 0;
 #X connect 4 0 45 2;
 #X connect 5 0 43 3;
@@ -197,7 +223,7 @@
 #X connect 35 0 11 0;
 #X connect 35 1 12 0;
 #X connect 35 2 13 0;
-#X connect 37 0 45 1;
+#X connect 37 0 47 0;
 #X connect 40 0 44 2;
 #X connect 41 0 44 0;
 #X connect 42 0 1 0;
@@ -213,3 +239,5 @@
 #X connect 46 0 23 0;
 #X connect 46 1 38 0;
 #X connect 46 2 3 0;
+#X connect 47 0 45 1;
+#X connect 47 1 9 0;
