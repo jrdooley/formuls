@@ -2,10 +2,22 @@ import("stdfaust.lib");
 fo = library("formuls.lib");
 
 // signal inputs: 1) signal to process 2)fo.automrec trigger
-//Signal outputs: 1) output of fx sent to fmix;
+// Signal outputs: 1) output of fx sent to fmix;
 process = _,_ : ro.cross(2) : fxprocess(tempo);
 
-fxprocess(tempo,t) = saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : delay(tempo,t) : am(tempo,t) : resfilter(tempo,t) : gate;
+// fxprocess(tempo,t) = saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : delay(tempo,t) : am(tempo,t) : resfilter(tempo,t) : gate(tempo,t);
+fxprocess(tempo,t) = _ <: _,(saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : delay(tempo,t) : am(tempo,t) : resfilter(tempo,t) : gate(tempo,t)) : si.interpolate(fxsend(tempo,t));
+
+tempo = hslider("tempo",1,0.01,1,0.01); // controls fo.automrec read speed
+
+fxsend(tempo,trigx) = fxsend2
+with {
+  fxsend2 = hslider("fxsend",1,0,1,0.01) : fo.automrec(_,tempo,fxsrecord,fxsloop,trigx,fxsact) : fo.chaos(fxschaos,33) : vbargraph("fxsendO",0,1);
+  fxsrecord = checkbox("fxsrecord");
+  fxsloop = checkbox("fxsloop");
+  fxsact = checkbox("fxsact");
+  fxschaos = hslider("fxschaos",0,0,1,0.01) : pow(3);
+};
 
 //----------------------------------------------------------------------------------------//
 //---------------------------------------FX_FUNCTIONS-------------------------------------//
@@ -36,7 +48,7 @@ with{
 };
 //-----------SATURATION---------------//
 /* tanh waveshape distortion */
-saturation(tempo,trigx) = _ <: _, (*(1.57) : ma.tanh) : si.interpolate(saturationamount)
+saturation(tempo,trigx) = _ <: _,(_ : *(1.57) : ma.tanh) : si.interpolate(saturationamount)
 with{
   saturationamount = hslider("saturation",0,0,1,0.01) : fo.automrec(_,tempo,satrecord,satloop,trigx,satact) : fo.chaos(satchaos,19) : vbargraph("saturationO",0,1) : si.smoo;
   satrecord = checkbox("satrecord");
@@ -45,14 +57,14 @@ with{
   satchaos = hslider("satchaos",0,0,1,0.01);
 };
 //-----------RESONANT_FILTER---------------//
-resfilter(tempo,trigx) = _ : fi.highpass(2,hipass) : fi.resonlp(fc,res,1)
+resfilter(tempo,trigx) = _ : fi.highpass(2,highpass) : fi.resonlp(fc,res,1)
 with {
-  highpass = hslider("highpass",1,0,1,0.001) : fo.automrec(_,tempo,hiprecord,hiploop,trigx,hipact) : fo.chaos(hpchaos,31) : vbargraph("highpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
+  highpass = hslider("highpass",0,0,1,0.001) : fo.automrec(_,tempo,hiprecord,hiploop,trigx,hipact) : fo.chaos(hipchaos,31) : vbargraph("highpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
   hiprecord = checkbox("hiprecord");
   hiploop = checkbox("hiploop");
   hipact = checkbox("hipact");
   hipchaos = hslider("hipchaos",0,0,1,0.01) : pow(2.7);
-  
+
   fc = hslider("filtercutoff",1,0,1,0.001) : fo.automrec(_,tempo,fcrecord,fcloop,trigx,fcact) : fo.chaos(fcchaos,20) : vbargraph("filtercutoffO",0,1) : *(136) : ba.midikey2hz : si.smoo;
   fcrecord = checkbox("fcrecord");
   fcloop = checkbox("fcloop");
@@ -108,9 +120,26 @@ with {
 gate(tempo,trigx) = _ : ef.gate_mono(thresh,att,hold,rel) : _
 with {
   thresh = hslider("gatethresh",0,0,1,0.01) : fo.automrec(_,tempo,gtrecord,gtloop,trigx,gtact) : fo.chaos(gtchaos,27) : vbargraph("gatethreshO",0,1) : pow(0.3) : *(60) : -(60); //short = gt
-  att = hslider("gateattack",0,0,1,0.01) : fo.automrec(_,tempo,garecord,galoop,trigx,gaact) : fo.chaos(gachaos,28) : vbargraph("gateattackO",0,1) : pow(3) : *(0.25) : +(0.001); // short = ga
-  hold = hslider("gatehold",0,0,1,0.01) : fo.automrec(_,tempo,ghrecord,ghloop,trigx,ghact) : fo.chaos(ghchaos,29) : vbargraph("gateholdO",0,1) : pow(3) : *(0.25) : +(0.001); // short = gh
-  rel = hslider("gaterelease",0,0,1,0.01) : fo.automrec(_,tempo,grrecord,grloop,trigx,gract) : fo.chaos(grchaos,30) : vbargraph("gatereleaseO",0,1) : pow(3) : +(0.001); // short = gr
-};
+  gtrecord = checkbox("gtrecord");
+  gtloop = checkbox("gtloop");
+  gtact = checkbox("gtact");
+  gtchaos = hslider("gtchaos",0,0,1,0.01);
 
-tempo = hslider("tempo",1,0.01,1,0.01); // controls fo.automrec read speed
+  att = hslider("gateattack",0,0,1,0.01) : fo.automrec(_,tempo,garecord,galoop,trigx,gaact) : fo.chaos(gachaos,28) : vbargraph("gateattackO",0,1) : pow(3) : *(0.25) : +(0.001); // short = ga
+  garecord = checkbox("garecord");
+  galoop = checkbox("galoop");
+  gaact = checkbox("gaact");
+  gachaos = hslider("gachaos",0,0,1,0.01);
+
+  hold = hslider("gatehold",0,0,1,0.01) : fo.automrec(_,tempo,ghrecord,ghloop,trigx,ghact) : fo.chaos(ghchaos,29) : vbargraph("gateholdO",0,1) : pow(3) : *(0.25) : +(0.001); // short = gh
+  ghrecord = checkbox("ghrecord");
+  ghloop = checkbox("ghloop");
+  ghact = checkbox("ghact");
+  ghchaos = hslider("ghchaos",0,0,1,0.01);
+
+  rel = hslider("gaterelease",0,0,1,0.01) : fo.automrec(_,tempo,grrecord,grloop,trigx,gract) : fo.chaos(grchaos,30) : vbargraph("gatereleaseO",0,1) : pow(3) : +(0.001); // short = gr
+  grrecord = checkbox("grrecord");
+  grloop = checkbox("grloop");
+  gract = checkbox("gract");
+  grchaos = hslider("grchaos",0,0,1,0.01);
+};

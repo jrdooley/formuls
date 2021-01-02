@@ -42,7 +42,7 @@ flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : amp
     duract = checkbox("duract");
     durchaos = hslider("durchaos",0,0,1,0.01);
 
-    readoffset = hslider("readoffset",0,0,1,0.01) : fo.automrec(_,tempo,rearecord,realoop,trigx,reaact) : fo.chaos(reachaos,3) : vbargraph("readoffsetO",0,1) : si.smoo;
+    readoffset = hslider("readoffset",0,0,1,0.01) : fo.automrec(_,tempo,rearecord,realoop,trigx,reaact) : fo.chaos(reachaos,3) : vbargraph("readoffsetO",0,1);
     rearecord = checkbox("rearecord");
     realoop = checkbox("realoop");
     reaact = checkbox("reaact");
@@ -76,7 +76,7 @@ flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : amp
     countfandb = countforward,countbackward : ba.selectn(2,reverse); //aggregate of countforward and countbackward functions
     countmaster = countfandb <: *(speed2 : ba.sAndH(countfandb ==(0)));
     sampledropout = no.lfnoise0(32) : *(0.5) : +(0.5) : ba.sAndH(countmaster <=(1) : ba.impulsify) : >(dropout); // calculate whether a sample/grain should play or not
-    readindex =  countmaster : +(readoffset *(D) : ba.sAndH(countfandb ==(0))) : %(D) : *(sampledropout) : int; //the main counter that reads from the rwtable
+    readindex =  countmaster : +(readoffset *(D) : ba.sAndH(countfandb ==(0) : ba.impulsify)) : %(D) : *(sampledropout) : int; //the main counter that reads from the rwtable
     // Grain/sample envelope: raised cosine envelope applied to amplitude
     ampenvelope = _ : *(cos(countmaster/(samplelength*(speed2)) : *(ma.PI *(2))) : *(0.5) : +(0.5) : 1-(_) : *(envelope) : (_,1 : min));
   };

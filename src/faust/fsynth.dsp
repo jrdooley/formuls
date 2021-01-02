@@ -82,8 +82,12 @@ with{
 
   //------GENERATIVE--------//
   // generates random pitches with existing "scale quantisation"
-  genrange = hslider("genrange",0,0,1,0.01) : fo.chaos(grchaos,0) : vbargraph("genrangeO",0,1) : *(4) : *(scalelength) : +(1) : int;
+  genrange = hslider("genrange",0,0,1,0.01) : fo.automrec(_,tempo,grrecord,grloop,t,gract) : fo.chaos(grchaos,0) : vbargraph("genrangeO",0,1) : *(4) : *(scalelength) : +(1) : int;
+  grrecord = checkbox("grrecord");
+  grloop = checkbox("grloop");
+  gract = checkbox("gract");
   grchaos = hslider("grchaos",0,0,1,0.01) : pow(3);
+  
   genstepsize = hslider("genstepsize",1,1,12,0.1) : +(gschaos) : min(genrange) : *(gendirection) : int : vbargraph("genstepsizeO",1,12);
   gschaos = hslider("gschaos",0,0,1,0.1) : *(fo.randomnoise(8,15)) : si.smoo : *(8) : min(12) : max(0);
   gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
@@ -103,9 +107,10 @@ with{
     freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
     freqset = _ : *(freqcontrol) : +(freqcontrol);
     clip(x) = x : min(1,_) : max(0,_);
-    oscphase = ta == (0);
+    oscphase = ta == (0) : ba.impulsify;
     wa1 = wa : si.smoo;
-    fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+    fmosc = _ <: (((os.hs_oscsin(_,0)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+    // fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
   };
 
   // extmod: external input modulates frequency of Oscillator.
