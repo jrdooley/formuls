@@ -56,7 +56,7 @@ with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
   /* Oscillator controls */
-  adsron = checkbox("adsron") : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
+  adsron = hslider("adsron",1,0,1,1) : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
   adsrsel(i,x,y) = adsron : ba.sAndH((i==x) & (y == 1)); // this allows adsr selection for each voice. It is embedded in the ADSR function: ADSR(a,d,s,r,t,adsrSel(i,x,y))
 
   thresh = hslider("threshold",1,0,1,0.01) : fo.chaos(thchaos,16) : vbargraph("thresholdO",0,1); // sets ADSR trigger threshold for incomgin signal
@@ -87,7 +87,7 @@ with{
   grloop = checkbox("grloop");
   gract = checkbox("gract");
   grchaos = hslider("grchaos",0,0,1,0.01) : pow(3);
-  
+
   genstepsize = hslider("genstepsize",1,1,12,0.1) : +(gschaos) : min(genrange) : *(gendirection) : int : vbargraph("genstepsizeO",1,12);
   gschaos = hslider("gschaos",0,0,1,0.1) : *(fo.randomnoise(8,15)) : si.smoo : *(8) : min(12) : max(0);
   gendirection = hslider("gendirection",1,-1,1,2) : vbargraph("gendirectionO",-1,1) : int;
@@ -155,7 +155,8 @@ with{
   op2floop = checkbox("op2floop");
   op2fact = checkbox("op2fact");
   op2fchaos = hslider("op2fchaos",0,0,1,0.01) : pow(2.7);
-  o2fx(i,x,y) = op2freq : ba.sAndH((i==x) & (i!=y));
+  // o2fx(i,x,y) = op2freq : ba.sAndH((i==x) & (i!=y));
+  o2fx(i,x,y) = op2freq : ba.sAndH((i==x));
 
   op2depth = hslider("op2depth",0,0,1,0.001) : fo.automrec(_,tempo,op2drecord,op2dloop,t,op2dact) : fo.chaos(op2dchaos,7) : vbargraph("op2depthO",0,1) : *(2);// mod depth is relative to op1 freq
   // o2out = op2depth;
@@ -163,7 +164,8 @@ with{
   op2dloop = checkbox("op2dloop");
   op2dact = checkbox("op2dact");
   op2dchaos = hslider("op2dchaos",0,0,1,0.01) : pow(2.7);
-  o2dx(i,x,y) = op2depth : ba.sAndH((i==x) & (i!=y));
+  // o2dx(i,x,y) = op2depth : ba.sAndH((i==x) & (i!=y));
+  o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
 
   noise = hslider("noise",0,0,1,1) : fo.automrec(_,tempo,nrecord,nloop,t,nact)  : fo.chaos(nchaos,8) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nrecord = checkbox("nrecord");
