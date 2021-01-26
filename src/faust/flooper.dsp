@@ -10,18 +10,20 @@ declare options "[osc:on]";
 
 import("stdfaust.lib");
 fo = library("formuls.lib");
+fx = library("ffx.lib");
 
 //-----MAIN-----//
 //Signal inputs: 1)input synth voice ; 2)input from fx (pre-flooper processing);
 //Signal outputs: 1)output of flooper to fx for processing; 2)output to
 
-process = _,_ : ro.cross(2) : flooper(tempo);
+process(l,r,trig) = l,r : flooper(tempo,trig) : fx.pitchshift(tempo,trig), fx.pitchshift(tempo,trig);
 
 //----------------------------------------------------------------------------------------//
 //----------------------------------FLOOPER-----------------------------------------------//
 //----------------------------------------------------------------------------------------//
 //---------------flooper-------------//
-flooper(tempo,trigx) = (rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo)
+flooper(tempo,trigx) = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo)),
+                        ((rwtable(floopertablesize,0.1,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo))
   with {
     //-------- paramter control interface
     record = button("record") : int;

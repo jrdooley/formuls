@@ -1,6 +1,32 @@
-//formuls lib
+declare author "James Dooley: info@formuls.co.uk";
+declare copyright "James Dooley";
+declare version "1.0";
+declare license "MIT";
+declare options "[osc:on]";
 
 import("stdfaust.lib");
+
+//----------------------------------------------------------------------------------------//
+//----------------------------------SYNTHESIS---------------------------------------------//
+//----------------------------------------------------------------------------------------//
+//------fmosc-------//
+/* FM Oscillator: sine -> triangle -> sawtooth -> square. */
+// o1f = op1 freq, o1sr = op1 slide range, o1st = op1 slide time,o2f = op2 freq, o2d = op2 depth, na = noise, wa = waveshape, ta = trigger
+fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta) = freqset : fmosc
+  with{
+  cf = o1f : +(o1f : *((en.ar(0.001,o1st,ta) : pow(2.7)) : *(o1sr))) : min(19000); //calculate op1 freq during freq slide
+  freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
+  freqset = _ : *(freqcontrol) : +(freqcontrol);
+  clip(x) = x : min(1,_) : max(0,_);
+  oscphase = ta == (0) : ba.impulsify;
+  wa1 = wa : si.smoo;
+  fmosc = _ <: (((os.hs_oscsin(_,0)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+  // fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+};
+
+//---------ADSR----------//
+/* Fixed duration ADSR envelope for FMSynth module */
+adsr(a,d,s,r,t) = _ : *(en.dx7envelope(a,d,r,1,1,s,0,0,t) : pow(2.7));
 
 //----------------------------------------------------------------------------------------//
 //----------------------------------AUTOMATION-------------------------------------------//
