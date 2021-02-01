@@ -13,15 +13,16 @@ fo = library("formuls.lib");
 //------FORMULS------//
 /* main synth function */
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-synth(inmod,tempo,sigtrig) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,0,0,op2freq,op2depth,nx,waveshape,1) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2)) : *(vx(i,c,t)))) :> _) : ba.selectn(2,adsron) : *(0.0625)
+synth(inmod,tempo,sigtrig) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,0,0,op2freq,op2depth,nx,waveshape,1) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx(i,c,t),otx(i,c,t),o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(ax(i,c,t),dx(i,c,t),sx(i,c,t),rx(i,c,t),tx2(i,c,c2)) : *(vx(i,c,t)))) :> _) : ba.selectn(2,adsron)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
   /* fmosc controls */
-  adsron = hslider("adsron",1,0,1,1) : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
+  adsron = hslider("adsron",0,0,1,1) : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
   monophonic(tri) = checkbox("monophonic") : vbargraph("monophonicO",0,1) : ba.sAndH(tri) : int;
 
-  st = (sigtrig : an.ms_envelope_rect(0.01) : >(thresh)) : *(thresh!=1): ba.impulsify : int;
+  // st = (sigtrig : an.ms_envelope_rect(0.01) : >(thresh)) : *(thresh!=1): ba.impulsify : int;
+  st = (sigtrig : si.smoo: >(thresh)) : *(thresh!=1): ba.impulsify : int;
   thresh = hslider("threshold",1,0,1,0.01) : fo.chaos(thchaos,16) : vbargraph("thresholdO",0,1) : pow(6); // sets ADSR trigger threshold for incomgin signal
   thchaos = hslider("thchaos",0,0,1,0.01) : pow(3);
   t = button("triggerx") : ba.impulsify : +(st) : min(1) : int; // triggers synth voice
@@ -36,7 +37,7 @@ with{
   //----SYNTH_PARAMETERS----//
 
   // extmod: external input modulates frequency of Oscillator.
-  extmod = hslider("extmodulation",0,0,1,0.01) : fo.automrec(_,tempo,extrecord,extloop,t,extact)  : fo.chaos(extchaos,1) : vbargraph("extmodulationO",0,1) : si.smoo; // amount of noise to add to carrier frequency
+  extmod = hslider("extmodulation",0,0,1,0.01) : fo.automrec(_,tempo,extrecord,extloop,t,extact)  : fo.chaos(extchaos,1) : vbargraph("extmodulationO",0,1) : *(16) : si.smoo; // amount of noise to add to carrier frequency
   extrecord = checkbox("extrecord");
   extloop = checkbox("extloop");
   extact = checkbox("extact");
