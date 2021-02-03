@@ -3629,7 +3629,7 @@
                     "type": "button",
                     "top": "66.66%",
                     "left": "0%",
-                    "id": "monophonic@{parent.variables}",
+                    "id": "polyphonic@{parent.variables}",
                     "visible": true,
                     "interaction": true,
                     "width": "100%",
@@ -3657,7 +3657,7 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "label": "MONOPHONIC",
+                    "label": "POLYPHONIC",
                     "doubleTap": false,
                     "colorTextOn": "rgba(255,255,255,1)",
                     "vertical": false,
@@ -11865,7 +11865,7 @@
                 "type": "matrix",
                 "top": "0%",
                 "left": "0%",
-                "id": "input@{parent.variables.n}",
+                "id": "audioinput@{parent.variables.n}",
                 "visible": true,
                 "interaction": true,
                 "width": "100%",
@@ -12570,6 +12570,6 @@
     ],
     "html": ""
   },
-  "version": "1.8.2",
+  "version": "1.8.3",
   "type": "Open Stage Control session"
 }
