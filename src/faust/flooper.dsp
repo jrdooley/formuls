@@ -38,7 +38,8 @@ flooper(tempo,trigx) = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex
     speact = checkbox("speact");
     spechaos = hslider("spechaos",0,0,1,0.01);
 
-    duration = hslider("duration",1,0.0001,1,0.0001) : fo.automrec(_,tempo,durrecord,durloop,trigx,duract) : fo.chaos(durchaos,2) : vbargraph("durationO",0,1) : pow(3);
+    // duration = hslider("duration",1,0.0001,1,0.0001) : fo.automrec(_,tempo,durrecord,durloop,trigx,duract) : fo.chaos(durchaos,2) : vbargraph("durationO",0,1) : pow(3);
+    duration = hslider("duration",0,0,10,1) : /(10) : fo.automrec(_,tempo,durrecord,durloop,trigx,duract) : fo.chaos(durchaos,2) : *(10) : int : vbargraph("durationO",0,10) : 2^(_);
     durrecord = checkbox("durrecord");
     durloop = checkbox("durloop");
     duract = checkbox("duract");
@@ -70,7 +71,7 @@ flooper(tempo,trigx) = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex
 
     //-------- Table read and envelope control-------//
     // "readindex" triggers counters and controls random sample drop out
-    samplelength = D : *(duration) : /(speed) : int; // calculates the duration of the sample/grain in samples
+    samplelength = D : *(1/(duration)) : /(speed) : int; // calculates the duration of the sample/grain in samples
     speed2 = speed : si.smoo;
 
     countforward = ba.countup(samplelength,play==(0)), ba.sweep(samplelength,play) : ba.selectn(2,loop); // forward playback of sample

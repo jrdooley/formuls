@@ -220,23 +220,17 @@
 #X restore 188 198 pd REVERB_SEND__;
 #X obj 188 176 r~ \$2-l;
 #X obj 250 175 r~ \$2-r;
-#X obj 172 133 env~;
-#X floatatom 172 154 5 0 0 0 - - -;
-#X obj 239 127 s~ \$2-m;
 #X connect 0 0 2 0;
 #X connect 2 0 8 0;
 #X connect 3 0 4 0;
 #X connect 4 0 8 0;
 #X connect 5 0 8 1;
-#X connect 5 0 12 0;
 #X connect 5 1 8 2;
-#X connect 5 1 12 0;
 #X connect 8 0 1 0;
 #X connect 8 1 6 0;
 #X connect 8 2 7 0;
 #X connect 10 0 9 0;
 #X connect 11 0 9 1;
-#X connect 12 0 13 0;
 #X restore 16 148 pd LOOPER_________;
 #X text 185 16 <- parse incoming messages;
 #X text 176 166 <- retreive parameter value from faust DSP then format
