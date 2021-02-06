@@ -9,154 +9,172 @@ fo = library("formuls.lib");
 
 fx(sig,tempo,t) = sig <: _,(saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : delay(tempo,t) : am(tempo,t) : filter(tempo,t) : gate(tempo,t)) : si.interpolate(fxsend(tempo,t));
 
-fxsend(tempo,trigx) = fxs
+fxsend(tempo,t) = fxs
 with {
-  fxs = hslider("fxsend",1,0,1,0.01) : fo.automrec(_,tempo,fxsrecord,fxsloop,trigx,fxsact) : fo.chaos(fxschaos,33) : vbargraph("fxsendO",0,1);
+  fxs = hslider("fxsend",1,0,1,0.01) : fo.automrec(_,tempo,fxsrecord,fxsloop,t,fxsact) : fo.chaos(fxschaos,33,fxschaostrig,t) : vbargraph("fxsendO",0,1);
   fxsrecord = checkbox("fxsrecord");
   fxsloop = checkbox("fxsloop");
   fxsact = checkbox("fxsact");
   fxschaos = hslider("fxschaos",0,0,1,0.01) : pow(3);
+  fxschaostrig = hslider("fxschaostrig",0,0,1,1);
 };
 
 //----------------------------------------------------------------------------------------//
 //---------------------------------------FX_FUNCTIONS-------------------------------------//
 //----------------------------------------------------------------------------------------//
 //------AMPLITUDE_MODULATION-----//
-am(tempo,trigx) = _ : *(1-(amd *(amf : amosc)))
+am(tempo,t) = _ : *(1-(amd *(amf : amosc)))
 with{
-  amw = hslider("amwave",0,0,1,0.001) : fo.automrec(_,tempo,amwrecord,amwloop,trigx,amwact) : fo.chaos(amwchaos,16) : vbargraph("amwaveO",0,1) : *(3);
+  amw = hslider("amwave",0,0,1,0.001) : fo.automrec(_,tempo,amwrecord,amwloop,t,amwact) : fo.chaos(amwchaos,16,amwchaostrig,t) : vbargraph("amwaveO",0,1) : *(3);
   amwrecord = checkbox("amwrecord");
   amwloop = checkbox("amwloop");
   amwact = checkbox("amwact");
   amwchaos = hslider("amwchaos",0,0,1,0.01) : pow(3);
+  amwchaostrig = hslider("amwchaostrig",0,0,1,1);
 
-  amf = hslider("amfreq",0,0,1,0.001) : fo.automrec(_,tempo,amfrecord,amfloop,trigx,amfact) : fo.chaos(amfchaos,17) : vbargraph("amfreqO",0,1) : pow(3.1) : *(99.9) : max(0.1) : vbargraph("amfreqhzO",0.1,100) : si.smoo;
+  amf = hslider("amfreq",0,0,1,0.001) : fo.automrec(_,tempo,amfrecord,amfloop,t,amfact) : fo.chaos(amfchaos,17,amfchaostrig,t) : vbargraph("amfreqO",0,1) : pow(3.1) : *(99.9) : max(0.1) : vbargraph("amfreqhzO",0.1,100) : si.smoo;
   amfrecord = checkbox("amfrecord");
   amfloop = checkbox("amfloop");
   amfact = checkbox("amfact");
   amfchaos = hslider("amfchaos",0,0,1,0.01) : pow(3);
+  amfchaostrig = hslider("amfchaostrig",0,0,1,1);
 
-  amd = hslider("amdepth",0,0,1,0.01) : fo.automrec(_,tempo,amdrecord,amdloop,trigx,amdact) : fo.chaos(amdchaos,18) : vbargraph("amdepthO",0,1) : pow(3.1) : si.smoo;
+  amd = hslider("amdepth",0,0,1,0.01) : fo.automrec(_,tempo,amdrecord,amdloop,t,amdact) : fo.chaos(amdchaos,18,amdchaostrig,t) : vbargraph("amdepthO",0,1) : pow(3.1) : si.smoo;
   amdrecord = checkbox("amdrecord");
   amdloop = checkbox("amdloop");
   amdact = checkbox("amdact");
   amdchaos = hslider("amdchaos",0,0,1,0.01);
+  amdchaostrig = hslider("amdchaostrig",0,0,1,1);
 
   clip(x) = x : min(1,_) : max(0,_);
   amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_trianglepos : si.interpolate(clip(amw))), os.lf_sawpos : si.interpolate(clip(amw-(1)))), os.lf_squarewavepos : si.interpolate(clip(amw-2))));
 };
 //-----------SATURATION---------------//
 /* tanh waveshape distortion */
-saturation(tempo,trigx) = _ <: _,(_ : *(1.57) : ma.tanh) : si.interpolate(sat)
+saturation(tempo,t) = _ <: _,(_ : *(1.57) : ma.tanh) : si.interpolate(sat)
 with{
-  sat = hslider("saturation",0,0,1,0.01) : fo.automrec(_,tempo,satrecord,satloop,trigx,satact) : fo.chaos(satchaos,19) : vbargraph("saturationO",0,1) : si.smoo;
+  sat = hslider("saturation",0,0,1,0.01) : fo.automrec(_,tempo,satrecord,satloop,t,satact) : fo.chaos(satchaos,19,satchaostrig,t) : vbargraph("saturationO",0,1) : si.smoo;
   satrecord = checkbox("satrecord");
   satloop = checkbox("satloop");
   satact = checkbox("satact");
   satchaos = hslider("satchaos",0,0,1,0.01);
+  satchaostrig = hslider("satchaostrig",0,0,1,1);
 };
 //-----------RESONANT_FILTER---------------//
-filter(tempo,trigx) = _ : fi.highpass(2,hip) : fi.resonlp(lop,res,1)
+filter(tempo,t) = _ : fi.highpass(2,hip) : fi.resonlp(lop,res,1)
 with {
-  hip = hslider("highpass",0,0,1,0.001) : fo.automrec(_,tempo,hiprecord,hiploop,trigx,hipact) : fo.chaos(hipchaos,31) : vbargraph("highpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
+  hip = hslider("highpass",0,0,1,0.001) : fo.automrec(_,tempo,hiprecord,hiploop,t,hipact) : fo.chaos(hipchaos,31,hipchaostrig,t) : vbargraph("highpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
   hiprecord = checkbox("hiprecord");
   hiploop = checkbox("hiploop");
   hipact = checkbox("hipact");
   hipchaos = hslider("hipchaos",0,0,1,0.01) : pow(2.7);
+  hipchaostrig = hslider("hipchaostrig",0,0,1,1);
 
-  lop = hslider("lowpass",1,0,1,0.001) : fo.automrec(_,tempo,loprecord,loploop,trigx,lopact) : fo.chaos(lopchaos,20) : vbargraph("lowpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
+  lop = hslider("lowpass",1,0,1,0.001) : fo.automrec(_,tempo,loprecord,loploop,t,lopact) : fo.chaos(lopchaos,20,lopchaostrig,t) : vbargraph("lowpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
   loprecord = checkbox("loprecord");
   loploop = checkbox("loploop");
   lopact = checkbox("lopact");
   lopchaos = hslider("lopchaos",0,0,1,0.01) : pow(2.7);
+  lopchaostrig = hslider("lopchaostrig",0,0,1,1);
 
-  res = hslider("resonance",0,0,1,0.001) : fo.automrec(_,tempo,frrecord,frloop,trigx,fract) : fo.chaos(frchaos,21) : vbargraph("resonanceO",0,1) : *(99) : +(1) : si.smoo;
+  res = hslider("resonance",0,0,1,0.001) : fo.automrec(_,tempo,frrecord,frloop,t,fract) : fo.chaos(frchaos,21,frchaostrig,t) : vbargraph("resonanceO",0,1) : *(99) : +(1) : si.smoo;
   frrecord = checkbox("frrecord");
   frloop = checkbox("frloop");
   fract = checkbox("fract");
   frchaos = hslider("frchaos",0,0,1,0.01) : pow(2.7);
+  frchaostrig = hslider("frchaostrig",0,0,1,0.01);
 };
 //-----------BITCRUSHER---------------//
-bitcrush(tempo,trigx) = _ : ba.downSample(bit)
+bitcrush(tempo,t) = _ : ba.downSample(bit)
 with {
-  bit = hslider("bitcrush",0,0,1,0.01) : fo.automrec(_,tempo,bitrecord,bitloop,trigx,bitact) : fo.chaos(bitchaos,22) : vbargraph("bitcrushO",0,1) : 1-(_) : pow(3) : *(47950) : +(50) : si.smoo;
+  bit = hslider("bitcrush",0,0,1,0.01) : fo.automrec(_,tempo,bitrecord,bitloop,t,bitact) : fo.chaos(bitchaos,22,bitchaostrig,t) : vbargraph("bitcrushO",0,1) : 1-(_) : pow(2.7) : *(47950) : +(50) : si.smoo;
   bitrecord = checkbox("bitrecord");
   bitloop = checkbox("bitloop");
   bitact = checkbox("bitact");
   bitchaos = hslider("bitchaos",0,0,1,0.01);
+  bitchaostrig = hslider("bitchaostrig",0,0,1,1);
 };
 //------------PITCHSHIFT------------//
-pitchshift(tempo,trigx) = _ : ef.transpose(100,50,pit)
+pitchshift(tempo,t) = _ : ef.transpose(300,50,pit) // changed from 100,50
 with {
-  pit = hslider("pitchshift",0.5,0,1,0.1) : fo.automrec(_,tempo,pitrecord,pitloop,trigx,pitact) : fo.chaos(pitchaos,23) : vbargraph("pitchshiftO",0,1) : *(48) : -(24) : si.smoo;
+  pit = hslider("pitchshift",0.5,0,1,0.1) : fo.automrec(_,tempo,pitrecord,pitloop,t,pitact) : fo.chaos(pitchaos,23,pitchaostrig,t) : vbargraph("pitchshiftO",0,1) : *(48) : -(24) : si.smoo;
   pitrecord = checkbox("pitrecord");
   pitloop = checkbox("pitloop");
   pitact = checkbox("pitact");
   pitchaos = hslider("pitchaos",0,0,1,0.01) : pow(2.7);
+  pitchaostrig = hslider("pitchaostrig",0,0,1,1);
 };
 //-------------DELAY---------------//
-delay(tempo,trigx) = _ <:_,(*(ds) : ef.echo(1,dt,df)) :> _
+delay(tempo,t) = _ <:_,(*(ds) : ef.echo(1,dt,df)) :> _
 with {
-  ds = hslider("delaysend",0,0,1,0.01) : fo.automrec(_,tempo,dsrecord,dsloop,trigx,dsact) : fo.chaos(dschaos,24) : vbargraph("delaysendO",0,1) : si.smoo;
+  ds = hslider("delaysend",0,0,1,0.01) : fo.automrec(_,tempo,dsrecord,dsloop,t,dsact) : fo.chaos(dschaos,24,dschaostrig,t) : vbargraph("delaysendO",0,1) : si.smoo;
   dsrecord = checkbox("dsrecord");
   dsloop = checkbox("dsloop");
   dsact = checkbox("dsact");
   dschaos = hslider("dschaos",0,0,1,0.01);
+  dschaostrig = hslider("dschaostrig",0,0,1,1);
 
-  dt = hslider("delaytime",0,0,1,0.01) : fo.automrec(_,tempo,dtrecord,dtloop,trigx,dtact) : fo.chaos(dtchaos,25) : vbargraph("delaytimeO",0,1) : si.smoo;
+  dt = hslider("delaytime",0,0,1,0.01) : fo.automrec(_,tempo,dtrecord,dtloop,t,dtact) : fo.chaos(dtchaos,25,dtchaostrig,t) : vbargraph("delaytimeO",0,1) : si.smoo;
   dtrecord = checkbox("dtrecord");
   dtloop = checkbox("dtloop");
   dtact = checkbox("dtact");
   dtchaos = hslider("dtchaos",0,0,1,0.01);
+  dtchaostrig = hslider("dtchaostrig",0,0,1,1);
 
-  df = hslider("delayfeedback",0,0,1,0.01) : fo.automrec(_,tempo,dfrecord,dfloop,trigx,dfact) : fo.chaos(dfchaos,26) : vbargraph("delayfeedbackO",0,1) : si.smoo;
+  df = hslider("delayfeedback",0,0,1,0.01) : fo.automrec(_,tempo,dfrecord,dfloop,t,dfact) : fo.chaos(dfchaos,26,dfchaostrig,t) : vbargraph("delayfeedbackO",0,1) : si.smoo;
   dfrecord = checkbox("dfrecord");
   dfloop = checkbox("dfloop");
   dfact = checkbox("dfact");
   dfchaos = hslider("dfchaos",0,0,1,0.01);
+  dfchaostrig = hslider("dfchaostrig",0,0,1,1);
 };
 //-------------GATE---------------//
-gate(tempo,trigx) = _ : ef.gate_mono(gt,ga,gh,gr) : _
+gate(tempo,t) = _ : ef.gate_mono(gt,ga,gh,gr) : _
 with {
-  gt = hslider("gatethresh",0,0,1,0.01) : fo.automrec(_,tempo,gtrecord,gtloop,trigx,gtact) : fo.chaos(gtchaos,27) : vbargraph("gatethreshO",0,1) : pow(0.3) : *(60) : -(60); //short = gt
+  gt = hslider("gatethresh",0,0,1,0.01) : fo.automrec(_,tempo,gtrecord,gtloop,t,gtact) : fo.chaos(gtchaos,27,gtchaostrig,t) : vbargraph("gatethreshO",0,1) : pow(0.3) : *(60) : -(60); //short = gt
   gtrecord = checkbox("gtrecord");
   gtloop = checkbox("gtloop");
   gtact = checkbox("gtact");
   gtchaos = hslider("gtchaos",0,0,1,0.01);
+  gtchaostrig = hslider("gtchaostrig",0,0,1,1);
 
-  ga = hslider("gateattack",0,0,1,0.01) : fo.automrec(_,tempo,garecord,galoop,trigx,gaact) : fo.chaos(gachaos,28) : vbargraph("gateattackO",0,1) : pow(3) : *(0.25) : +(0.001); // short = ga
+  ga = hslider("gateattack",0,0,1,0.01) : fo.automrec(_,tempo,garecord,galoop,t,gaact) : fo.chaos(gachaos,28,gachaostrig,t) : vbargraph("gateattackO",0,1) : pow(3) : *(0.25) : +(0.001); // short = ga
   garecord = checkbox("garecord");
   galoop = checkbox("galoop");
   gaact = checkbox("gaact");
   gachaos = hslider("gachaos",0,0,1,0.01);
+  gachaostrig = hslider("gachaostrig",0,0,1,1);
 
-  gh = hslider("gatehold",0,0,1,0.01) : fo.automrec(_,tempo,ghrecord,ghloop,trigx,ghact) : fo.chaos(ghchaos,29) : vbargraph("gateholdO",0,1) : pow(3) : *(0.25) : +(0.001); // short = gh
+  gh = hslider("gatehold",0,0,1,0.01) : fo.automrec(_,tempo,ghrecord,ghloop,t,ghact) : fo.chaos(ghchaos,29,ghchaostrig,t) : vbargraph("gateholdO",0,1) : pow(3) : *(0.25) : +(0.001); // short = gh
   ghrecord = checkbox("ghrecord");
   ghloop = checkbox("ghloop");
   ghact = checkbox("ghact");
   ghchaos = hslider("ghchaos",0,0,1,0.01);
+  ghchaostrig = hslider("ghchaostrig",0,0,1,1);
 
-  gr = hslider("gaterelease",0,0,1,0.01) : fo.automrec(_,tempo,grrecord,grloop,trigx,gract) : fo.chaos(grchaos,30) : vbargraph("gatereleaseO",0,1) : pow(3) : +(0.001); // short = gr
+  gr = hslider("gaterelease",0,0,1,0.01) : fo.automrec(_,tempo,grrecord,grloop,t,gract) : fo.chaos(grchaos,30,grchaostrig,t) : vbargraph("gatereleaseO",0,1) : pow(3) : +(0.001); // short = gr
   grrecord = checkbox("grrecord");
   grloop = checkbox("grloop");
   gract = checkbox("gract");
   grchaos = hslider("grchaos",0,0,1,0.01);
+  grchaostrig = hslider("grchaostrig",0,0,1,1);
 };
 //------ENVELOPE_FOLLOWER/SIDECHAIN----//
-envelopefollower = _ : *(1): an.amp_follower_ar(0.005, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
+envelopefollower = _ : max(0) : min(1) : an.amp_follower_ar(0.002, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
 with{
-  enveloperelease = hslider("enveloperelease",0,0,1,0.01) : vbargraph("envelopereleaseO",0,1) : *(0.99) : +(0.01) : si.smoo;
+  enveloperelease = hslider("enveloperelease",0.001,0.001,1,0.001) : vbargraph("envelopereleaseO",0,1) : pow(2.7) : *(0.999) : +(0.001) : si.smoo;
   envelopedepth = hslider("envelopedepth",0,0,1,0.01) : vbargraph("envelopedepthO",0,1) : si.smoo;
   envelopeside = checkbox("envelopeside") : vbargraph("envelopesideO",0,1);
   env = *(envelopedepth) : +(1-envelopedepth); // envelope follow algorithm
   side = 1-(_) *(envelopedepth); // sidechain algorithm
 };
 //------PANNING----//
-panner(tempo,trigx) = _ : sp.panner(pan)
+panner(tempo,t) = _ : sp.panner(pan)
 with{
-    pan = hslider("panning",0.5,0,1,0.01) : fo.automrec(_,tempo,panrecord,panloop,trigx,panact) : fo.chaos(panchaos,15) : vbargraph("panningO",0,1) : si.smoo;
+    pan = hslider("panning",0.5,0,1,0.01) : fo.automrec(_,tempo,panrecord,panloop,t,panact) : fo.chaos(panchaos,15,panchaostrig,t) : vbargraph("panningO",0,1) : si.smoo;
     panrecord = checkbox("panrecord"); // activates fo.automrec recording
     panloop = checkbox("panloop"); // activates fo.automrec read looping
     panact = checkbox("panact"); // switches fo.automrec on and off
     panchaos = hslider("panchaos",0,0,1,0.01) : pow(4);
+    panchaostrig = hslider("panchaostrig",0,0,1,1);
 };

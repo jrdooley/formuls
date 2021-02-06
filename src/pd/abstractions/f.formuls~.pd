@@ -1,0 +1,17 @@
+#N canvas 0 71 253 252 10;
+#X obj 57 111 formuls~, f 11;
+#X obj 78 154 dac~ 1 2 3;
+#X obj 57 37 r f-in;
+#X obj 79 78 adc~ 1 2 3;
+#X obj 57 193 stdout;
+#X obj 170 31 loadbang;
+#X msg 170 52 \; pd dsp 1;
+#X connect 0 0 4 0;
+#X connect 0 1 1 0;
+#X connect 0 2 1 1;
+#X connect 0 3 1 2;
+#X connect 2 0 0 0;
+#X connect 3 0 0 1;
+#X connect 3 1 0 2;
+#X connect 3 2 0 3;
+#X connect 5 0 6 0;

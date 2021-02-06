@@ -24,7 +24,7 @@ volume =  _ : *(vol)
 with{
   vol = hslider("volume",0,0,1,0.01) : vbargraph("volumeO",0,1) : si.smoo;
 };
-mute = hslider("mute",0,0,1,1);
+mute = hslider("mute",0,0,1,1) :  si.smoo;
 //--------------------------------//
 
 
