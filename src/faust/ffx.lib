@@ -7,7 +7,8 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 fo = library("formuls.lib");
 
-fx(sig,tempo,t) = sig <: _,(saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : delay(tempo,t) : am(tempo,t) : filter(tempo,t) : gate(tempo,t)) : si.interpolate(fxsend(tempo,t));
+//--- places all the fx below into a signal chain. This is formuls specific.
+fx(sig,tempo,t) = sig <: _,(saturation(tempo,t) : bitcrush(tempo,t) : pitchshift(tempo,t) : filter(tempo,t) : delay(tempo,t) : am(tempo,t) : gate(tempo,t)) : si.interpolate(fxsend(tempo,t));
 
 fxsend(tempo,t) = fxs
 with {
@@ -160,9 +161,10 @@ with {
   grchaostrig = hslider("grchaostrig",0,0,1,1);
 };
 //------ENVELOPE_FOLLOWER/SIDECHAIN----//
-envelopefollower = _ : max(0) : min(1) : an.amp_follower_ar(0.002, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
+envelopefollower = _ : max(-1) : min(1) : an.amp_follower_ar(0.01, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
+// envelopefollower = _ : max(0) : min(1) : an.amp_follower_ar(0.01, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
 with{
-  enveloperelease = hslider("enveloperelease",0.001,0.001,1,0.001) : vbargraph("envelopereleaseO",0,1) : pow(2.7) : *(0.999) : +(0.001) : si.smoo;
+  enveloperelease = hslider("enveloperelease",0.001,0.001,1,0.001) : vbargraph("envelopereleaseO",0,1) : pow(1.7) : *(0.999) : +(0.001) : si.smoo;
   envelopedepth = hslider("envelopedepth",0,0,1,0.01) : vbargraph("envelopedepthO",0,1) : si.smoo;
   envelopeside = checkbox("envelopeside") : vbargraph("envelopesideO",0,1);
   env = *(envelopedepth) : +(1-envelopedepth); // envelope follow algorithm
@@ -177,4 +179,47 @@ with{
     panact = checkbox("panact"); // switches fo.automrec on and off
     panchaos = hslider("panchaos",0,0,1,0.01) : pow(4);
     panchaostrig = hslider("panchaostrig",0,0,1,1);
+};
+
+//-------------REVERB-------------//
+// Oneknob stereo reverb
+reverb = sp.stereoize(fi.lowpass(1,3100)) <: re.fdnrev0(MAXDELAY,DELAYS,BSO,FREQS,DURS,duration,NONL) :> sp.stereoize(*(gain))
+with{
+  N = 16; 	// Feedback Delay Network (FDN) order (power of 2, 2 to 16)
+  NB = 7; 	// Number of T60-controlled frequency-bands (3 or more)
+  BSO = 3;	// Order of each lowpass/highpass bandsplit (odd positive integer)
+
+  MAXDELAY = 8192; // sync w delays and prime_power_delays above
+  DECAYTIME = 98.769;
+  DURS = (DECAYTIME,DECAYTIME*(0.892),DECAYTIME*(0.713),DECAYTIME*(0.521),DECAYTIME*(0.301),DECAYTIME*(0.249),DECAYTIME*(0.113)); // Calculate delay times for each freq band
+  FREQS = (250,500,1000,2000,4000,8000); // NB-1 default crossover frequencies (Hz)
+  SHAPE = 1.7; // early reflections: location of closest wall
+  LATE = SHAPE+(10.108); // late reflections: location of farthest away wall
+  DELAYS = de.prime_power_delays(N,SHAPE,LATE);
+  NONL = 0.913; // reverb  non-linearity setting.
+
+  // shape = hslider("shape",20,0.1,63,0.1) : si.smoo;
+  duration = hslider("duration",0.5,0,1,0.01) : *(0.1) : +(0.9) : si.smoo;
+  gain = hslider("gain",0,0,1,0.01) :  *(0.25) : si.smoo;
+};
+
+//------------LIMITER-----------//
+// Oneknob limiter for all your buss smashing needs
+limiter = monolimiter
+with {
+  ceiling = hslider("ceiling",0.8,0,1,0.01) : si.smoo;
+  amount = hslider("amount",0,0,1,0.01) : si.smoo;
+
+  monolimiter = _ <: _,(*(100) : co.limiter_lad_N(1,0.01,ceiling,0.001,0.03,0.04)) : si.interpolate(amount);
+};
+
+//------------DJEQ-----------//
+// 3 band dj-style EQ.
+djeq = monodjeq
+with {
+  low = hslider("low",0.5,0,1,0.01) : *(24) : -(12) : si.smoo;
+  mid = hslider("mid",0.5,0,1,0.01) : *(24) : -(12) : si.smoo;
+  high = hslider("high",0.5,0,1,0.01) : *(24) : -(12) : si.smoo;
+
+  monodjeq = _ : fi.low_shelf(low,339) : fi.peak_eq(mid,2114.5,3551) : fi.high_shelf(high,3890);
 };

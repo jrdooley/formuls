@@ -59,7 +59,7 @@ with{
   wchaostrig = hslider("wchaostrig",0,0,1,1);
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
-  op1freq = hslider("op1freq",440,0,22050,0.001) : vbargraph("op1freqO",0,22050); // carrier frequency
+  op1freq = hslider("op1freq",8,0,22050,0.001) : vbargraph("op1freqO",0,22050); // carrier frequency
   op1frecord = checkbox("op1frecord");
   op1floop = checkbox("op1floop");
   op1fact = checkbox("op1fact");

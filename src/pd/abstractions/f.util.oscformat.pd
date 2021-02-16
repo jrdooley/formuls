@@ -2,7 +2,7 @@
 #X text 229 17 \$1 = \$0;
 #X obj 102 218 r \$0-out;
 #X obj 12 261 outlet;
-#X obj 7 62 s \$0-value;
+#X obj 7 82 s \$0-value;
 #N canvas 0 23 457 472 _unimplemented 0;
 #X obj 45 40 r evolution-active;
 #X obj 37 68 r evolution-time;
@@ -314,6 +314,7 @@ to be active;
 #X text 229 87 \$5 = parameter record name \$5 = quantisation steps
 ;
 #X obj 102 240 route -act\$1 -trig\$1;
+#X obj 7 63 f;
 #X connect 1 0 26 0;
 #X connect 6 0 2 0;
 #X connect 12 0 14 0;
@@ -321,6 +322,7 @@ to be active;
 #X connect 16 0 17 0;
 #X connect 16 0 18 0;
 #X connect 19 0 20 0;
-#X connect 21 0 3 0;
+#X connect 21 0 27 0;
 #X connect 26 2 5 0;
 #X connect 26 2 11 0;
+#X connect 27 0 3 0;
