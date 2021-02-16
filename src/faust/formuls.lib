@@ -21,10 +21,9 @@ fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta) = freqset : fmosc
     freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
     freqset = _ : *(freqcontrol) : +(freqcontrol);
     clip(x) = x : min(1,_) : max(0,_);
-    oscphase = ta1 == (0) : ba.impulsify;
+    // oscphase = ta1 == (0) : ba.impulsify;
     wa1 = wa : si.smoo;
-    fmosc = _ <: (((os.hs_oscsin(_,0)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
-    // fmosc = _ <: (((os.hs_oscsin(_,oscphase)), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+    fmosc = _ <: (((os.oscsin), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
   };
 
 //---------ADSR----------//
@@ -77,8 +76,9 @@ with{
 	RANDMAX	= 2147483647.0; // = 2^31-1 = MAX_SIGNED_INT in 32 bits
 };
 
-//chaos: generates a continual stream of random values between 0 and 1 and adds it to the incoming signal
-chaos(value,seed) = _ : +(randomnoise(8,seed) : *(value) : si.smoo) : min(1,_) : max(0,_) : _;
-
 // random : random truth test: r = chance that random will produce "1", b = trigger the random calculation
 random(chance,trigger,seed) = randomnoise(32,seed) : <(chance) : ba.sAndH((trigger : ba.impulsify)) : *(trigger);
+
+//chaos: generates a continuous or triggered random values between 0 and 1 and adds it to the incoming signal
+// chaos(value,seed,trigact,trig) = _ : +(randomnoise(8,seed) <: _,ba.sAndH(trig : ba.impulsify) : ba.selectn(2,trigact) : *(value) : si.smoo) : min(1,_) : max(0,_) : _;
+chaos(value,seed,trigact,trig) = _ : +(randomnoise(8,seed) : *(value) <: (_,(_ : ba.sAndH(trig : ba.impulsify)) : si.interpolate(trigact)) : si.smoo) : min(1,_) : max(0,_) : _;

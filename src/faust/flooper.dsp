@@ -32,20 +32,20 @@ flooper(tempo,trigx) = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex
     reverse = checkbox("reverse") : int;
     level = hslider("level",0,0,1,0.01) : pow(2) : si.smoo;
 
-    speed = hslider("speed",1,0.125,20,0.125) : fo.automrec(_,tempo,sperecord,speloop,trigx,speact) : fo.chaos(spechaos,1) : max(0.125) : vbargraph("speedO",0.125,1);
+    speed = hslider("speed",1,0.125,20,0.125) : fo.automrec(_,tempo,sperecord,speloop,trigx,speact) : fo.chaos(spechaos,1,0,0) : max(0.125) : vbargraph("speedO",0.125,1);
     sperecord = checkbox("sperecord");
     speloop = checkbox("speloop");
     speact = checkbox("speact");
     spechaos = hslider("spechaos",0,0,1,0.01);
 
     // duration = hslider("duration",1,0.0001,1,0.0001) : fo.automrec(_,tempo,durrecord,durloop,trigx,duract) : fo.chaos(durchaos,2) : vbargraph("durationO",0,1) : pow(3);
-    duration = hslider("duration",0,0,10,1) : /(10) : fo.automrec(_,tempo,durrecord,durloop,trigx,duract) : fo.chaos(durchaos,2) : *(10) : int : vbargraph("durationO",0,10) : 2^(_);
+    duration = hslider("duration",0,0,10,1) : /(10) : fo.automrec(_,tempo,durrecord,durloop,trigx,duract) : fo.chaos(durchaos,2,0,0) : *(10) : int : vbargraph("durationO",0,10) : 2^(_);
     durrecord = checkbox("durrecord");
     durloop = checkbox("durloop");
     duract = checkbox("duract");
     durchaos = hslider("durchaos",0,0,1,0.01);
 
-    readoffset = hslider("readoffset",0,0,1,0.01) : fo.automrec(_,tempo,rearecord,realoop,trigx,reaact) : fo.chaos(reachaos,3) : vbargraph("readoffsetO",0,1);
+    readoffset = hslider("readoffset",0,0,1,0.01) : fo.automrec(_,tempo,rearecord,realoop,trigx,reaact) : fo.chaos(reachaos,3,0,0) : vbargraph("readoffsetO",0,1);
     rearecord = checkbox("rearecord");
     realoop = checkbox("realoop");
     reaact = checkbox("reaact");
