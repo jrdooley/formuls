@@ -76,7 +76,7 @@ with{
   orx = op1sliderange;
   // orx(i,x,y) = op1sliderange : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
-  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : fo.automrec(_,tempo,op1strecord,op1stloop,t,op1stact) : fo.chaos(op1stchaos,5,op1stchaostrig,t) : vbargraph("op1slidetimeO",0,1) : pow(2.7) : *(2); // time taken for carrier frequency slide
+  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : fo.automrec(_,tempo,op1strecord,op1stloop,t,op1stact) : fo.chaos(op1stchaos,5,op1stchaostrig,t) : vbargraph("op1slidetimeO",0,1) : pow(4) : *(2); // time taken for carrier frequency slide
   op1strecord = checkbox("op1strecord");
   op1stloop = checkbox("op1stloop");
   op1stact = checkbox("op1stact");
