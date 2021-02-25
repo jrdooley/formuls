@@ -1,4 +1,4 @@
-#N canvas 920 286 603 244 10;
+#N canvas 920 286 558 244 10;
 #X text 262 124 \$1 = \$0 \; \$2 = instance;
 #X obj 62 75 s~ \$0-ext-feed;
 #X obj 107 56 s~ \$0-adsr-trig;
@@ -241,7 +241,7 @@
 #X connect 14 0 13 0;
 #X restore 16 148 pd LOOPER_________;
 #X text 185 16 <- parse incoming messages;
-#X text 176 166 <- retreive parameter value from faust DSP then format
+#X text 176 176 <- retreive parameter value from faust DSP then format
 and send to GUI;
 #X obj 17 16 f.util.oscinparse \$2 \$1;
 #X obj 17 203 f.util.oscoutparse \$2 \$1;
