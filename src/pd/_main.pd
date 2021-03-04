@@ -16,7 +16,7 @@
 #X obj 263 18 r~ 5-m;
 #X obj 307 19 r~ 6-m;
 #X obj 105 105 tgl 50 0 sub-start sub-start-init ACTIVE 8 25 0 10 -261234
--1 -1 0 1;
+-1 -1 1 1;
 #X obj 355 40 env~;
 #X obj 105 173 vu 25 120 empty empty -1 -8 0 10 -21899 -42246 0 0;
 #X obj 85 61 - 100;
@@ -125,6 +125,7 @@
 #X connect 14 0 15 0;
 #X connect 15 0 5 0;
 #X restore 81 32 pd SEQUENCER_TIMING;
+#X connect 1 0 0 0;
 #X restore 56 122 pd ABLETON_LINK_&_TIMING;
 #N canvas 289 473 271 255 FORMULS______________ 0;
 #X obj 59 40 f.audio.formuls~ \$0 1;
@@ -217,7 +218,7 @@
 #X connect 1 0 0 0;
 #X connect 1 1 0 1;
 #X restore 56 160 pd AUDIO_OUT____________;
-#N canvas 301 281 242 132 GLOBAL_OSC_MESSAGES__ 0;
+#N canvas 301 281 242 132 GLOBAL_OSC_MESSAGES__ 1;
 #N canvas 317 43 1074 755 GLOBAL_MESSAGES_RECEIVE___ 0;
 #X obj 50 672 s \$0-bpm;
 #X obj 79 531 s \$0-tempolock;

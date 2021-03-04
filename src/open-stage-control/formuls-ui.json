@@ -4481,7 +4481,7 @@
                     "type": "panel",
                     "top": "50%",
                     "left": "0%",
-                    "id": "extmod",
+                    "id": "extmodulation",
                     "visible": true,
                     "interaction": true,
                     "width": "50%",
