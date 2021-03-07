@@ -11,7 +11,9 @@ declare options "[osc:on]";
 
 import("stdfaust.lib");
 fx = library("ffx.lib");
-// cleanverb = hslider("title",default,min,max,step)
+
+revlimsend = hslider("reverblimitersend",0,0,1,0.01) : si.smoo;
+revclean = 1-(revlimsend);
 
 // process = si.bus(4) : si.bus(2),(fx.reverb :> si.bus(4)) :> (si.bus(2) : sp.stereoize(fx.djeq) : sp.stereoize(fx.limiter)),si.bus(2);
-process = si.bus(4) : si.bus(2),(fx.reverb :> si.bus(2) <: si.bus(6)) :> (si.bus(2) : sp.stereoize(fx.djeq : fx.limiter)), sp.stereoize(*(0.5));
+process = si.bus(4) : si.bus(2),(fx.reverb :> si.bus(2) <: si.bus(6) : _*(revclean),_*(revclean),_*(revlimsend),_*(revlimsend),_*(revclean),_*(revclean)) :> (si.bus(2) : sp.stereoize(fx.djeq : fx.limiter)), sp.stereoize(*(0.5));

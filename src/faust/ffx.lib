@@ -96,7 +96,7 @@ with {
   bitchaostrig = hslider("bitcrushchaostrig",0,0,1,1);
 };
 //------------PITCHSHIFT------------//
-pitchshift(tempo,t) = _ : ef.transpose(300,50,pit) // changed from 100,50
+pitchshift(tempo,t) = _ : ef.transpose(300,50,pit) //
 with {
   pit = hslider("pitchshift",0.5,0,1,0.1) : fo.automrec(_,tempo,pitrecord,pitloop,t,pitact) : fo.chaos(pitchaos,23,pitchaostrig,t) : vbargraph("pitchshiftO",0,1) : *(48) : -(24) : si.smoo;
   pitrecord = checkbox("pitchshiftrecord");
@@ -183,7 +183,7 @@ with{
 
 //-------------REVERB-------------//
 // Oneknob stereo reverb
-reverb = sp.stereoize(fi.lowpass(1,3100)) <: re.fdnrev0(MAXDELAY,DELAYS,BSO,FREQS,DURS,duration,NONL) :> sp.stereoize(*(gain))
+reverb = sp.stereoize(fi.lowpass(1,3100) : fi.highpass(1,100)) <: re.fdnrev0(MAXDELAY,DELAYS,BSO,FREQS,DURS,duration,NONL) :> sp.stereoize(*(gain))
 with{
   N = 16; 	// Feedback Delay Network (FDN) order (power of 2, 2 to 16)
   NB = 7; 	// Number of T60-controlled frequency-bands (3 or more)
