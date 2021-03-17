@@ -6,4 +6,4 @@
 **open-stage-control:** open-stage-control interface
 **pd:** Pure Data code for message management
 
-Copyright James Dooley 2020
+Copyright James Dooley 2014-21

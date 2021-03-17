@@ -78,7 +78,7 @@ with {
   lopchaos = hslider("lowpasschaos",0,0,1,0.01) : pow(2.7);
   lopchaostrig = hslider("lowpasschaostrig",0,0,1,1);
 
-  res = hslider("filterresonance",0,0,1,0.001) : fo.automrec(_,tempo,frrecord,frloop,t,fract) : fo.chaos(frchaos,21,frchaostrig,t) : vbargraph("resonanceO",0,1) : *(99) : +(1) : si.smoo;
+  res = hslider("filterresonance",0,0,1,0.001) : pow(2.7) : fo.automrec(_,tempo,frrecord,frloop,t,fract) : fo.chaos(frchaos,21,frchaostrig,t) : vbargraph("resonanceO",0,1) : *(99) : +(1) : si.smoo;
   frrecord = checkbox("filterresonancerecord");
   frloop = checkbox("filterresonanceloop");
   fract = checkbox("filterresonanceact");
