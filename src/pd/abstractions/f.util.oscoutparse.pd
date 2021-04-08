@@ -179,6 +179,8 @@
 #X obj 233 257 oscformat op2\$1;
 #X obj 86 547 oscformat op1slide\$1;
 #X obj 143 389 oscformat extmodulation\$1;
+#X obj 395 564 s to-o-s-c-interface;
+#X obj 395 543 oscformat chordsize\$1;
 #X connect 0 0 37 0;
 #X connect 1 0 58 0;
 #X connect 5 0 8 0;
@@ -242,6 +244,7 @@
 #X connect 48 0 50 0;
 #X connect 49 0 10 0;
 #X connect 49 0 7 0;
+#X connect 49 0 63 0;
 #X connect 50 0 61 0;
 #X connect 51 0 26 0;
 #X connect 51 1 24 0;
@@ -255,6 +258,7 @@
 #X connect 59 0 39 0;
 #X connect 60 0 3 0;
 #X connect 61 0 4 0;
+#X connect 63 0 62 0;
 #X restore 33 84 pd SYNTHESIS_;
 #N canvas 357 186 1083 692 SEQUENCER_ 0;
 #X obj 97 37 inlet;

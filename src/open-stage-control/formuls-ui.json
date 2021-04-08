@@ -1281,7 +1281,7 @@
                 },
                 "mode": "slide",
                 "value": "",
-                "default": "",
+                "default": 1,
                 "linkId": "",
                 "script": "",
                 "address": "auto",
@@ -2871,7 +2871,7 @@
                     "type": "matrix",
                     "top": "0%",
                     "left": "0%",
-                    "id": "thresholdinput@{parent.variables}",
+                    "id": "envsideinput@{parent.variables.n}",
                     "visible": true,
                     "interaction": true,
                     "width": "100%",
@@ -2928,6 +2928,7 @@
                     "expand": "false",
                     "css": "",
                     "props": {},
+                    "script": "",
                     "address": "auto",
                     "variables": "@{parent.variables}"
                   },
@@ -2944,6 +2945,7 @@
                     "expand": "false",
                     "css": "",
                     "props": {},
+                    "script": "",
                     "address": "auto",
                     "variables": "@{parent.variables}"
                   }
@@ -2971,6 +2973,7 @@
                 "colour": "#e53db8"
               }
             },
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           },
@@ -2992,6 +2995,7 @@
                 "colour": "#3bb1ed"
               }
             },
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           },
@@ -3013,6 +3017,7 @@
                 "colour": "#e4ed3b"
               }
             },
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           },
@@ -3034,6 +3039,7 @@
                 "colour": "#913bed"
               }
             },
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           },
@@ -3055,6 +3061,7 @@
                 "colour": "#ed7f3b"
               }
             },
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -3450,6 +3457,7 @@
                         "css": "",
                         "widgetId": "evolvetime",
                         "props": {},
+                        "script": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       },
@@ -3466,6 +3474,7 @@
                         "interaction": true,
                         "widgetId": "evolvetimelabel",
                         "props": {},
+                        "script": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
@@ -5421,6 +5430,7 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
+                        "script": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
@@ -6000,7 +6010,7 @@
                         "css": "",
                         "doubleTap": false,
                         "value": "",
-                        "default": 0.5,
+                        "default": 1,
                         "linkId": "",
                         "script": "",
                         "address": "auto",
@@ -6331,7 +6341,7 @@
                         "css": "",
                         "doubleTap": false,
                         "value": "",
-                        "default": 0.5,
+                        "default": 1,
                         "linkId": "",
                         "script": "",
                         "address": "auto",
@@ -15238,6 +15248,7 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
+                        "script": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
@@ -15396,7 +15407,7 @@
                 "lineWidth": 1,
                 "padding": 2,
                 "html": "",
-                "colorBg": "@{this}",
+                "colorBg": "rgba(0,0,0,1)",
                 "layout": "default",
                 "justify": "start",
                 "gridTemplate": "",
@@ -15531,13 +15542,13 @@
                     "width": "20%",
                     "height": "14.28%",
                     "expand": "false",
-                    "colorText": "auto",
+                    "colorText": "rgba(255,255,255,1)",
                     "colorWidget": "auto",
                     "colorStroke": "auto",
                     "colorFill": "auto",
                     "alphaStroke": 1,
                     "alphaFillOff": "auto",
-                    "alphaFillOn": "auto",
+                    "alphaFillOn": 0.5,
                     "lineWidth": 5,
                     "padding": "auto",
                     "css": "",
@@ -16784,6 +16795,7 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
+                        "script": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       },
@@ -16800,6 +16812,7 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
+                        "script": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
@@ -16865,6 +16878,7 @@
             "css": "",
             "widgetId": "fp0",
             "props": {},
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -16921,6 +16935,7 @@
             "expand": "false",
             "css": "",
             "props": {},
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -16977,6 +16992,7 @@
             "expand": "false",
             "css": "",
             "props": {},
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -17033,6 +17049,7 @@
             "expand": "false",
             "css": "",
             "props": {},
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -17089,6 +17106,7 @@
             "expand": "false",
             "css": "",
             "props": {},
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -17145,6 +17163,7 @@
             "expand": "false",
             "css": "",
             "props": {},
+            "script": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
@@ -22070,6 +22089,6 @@
     ],
     "html": ""
   },
-  "version": "1.8.11",
+  "version": "1.8.14",
   "type": "Open Stage Control session"
 }

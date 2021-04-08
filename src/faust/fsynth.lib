@@ -147,7 +147,7 @@ with{
   rchaostrig = hslider("releasechaostrig",0,0,1,1);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  velocity = hslider("velocity",1,0,1,0.01) : fo.chaos(vchaos,14,vchaostrig,t) : vbargraph("velocityO",0,1) : pow(2.7);
+  velocity = hslider("velocity",1,0,1,0.01) : fo.chaos(vchaos,14,vchaostrig,t) : vbargraph("velocityO",0,1) : pow(2.7) : si.smoo;
   vchaos = hslider("velocitychaos",0,0,1,0.01);
   vchaostrig = hslider("velocitychaostrig",0,0,1,1);
   vx(i,x,y) = velocity : si.smoothAndH((i==x) & (y==1), 0.999);

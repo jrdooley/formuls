@@ -68,7 +68,7 @@
 #X connect 27 0 26 1;
 #X connect 28 0 13 0;
 #X coords 0 -1 1 1 270 200 2 100 100;
-#X restore 20 116 pd INTERFACE____________;
+#X restore 21 116 pd INTERFACE____________;
 #N canvas 0 50 251 273 TRIPES_______________ 0;
 #N canvas 0 473 291 114 ABLETON_LINK_&_TIMING 0;
 #N canvas 0 94 375 215 AUTOMATER_TIMING 0;
@@ -153,7 +153,7 @@
 #X obj 58 165 f.audio.flooper~ \$0 7;
 #X restore 56 141 pd FORMULS______________;
 #N canvas 187 369 288 192 AUDIO_OUT____________ 0;
-#N canvas 8 426 505 397 MASTER_BUS_RECORD___ 0;
+#N canvas 76 474 505 397 MASTER_BUS_RECORD___ 0;
 #X obj 74 11 inlet~;
 #X obj 74 353 outlet~;
 #X obj 118 11 inlet~;
@@ -174,15 +174,14 @@
 #X obj 217 122 s~ \$0-rev-r;
 #X obj 322 299 r \$0-multichannel-record;
 #X obj 178 303 r \$0-stereo-record;
+#X obj 339 220 dac~ 3 4;
 #X connect 0 0 6 1;
 #X connect 2 0 6 2;
 #X connect 6 1 4 1;
 #X connect 6 1 1 0;
 #X connect 6 2 4 2;
 #X connect 6 2 3 0;
-#X connect 6 3 1 0;
 #X connect 6 3 4 1;
-#X connect 6 4 3 0;
 #X connect 6 4 4 2;
 #X connect 7 0 6 0;
 #X connect 8 0 10 0;
@@ -190,7 +189,9 @@
 #X connect 9 0 11 0;
 #X connect 9 0 17 0;
 #X connect 10 0 6 3;
+#X connect 10 0 20 0;
 #X connect 11 0 6 4;
+#X connect 11 0 20 1;
 #X connect 12 0 13 0;
 #X connect 13 0 15 0;
 #X connect 14 0 11 1;
