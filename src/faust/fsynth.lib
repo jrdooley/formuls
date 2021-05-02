@@ -13,19 +13,16 @@ fo = library("formuls.lib");
 //------FORMULS------//
 /* main synth function */
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-synth(inmod,tempo,sigtrig) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c,t))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
+synth(inmod,tempo,sigtrig) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
   /* fmosc controls */
   adsron = hslider("adsron",0,0,1,1) : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
-  // polyphonic(tri) = checkbox("polyphonic") : vbargraph("polyphonicO",0,1) : ba.sAndH(tri) : int;
   polyphonic = checkbox("polyphonic") : vbargraph("polyphonicO",0,1) : int;
   poly(i,x) = polyphonic +(i==x) : min(1);
 
-  // st = (sigtrig : an.ms_envelope_rect(0.01) : >(thresh)) : *(thresh!=1): ba.impulsify : int;
   st = (sigtrig : si.smoo: >(thresh)) : *(thresh!=1): ba.impulsify : int;
-  // thresh = hslider("threshold",1,0,1,0.01) : fo.chaos(thchaos,16,thchaostrig,t) : vbargraph("thresholdO",0,1) : pow(6); // sets ADSR trigger threshold for incomgin signal
   thresh = hslider("threshold",1,0,1,0.01) : vbargraph("thresholdO",0,1) : pow(6); // sets ADSR trigger threshold for incomgin signal
   thchaos = hslider("thresholdchaos",0,0,1,0.01) : pow(3);
   thchaostrig = hslider("thresholdchaostrig",0,0,1,1);
@@ -73,7 +70,6 @@ with{
   op1srchaos = hslider("op1sliderangechaos",0,0,1,0.01);
   op1srchaostrig = hslider("op1sliderangechaostrig",0,0,1,1);
   orx = op1sliderange;
-  // orx(i,x,y) = op1sliderange : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   op1slidetime = hslider("op1slidetime",0,0,1,0.001) : fo.automrec(_,tempo,op1strecord,op1stloop,t,op1stact) : fo.chaos(op1stchaos,5,op1stchaostrig,t) : vbargraph("op1slidetimeO",0,1) : pow(4) : *(2); // time taken for carrier frequency slide
   op1strecord = checkbox("op1slidetimerecord");
@@ -82,7 +78,6 @@ with{
   op1stchaos = hslider("op1slidetimechaos",0,0,1,0.01);
   op1stchaostrig = hslider("op1slidetimechaostrig",0,0,1,1);
   otx = op1slidetime;
-  // otx(i,x,y) = op1slidetime : ba.sAndH((i==x) & (y == 1) : ba.impulsify);
 
   op2freq = hslider("op2freq",0,0,1,0.001) : fo.automrec(_,tempo,op2frecord,op2floop,t,op2fact)  : fo.chaos(op2fchaos,6,op2fchaostrig,t) : vbargraph("op2freqO",0,1) : *(2) : max(0.001); // mod freq is relative to op1 freq
   op2frecord = checkbox("op2freqrecord");
@@ -90,11 +85,9 @@ with{
   op2fact = checkbox("op2freqact");
   op2fchaos = hslider("op2freqchaos",0,0,1,0.01) : pow(2.7);
   op2fchaostrig = hslider("op2freqchaostrig",0,0,1,1);
-  // o2fx(i,x,y) = op2freq : ba.sAndH((i==x) & (i!=y));
   o2fx(i,x,y) = op2freq : ba.sAndH((i==x));
 
   op2depth = hslider("op2depth",0,0,1,0.001) : fo.automrec(_,tempo,op2drecord,op2dloop,t,op2dact) : fo.chaos(op2dchaos,7,op2dchaostrig,t) : vbargraph("op2depthO",0,1) : *(2);// mod depth is relative to op1 freq
-  // o2out = op2depth;
   op2drecord = checkbox("op2depthrecord");
   op2dloop = checkbox("op2depthloop");
   op2dact = checkbox("op2depthact");
@@ -147,8 +140,9 @@ with{
   rchaostrig = hslider("releasechaostrig",0,0,1,1);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  velocity = hslider("velocity",1,0,1,0.01) : fo.chaos(vchaos,14,vchaostrig,t) : vbargraph("velocityO",0,1) : pow(2.7) : si.smoo;
+  velocity = hslider("velocity",0,0,1,0.01) : fo.chaos(vchaos,14,vchaostrig,t) : vbargraph("velocityO",0,1) : pow(2.7) : si.smoo;
   vchaos = hslider("velocitychaos",0,0,1,0.01);
   vchaostrig = hslider("velocitychaostrig",0,0,1,1);
-  vx(i,x,y) = velocity : si.smoothAndH((i==x) & (y==1), 0.999);
+  // vx(i,x,y) = velocity : si.smoothAndH((i==x) & (y==1), 0.999);
+  vx(i,x) = velocity : ba.sAndH((i==x));
 };

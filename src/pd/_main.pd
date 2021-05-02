@@ -100,7 +100,7 @@
 #X obj 70 229 abl_link~ 1 0 4 110;
 #X msg 70 207 tempo \$1;
 #X obj 144 275 spigot 1;
-#X obj 189 251 r master-seq-on-off;
+#X obj 207 214 r master-seq-on-off;
 #X obj 144 341 outlet;
 #X msg 43 270 60000 \$1;
 #X obj 43 291 /;
@@ -117,6 +117,9 @@
 #X obj 108 101 t b;
 #X obj 108 38 r link;
 #X obj 70 165 / 1;
+#X obj 234 258 sel 1;
+#X obj 207 237 t f f;
+#X msg 234 279 reset 0 0;
 #X connect 0 0 2 0;
 #X connect 1 0 0 0;
 #X connect 2 0 10 0;
@@ -126,7 +129,7 @@
 #X connect 5 2 7 0;
 #X connect 6 0 5 0;
 #X connect 7 0 3 0;
-#X connect 8 0 7 1;
+#X connect 8 0 25 0;
 #X connect 10 0 11 0;
 #X connect 11 0 12 0;
 #X connect 12 0 13 0;
@@ -140,6 +143,10 @@
 #X connect 21 0 16 0;
 #X connect 22 0 19 0;
 #X connect 23 0 18 0;
+#X connect 24 0 26 0;
+#X connect 25 0 7 1;
+#X connect 25 1 24 0;
+#X connect 26 0 5 0;
 #X restore 81 32 pd SEQUENCER_TIMING;
 #X connect 1 0 0 0;
 #X restore 56 122 pd ABLETON_LINK_&_TIMING;
@@ -174,6 +181,7 @@
 #X obj 217 122 s~ \$0-rev-r;
 #X obj 322 299 r \$0-multichannel-record;
 #X obj 178 303 r \$0-stereo-record;
+#X obj 267 262 dac~ 3 4;
 #X connect 0 0 6 1;
 #X connect 2 0 6 2;
 #X connect 6 1 4 1;
@@ -182,8 +190,10 @@
 #X connect 6 2 3 0;
 #X connect 6 3 1 0;
 #X connect 6 3 4 1;
+#X connect 6 3 20 0;
 #X connect 6 4 3 0;
 #X connect 6 4 4 2;
+#X connect 6 4 20 1;
 #X connect 7 0 6 0;
 #X connect 8 0 10 0;
 #X connect 8 0 16 0;
