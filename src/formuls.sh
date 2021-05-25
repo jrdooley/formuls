@@ -9,7 +9,7 @@ var=$(pwd) # finds wokring directory
 ./Resources/AudioPluginHost/AudioPluginHost.app/Contents/MacOS/AudioPluginHost &
 
 # starts pd, loads _main.pd patch and then starts all sub processes (with pd~)
-./Resources/Pd/Pd-0.51-3.app/Contents/Resources/bin/pd -nogui -audiodev 2 -outchannels 4 ./Resources/Pd/pd/_main.pd
+./Resources/Pd/Pd-0.51-3.app/Contents/Resources/bin/pd -nogui -audiodev 1 -outchannels 4 ./Resources/Pd/pd/_main.pd
 
 # when pd is quit, the script kills all child processes and exits
 trap 'kill $(jobs -pr)' SIGINT SIGTERM EXIT # kills all processes

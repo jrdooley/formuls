@@ -23,7 +23,8 @@ fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta) = freqset : fmosc
     clip(x) = x : min(1,_) : max(0,_);
     // oscphase = ta1 == (0) : ba.impulsify;
     wa1 = wa : si.smoo;
-    fmosc = _ <: (((os.oscsin), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+    // fmosc = _ <: (((os.oscsin), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+    fmosc = _ : os.lf_saw <: (*(ma.PI) : sin <:_,(*(20) : ma.tanh : min(1)) : si.interpolate(clip(wa1))),_ : si.interpolate(clip(wa1-(1)));
   };
 
 //---------ADSR----------//
@@ -45,7 +46,8 @@ with {
 // val = value to record into automation; tem = tempo/automation read speed (0-1); rec = start/stop recording (0/1); loo = loop automation; trix = trigger one cycle of recorded automation; act = automation active
 automrec(val,tem,rec,loo,trix,act) = _ <: _,memory : ba.selectn(2,act)
 with {
-  tempo2 = tem : *((ma.SR)/1000) : int; // read value every 1ms
+  // tempo2 = tem : *((ma.SR)/1000) : int; // read value every 1ms
+  tempo2 = tem : *((ma.SR)/100) : int; // read value every 1ms
   tableSize = 48000; // with a read periodicity of 1ms, @48kHz SR this creates 48 seconds of memory to record automation to.
 
   /* calculate the sample duration */

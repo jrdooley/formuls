@@ -157,7 +157,7 @@
 #X obj 58 100 f.audio.formuls~ \$0 4;
 #X obj 58 120 f.audio.formuls~ \$0 5;
 #X obj 58 140 f.audio.formuls~ \$0 6;
-#X obj 58 165 f.audio.flooper~ \$0 7;
+#X obj 58 159 f.audio.formuls~ \$0 7;
 #X restore 56 141 pd FORMULS______________;
 #N canvas 187 369 288 192 AUDIO_OUT____________ 0;
 #N canvas 8 426 505 397 MASTER_BUS_RECORD___ 0;

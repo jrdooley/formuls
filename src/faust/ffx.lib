@@ -71,7 +71,7 @@ with {
   hipchaos = hslider("highpasschaos",0,0,1,0.01) : pow(2.7);
   hipchaostrig = hslider("highpasschaostrig",0,0,1,1);
 
-  lop = hslider("lowpass",1,0,1,0.001) : fo.automrec(_,tempo,loprecord,loploop,t,lopact) : fo.chaos(lopchaos,20,lopchaostrig,t) : vbargraph("lowpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
+  lop = hslider("lowpass",1,0,1,0.001) : fo.automrec(_,tempo,loprecord,loploop,t,lopact) : fo.chaos(lopchaos,20,lopchaostrig,t) : vbargraph("lowpassO",0,1) : *(135) : ba.midikey2hz : si.smoo;
   loprecord = checkbox("lowpassrecord");
   loploop = checkbox("lowpassloop");
   lopact = checkbox("lowpassact");
@@ -106,8 +106,12 @@ with {
   pitchaostrig = hslider("pitchshiftchaostrig",0,0,1,1);
 };
 //-------------DELAY---------------//
-delay(tempo,t) = _ <:_,(*(ds) : ef.echo(1,dt,df)) :> _
+// delay(tempo,t) = _ <:_,(*(ds) : ef.echo(1,dt,df)) :> _
+delay(tempo,t) = _ <:_,lagrangedelay :> _
 with {
+  N	= int(2^17);
+  lagrangedelay = *(ds) : (+ :de.sdelay(N, 24, dt)) ~ *(df);
+
   ds = hslider("delaysend",0,0,1,0.01) : fo.automrec(_,tempo,dsrecord,dsloop,t,dsact) : fo.chaos(dschaos,24,dschaostrig,t) : vbargraph("delaysendO",0,1) : si.smoo;
   dsrecord = checkbox("delaysendrecord");
   dsloop = checkbox("delaysendloop");
@@ -115,7 +119,7 @@ with {
   dschaos = hslider("delaysendchaos",0,0,1,0.01);
   dschaostrig = hslider("delaysendchaostrig",0,0,1,1);
 
-  dt = hslider("delaytime",0,0,1,0.01) : fo.automrec(_,tempo,dtrecord,dtloop,t,dtact) : fo.chaos(dtchaos,25,dtchaostrig,t) : vbargraph("delaytimeO",0,1) : si.smoo;
+  dt = hslider("delaytime",0,0,1,0.01) : fo.automrec(_,tempo,dtrecord,dtloop,t,dtact) : fo.chaos(dtchaos,25,dtchaostrig,t) : vbargraph("delaytimeO",0,1) : *(ma.SR) : si.smoo;
   dtrecord = checkbox("delaytimerecord");
   dtloop = checkbox("delaytimeloop");
   dtact = checkbox("delaytimeact");
@@ -223,4 +227,20 @@ with {
   high = hslider("high",0.5,0,1,0.01) : *(24) : -(12) : si.smoo;
 
   monodjeq = _ : fi.low_shelf(low,339) : fi.peak_eq(mid,2114.5,3551) : fi.high_shelf(high,3890);
+};
+
+//------------REPEATER------//
+// Glitchy tempo-synchronised repeater effect.
+// A stereo effect. Two delayensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
+repeater = _,_ <: par(i,2,(sp.stereoize((delayensemble(i), _*(parallel)) :> _))) :> _,_
+with {
+  tempo = hslider("bpm",120,1,240,1) : 60/(_) : ba.sec2samp(_); // global tempo
+  div = hslider("beatdivision",1,1,5,1) : int; //sample/capture duration in beats
+  level = hslider("level",1,0,1,0.01) : pow(2.7) : si.smoo; // effect level
+  cap = button("capture"); // capture some sound!
+  capcount = +(1)~(ba.sAndH(cap : ba.impulsify)) : %(2) : int;
+  parallel = checkbox("parallel") : +(1-(cap)) : min(1); // chooses between: incoming signal or capture signal; or incoming signal and captured signal.
+
+  delayvoice(i,d,x) = _*(x != capcount) : (+ : de.sdelay(96000,1024,tempo/(d))) ~ *((x == capcount)*(cap)) : *(i==div) : *(x == capcount); //i = instance, d = beat division, j = incoming instance number(truth test)
+  delayensemble(x) = _ <: delayvoice(1,1,x), delayvoice(2,2,x), delayvoice(3,4,x), delayvoice(4,8,x), delayvoice(5,16,x) :> _ : *(cap) : *(level);
 };

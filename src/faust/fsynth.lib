@@ -47,7 +47,8 @@ with{
   extchaostrig = checkbox("extmodulationchaostrig");
 
   // waveshape: sine -> triangle -> rising sawtooth -> squarewave
-  waveshape = hslider("waveshape",0,0,1,0.01) : fo.automrec(_,tempo,wrecord,wloop,t,wact) : fo.chaos(wchaos,2,wchaostrig,t) : vbargraph("waveshapeO",0,1) : *(3); // choose between sine and sawtooth
+  // waveshape = hslider("waveshape",0,0,1,0.01) : fo.automrec(_,tempo,wrecord,wloop,t,wact) : fo.chaos(wchaos,2,wchaostrig,t) : vbargraph("waveshapeO",0,1) : *(3); // choose between sine and sawtooth
+  waveshape = hslider("waveshape",0,0,1,0.01) : fo.automrec(_,tempo,wrecord,wloop,t,wact) : fo.chaos(wchaos,2,wchaostrig,t) : vbargraph("waveshapeO",0,1) : *(2); // choose between sine and sawtooth
   wrecord = checkbox("waveshaperecord"); // activates fo.automrec recording
   wloop = checkbox("waveshapeloop"); // activates fo.automrec read looping
   wact = checkbox("waveshapeact"); // switches fo.automrec on and off
@@ -56,9 +57,9 @@ with{
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
   op1freq = hslider("op1freq",8,0,22050,0.001) : vbargraph("op1freqO",0,22050); // carrier frequency
-  op1frecord = checkbox("op1freqrecord");
-  op1floop = checkbox("op1freqloop");
-  op1fact = checkbox("op1freqact");
+  // op1frecord = checkbox("op1freqrecord");
+  // op1floop = checkbox("op1freqloop");
+  // op1fact = checkbox("op1freqact");
   // op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(2.7);
   oxO = op1freq;
   ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
@@ -95,7 +96,7 @@ with{
   op2dchaostrig = hslider("op2depthchaostrig",0,0,1,1);
   o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
 
-  noise = hslider("noise",0,0,1,1) : fo.automrec(_,tempo,nrecord,nloop,t,nact)  : fo.chaos(nchaos,8,nchaostrig,t) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(2,noisefilterfreq); // amount of noise to add to carrier frequency
+  noise = hslider("noise",0,0,1,1) : fo.automrec(_,tempo,nrecord,nloop,t,nact)  : fo.chaos(nchaos,8,nchaostrig,t) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nrecord = checkbox("noiserecord");
   nloop = checkbox("noiseloop");
   nact = checkbox("noiseact");
