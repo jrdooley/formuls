@@ -82,5 +82,4 @@ with{
 random(chance,trigger,seed) = randomnoise(32,seed) : <(chance) : ba.sAndH((trigger : ba.impulsify)) : *(trigger);
 
 //chaos: generates a continuous or triggered random values between 0 and 1 and adds it to the incoming signal
-// chaos(value,seed,trigact,trig) = _ : +(randomnoise(8,seed) <: _,ba.sAndH(trig : ba.impulsify) : ba.selectn(2,trigact) : *(value) : si.smoo) : min(1,_) : max(0,_) : _;
-chaos(value,seed,trigact,trig) = _ : +(randomnoise(8,seed) : *(value) <: (_,(_ : ba.sAndH(trig : ba.impulsify)) : si.interpolate(trigact)) : si.smoo) : min(1,_) : max(0,_) : _;
+chaos(value,seed,trigact,trig,slew) = _ : +(randomnoise(8,seed) : *(value) <: (_,(_ : ba.sAndH(trig : ba.impulsify)) : si.interpolate(trigact)) : *(100) : ba.ramp(slew) : *(0.01) : si.smoo) : min(1,_) : max(0,_) : _;

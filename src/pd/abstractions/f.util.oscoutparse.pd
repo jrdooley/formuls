@@ -3,7 +3,7 @@
 #X text 140 48 \$1 = instance;
 #X text 140 62 \$2 = \$0;
 #X text 137 32 Receive and parse OSC messages from synth;
-#N canvas 421 322 669 556 MIX_BUS___ 0;
+#N canvas 421 322 669 556 MIX_BUS___ 1;
 #X obj 123 37 inlet;
 #X obj 176 452 s to-o-s-c-interface;
 #X obj 176 429 oscformat panning\$1;
@@ -28,12 +28,12 @@
 #X obj 25 361 oscformat freqsnap\$1;
 #X obj 157 516 s to-o-s-c-interface;
 #X obj 157 493 oscformat volume\$1;
+#X obj 443 171 s to-o-s-c-interface;
 #X obj 123 86 route /\$3/volumeO /\$3/panningO /\$3/envelopereleaseO
-/\$3/envelopedepthO /\$3/envelopesideO /\$3/fxsendO /\$3/reverbO /\$3/drive0
+/\$3/envelopedepthO /\$3/envelopesideO /\$3/fxsendO /\$3/reverbO /\$3/slew0
 ;
-#X obj 443 161 s to-o-s-c-interface;
-#X obj 443 140 oscformat drive\$1;
-#X connect 0 0 24 0;
+#X obj 443 150 oscformat slew\$1;
+#X connect 0 0 25 0;
 #X connect 2 0 1 0;
 #X connect 4 0 3 0;
 #X connect 6 0 5 0;
@@ -50,22 +50,23 @@
 #X connect 17 0 13 0;
 #X connect 17 0 21 0;
 #X connect 17 0 23 0;
+#X connect 17 0 26 0;
 #X connect 18 0 10 0;
 #X connect 18 0 9 0;
 #X connect 19 0 2 0;
 #X connect 21 0 20 0;
 #X connect 23 0 22 0;
-#X connect 24 0 9 0;
-#X connect 24 0 23 0;
-#X connect 24 1 2 0;
-#X connect 24 2 4 0;
-#X connect 24 3 6 0;
-#X connect 24 4 8 0;
-#X connect 24 5 10 0;
-#X connect 24 6 13 0;
-#X connect 24 7 26 0;
-#X connect 24 8 15 0;
-#X connect 26 0 25 0;
+#X connect 25 0 9 0;
+#X connect 25 0 23 0;
+#X connect 25 1 2 0;
+#X connect 25 2 4 0;
+#X connect 25 3 6 0;
+#X connect 25 4 8 0;
+#X connect 25 5 10 0;
+#X connect 25 6 13 0;
+#X connect 25 7 26 0;
+#X connect 25 8 15 0;
+#X connect 26 0 24 0;
 #X restore 33 63 pd MIX_BUS___;
 #N canvas 621 89 802 789 SYNTHESIS_ 0;
 #X obj 27 7 inlet;
