@@ -8,8 +8,11 @@ var=$(pwd) # finds wokring directory
 # start Audio Plugin Host
 ./Resources/AudioPluginHost/AudioPluginHost.app/Contents/MacOS/AudioPluginHost &
 
-# starts pd, loads _main.pd patch and then starts all sub processes (with pd~)
-./Resources/Pd/Pd-0.51-3.app/Contents/Resources/bin/pd -nogui -audiodev 1 -outchannels 4 ./Resources/Pd/pd/_main.pd
+# starts "control" instance of pd, loads _main.pd patch
+./Resources/Pd/Pd-0.51-4.app/Contents/Resources/bin/pd -nogui -r 48000 -audiobuf 10 -noadc -nodac -midiaddindev Xkey25 ./Resources/Pd/control/_main-control.pd &
+
+# starts "audio" instance of pd, loads _main.pd patch
+./Resources/Pd/Pd-0.51-4.app/Contents/Resources/bin/pd -nogui -r 48000 -audiobuf 10 -noadc -audioaddoutdev "BlackHole 16ch" -outchannels 4 -midiaddindev Xkey25 ./Resources/Pd/audio/_main-audio.pd
 
 # when pd is quit, the script kills all child processes and exits
 trap 'kill $(jobs -pr)' SIGINT SIGTERM EXIT # kills all processes

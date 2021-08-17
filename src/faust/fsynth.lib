@@ -5,7 +5,6 @@ declare license "MIT";
 declare options "[osc:on]";
 
 import("stdfaust.lib");
-fo = library("formuls.lib");
 
 //----------------------------------------------------------------------------------------//
 //-------------------------------------SYNTH----------------------------------------------//
@@ -13,7 +12,7 @@ fo = library("formuls.lib");
 //------FORMULS------//
 /* main synth function */
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-synth(inmod,tempo,sigtrig,slew) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
+synth(inmod,sigtrig) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -30,7 +29,6 @@ with{
   t = trigx : +(st) : min(1) : int; // triggers synth voice
 
   //Counter to select voice
-  // counterMod = 1,15 : ba.selectn(2,polyphonic);
   counterMod = 15;
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
   c = +(1)~(ba.sAndH(t : ba.impulsify)) : %(counterMod) : vbargraph("voicenumberO",0,16) : int; // Incremental counter for voice select.
@@ -39,111 +37,42 @@ with{
   //----SYNTH_PARAMETERS----//
 
   // extmod: external input modulates frequency of Oscillator.
-  extmod = hslider("extmodulation",0,0,1,0.01) : fo.automrec(_,tempo,extrecord,extloop,t,extact) : fo.chaos(extchaos,1,extchaostrig,t,slew) : vbargraph("extmodulationO",0,1) : *(16) : si.smoo; // amount of noise to add to carrier frequency
-  extrecord = checkbox("extmodulationrecord");
-  extloop = checkbox("extmodulationloop");
-  extact = checkbox("extmodulationact");
-  extchaos = hslider("extmodulationchaos",0,0,1,0.01);
-  extchaostrig = checkbox("extmodulationchaostrig");
+  extmod = hslider("extmodulation",0,0,1,0.01) : vbargraph("extmodulationO",0,1) : *(16) : si.smoo;
 
   // waveshape: sine -> triangle -> rising sawtooth -> squarewave
-  // waveshape = hslider("waveshape",0,0,1,0.01) : fo.automrec(_,tempo,wrecord,wloop,t,wact) : fo.chaos(wchaos,2,wchaostrig,t) : vbargraph("waveshapeO",0,1) : *(3); // choose between sine and sawtooth
-  waveshape = hslider("waveshape",0,0,1,0.01) : fo.automrec(_,tempo,wrecord,wloop,t,wact) : fo.chaos(wchaos,2,wchaostrig,t,slew) : vbargraph("waveshapeO",0,1) : *(2); // choose between sine and sawtooth
-  wrecord = checkbox("waveshaperecord"); // activates fo.automrec recording
-  wloop = checkbox("waveshapeloop"); // activates fo.automrec read looping
-  wact = checkbox("waveshapeact"); // switches fo.automrec on and off
-  wchaos = hslider("waveshapechaos",0,0,1,0.01) : pow(3);
-  wchaostrig = hslider("waveshapechaostrig",0,0,1,1);
+  waveshape = hslider("waveshape",0,0,1,0.01) : vbargraph("waveshapeO",0,1) : *(2);
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
   op1freq = hslider("op1freq",8,0,22050,0.001) : vbargraph("op1freqO",0,22050); // carrier frequency
-  // op1frecord = checkbox("op1freqrecord");
-  // op1floop = checkbox("op1freqloop");
-  // op1fact = checkbox("op1freqact");
-  // op1fchaos = hslider("op1fchaos",0,0,1,0.01) : pow(2.7);
   oxO = op1freq;
   ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
 
-  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : fo.automrec(_,tempo,op1srrecord,op1srloop,t,op1sract) : fo.chaos(op1srchaos,4,op1srchaostrig,t,slew) : vbargraph("op1sliderangeO",0,1) : *(5); //upper frequency for carrier to "slide" down from
-  op1srrecord = checkbox("op1sliderangerecord");
-  op1srloop = checkbox("op1sliderangeloop");
-  op1sract = checkbox("op1sliderangeact");
-  op1srchaos = hslider("op1sliderangechaos",0,0,1,0.01);
-  op1srchaostrig = hslider("op1sliderangechaostrig",0,0,1,1);
+  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : vbargraph("op1sliderangeO",0,1) : *(5);
   orx = op1sliderange;
 
-  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : fo.automrec(_,tempo,op1strecord,op1stloop,t,op1stact) : fo.chaos(op1stchaos,5,op1stchaostrig,t,slew) : vbargraph("op1slidetimeO",0,1) : pow(4) : *(2); // time taken for carrier frequency slide
-  op1strecord = checkbox("op1slidetimerecord");
-  op1stloop = checkbox("op1slidetimeloop");
-  op1stact = checkbox("op1slidetimeact");
-  op1stchaos = hslider("op1slidetimechaos",0,0,1,0.01);
-  op1stchaostrig = hslider("op1slidetimechaostrig",0,0,1,1);
+  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : vbargraph("op1slidetimeO",0,1) : pow(4) : *(2); //time taken for carrier frequency slide
   otx = op1slidetime;
 
-  op2freq = hslider("op2freq",0,0,1,0.001) : fo.automrec(_,tempo,op2frecord,op2floop,t,op2fact)  : fo.chaos(op2fchaos,6,op2fchaostrig,t,slew) : vbargraph("op2freqO",0,1) : *(2) : max(0.001); // mod freq is relative to op1 freq
-  op2frecord = checkbox("op2freqrecord");
-  op2floop = checkbox("op2freqloop");
-  op2fact = checkbox("op2freqact");
-  op2fchaos = hslider("op2freqchaos",0,0,1,0.01) : pow(2.7);
-  op2fchaostrig = hslider("op2freqchaostrig",0,0,1,1);
+  op2freq = hslider("op2freq",0,0,1,0.001) : vbargraph("op2freqO",0,1) : *(2) : max(0.001); // mod freq is relative to op1 freq
   o2fx(i,x,y) = op2freq : ba.sAndH((i==x));
 
-  op2depth = hslider("op2depth",0,0,1,0.001) : fo.automrec(_,tempo,op2drecord,op2dloop,t,op2dact) : fo.chaos(op2dchaos,7,op2dchaostrig,t,slew) : vbargraph("op2depthO",0,1) : *(2);// mod depth is relative to op1 freq
-  op2drecord = checkbox("op2depthrecord");
-  op2dloop = checkbox("op2depthloop");
-  op2dact = checkbox("op2depthact");
-  op2dchaos = hslider("op2depthchaos",0,0,1,0.01) : pow(2.7);
-  op2dchaostrig = hslider("op2depthchaostrig",0,0,1,1);
+  op2depth = hslider("op2depth",0,0,1,0.001) : vbargraph("op2depthO",0,1) : *(2); // mod depth is relative to op1 freq
   o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
 
-  noise = hslider("noise",0,0,1,1) : fo.automrec(_,tempo,nrecord,nloop,t,nact)  : fo.chaos(nchaos,8,nchaostrig,t,slew) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
-  nrecord = checkbox("noiserecord");
-  nloop = checkbox("noiseloop");
-  nact = checkbox("noiseact");
-  nchaos = hslider("noisechaos",0,0,1,0.01) : pow(2.7);
-  nchaostrig = hslider("noisechaostrig",0,0,1,1);
+  noise = hslider("noise",0,0,1,1) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nx = noise;
 
-  noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : fo.automrec(_,tempo,nfrecord,nfloop,t,nfact) : fo.chaos(nfchaos,9,nfchaostrig,t,slew) : vbargraph("noisefilterfreqO",0,1) : pow(4.2) : *(0.999) : +(0.001) : *(22050); // noise filter amount
-  nfrecord = checkbox("noisefilterfreqrecord");
-  nfloop = checkbox("noisefilterfreqloop");
-  nfact = checkbox("noisefilterfreqact");
-  nfchaos = hslider("noisefilterfreqchaos",0,0,1,0.01) : pow(2.7);
-  nfchaostrig = hslider("noisefilterfreqchaostrig",0,0,1,1);
+  noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : vbargraph("noisefilterfreqO",0,1) : pow(4.2) : *(0.999) : +(0.001) : *(22050); // noise filter amount
 
   /* ADSR controls */
-  attack = hslider("attack",0,0,1,0.001) : fo.automrec(_,tempo,arecord,aloop,t,aact)  : fo.chaos(achaos,10,achaostrig,t,slew) : vbargraph("attackO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
-  arecord = checkbox("attackrecord");
-  aloop = checkbox("attackloop");
-  aact = checkbox("attackact");
-  achaos = hslider("attackchaos",0,0,1,0.01);
-  achaostrig = hslider("attackchaostrig",0,0,1,1);
-
-  decay = hslider("decay",0,0,1,0.001) : fo.automrec(_,tempo,drecord,dloop,t,dact)  : fo.chaos(dchaos,11,dchaostrig,t,slew) : vbargraph("decayO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
-  drecord = checkbox("decayrecord");
-  dloop = checkbox("decayloop");
-  dact = checkbox("decayact");
-  dchaos = hslider("decaychaos",0,0,1,0.01);
-  dchaostrig = hslider("decaychaostrig",0,0,1,1);
-
-  sustain = hslider("sustain",0,0,1,0.01) : fo.automrec(_,tempo,srecord,sloop,t,sact)  : fo.chaos(schaos,12,schaostrig,t,slew) : vbargraph("sustainO",0,1);
-  srecord = checkbox("sustainrecord");
-  sloop = checkbox("sustainloop");
-  sact = checkbox("sustainact");
-  schaos = hslider("sustainchaos",0,0,1,0.01);
-  schaostrig = hslider("sustainchaostrig",0,0,1,1);
-
-  release = hslider("release",0,0,1,0.001) : fo.automrec(_,tempo,rrecord,rloop,t,ract)  : fo.chaos(rchaos,13,rchaostrig,t,slew) : vbargraph("releaseO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
-  rrecord = checkbox("releaserecord");
-  rloop = checkbox("releaseloop");
-  ract = checkbox("releaseact");
-  rchaos = hslider("releasechaos",0,0,1,0.01);
-  rchaostrig = hslider("releasechaostrig",0,0,1,1);
+  attack = hslider("attack",0,0,1,0.001) : vbargraph("attackO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
+  decay = hslider("decay",0,0,1,0.001) : vbargraph("decayO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
+  sustain = hslider("sustain",0,0,1,0.01) : vbargraph("sustainO",0,1);
+  release = hslider("release",0,0,1,0.001) : vbargraph("releaseO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  velocity = hslider("velocity",0,0,1,0.01) : fo.chaos(vchaos,14,vchaostrig,t,slew) : vbargraph("velocityO",0,1) : pow(2.7) : si.smoo;
+  velocity = hslider("velocity",0,0,1,0.01) : vbargraph("velocityO",0,1) : pow(2.7) : si.smoo;
   vchaos = hslider("velocitychaos",0,0,1,0.01);
   vchaostrig = hslider("velocitychaostrig",0,0,1,1);
-  // vx(i,x,y) = velocity : si.smoothAndH((i==x) & (y==1), 0.999);
   vx(i,x) = velocity : ba.sAndH((i==x));
 };

@@ -9,17 +9,12 @@ declare license "MIT";
 declare options "[osc:on]";
 
 import("stdfaust.lib");
-fo = library("formuls.lib");
 fx = library("ffx.lib");
 fs = library("fsynth.lib");
 
 //--------------------------------//
 //-------GLOBAL_PARAMETERS--------//
 //--------------------------------//
-
-/* fo.automrec global params */
-tempo = hslider("tempo",1,0.01,1,0.01); // controls fo.automrec read speed
-slew = hslider("slew",0,0,1,0.01) : *(4800) : int; // sets the slew time for chaos: 0-2 seconds.
 
 //------VOLUME----//
 volume =  _ : *(vol)
@@ -29,14 +24,9 @@ with{
 
 mute = hslider("mute",0,0,1,1) :  si.smoo;
 
-//--------------------------------//
-
-
 //---------------------------------------------------------------------------------------//
 //-------------------------------------------MAIN----------------------------------------//
 //---------------------------------------------------------------------------------------//
 
 /* Signal inputs: 1)input synth voice frequency modulation; 2)input ADSR trigger; 3)input envelope follower; Signal outputs: 1)left audio channel; 2)right audio channel */
-process(mod,trig,env) = fs.synth(mod,tempo,trig,slew) : fx.fx(_,tempo,trig,slew) : *(env : fx.envelopefollower) : *(0.2) : volume : sp.panner(mute) <: fx.panner(tempo,trig,slew),_;
-
-//---------------------------------------------------------------------------------------//
+process(mod,trig,env) = (fs.synth(mod,trig) : fx.fx : *(env : fx.envelopefollower) : *(0.2) : volume : sp.panner(mute) <: fx.panner,_);

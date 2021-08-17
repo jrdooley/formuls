@@ -1,0 +1,9 @@
+#N canvas 168 90 542 173 10;
+#X text 254 54 \$1 = \$0 \; \$2 = instance;
+#X obj 29 101 r \$0-formuls-param-out;
+#X text 179 13 <- parse incoming messages;
+#X text 168 96 <- retreive parameter value from faust DSP then format
+and send to GUI;
+#X obj 29 16 f.util.oscinparse \$2 \$1;
+#X obj 29 123 f.util.oscoutparse \$2 \$1 formuls flooper;
+#X connect 1 0 5 0;
