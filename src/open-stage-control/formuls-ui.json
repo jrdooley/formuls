@@ -1,5 +1,5 @@
 {
-  "version": "1.9.7",
+  "version": "1.9.11",
   "type": "session",
   "createdWith": "Open Stage Control",
   "content": {
@@ -5671,7 +5671,9 @@
                         "traversing": true,
                         "widgetType": "button",
                         "quantity": 6,
-                        "props": {},
+                        "props": {
+                          "label": "false"
+                        },
                         "value": "",
                         "default": "",
                         "linkId": "",
@@ -13747,7 +13749,9 @@
                         "traversing": true,
                         "widgetType": "button",
                         "quantity": 6,
-                        "props": {},
+                        "props": {
+                          "label": "false"
+                        },
                         "value": "",
                         "default": "",
                         "linkId": "",
@@ -16199,7 +16203,9 @@
                         "traversing": true,
                         "widgetType": "button",
                         "quantity": 6,
-                        "props": {},
+                        "props": {
+                          "label": "false"
+                        },
                         "value": "",
                         "default": "",
                         "linkId": "",
@@ -17799,8 +17805,8 @@
       {
         "type": "tab",
         "id": "formuls7",
-        "visible": true,
-        "interaction": true,
+        "visible": false,
+        "interaction": false,
         "colorText": "@{this.variables.colour}",
         "colorWidget": "@{this.variables.colour}",
         "colorFill": "@{this.variables.colour}",
