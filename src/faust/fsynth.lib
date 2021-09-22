@@ -1,6 +1,5 @@
 declare author "James Dooley: info@formuls.co.uk";
 declare copyright "James Dooley";
-declare version "1.0";
 declare license "MIT";
 declare options "[osc:on]";
 
@@ -12,7 +11,7 @@ import("stdfaust.lib");
 //------FORMULS------//
 /* main synth function */
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-synth(inmod,sigtrig) = inmod : *(extmod) <: (_ : fo.fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fo.fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : fo.adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
+synth(inmod,sigtrig) = inmod : *(extmod) <: (_ : fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -37,7 +36,7 @@ with{
   //----SYNTH_PARAMETERS----//
 
   // extmod: external input modulates frequency of Oscillator.
-  extmod = hslider("extmodulation",0,0,1,0.01) : vbargraph("extmodulationO",0,1) : *(16) : si.smoo;
+  extmod = hslider("extmodulation",0,0,1,0.01) : vbargraph("extmodulationO",0,1) : pow(2.7) : *(16) : si.smoo;
 
   // waveshape: sine -> triangle -> rising sawtooth -> squarewave
   waveshape = hslider("waveshape",0,0,1,0.01) : vbargraph("waveshapeO",0,1) : *(2);
@@ -75,4 +74,36 @@ with{
   vchaos = hslider("velocitychaos",0,0,1,0.01);
   vchaostrig = hslider("velocitychaostrig",0,0,1,1);
   vx(i,x) = velocity : ba.sAndH((i==x));
+};
+
+//----------------------------------------------------------------------------------------//
+//----------------------------------SYNTHESIS---------------------------------------------//
+//----------------------------------------------------------------------------------------//
+//------fmosc-------//
+/* FM Oscillator: sine -> triangle -> sawtooth -> square. */
+// o1f = op1 freq, o1sr = op1 slide range, o1st = op1 slide time,o2f = op2 freq, o2d = op2 depth, na = noise, wa = waveshape, ta = trigger
+fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta) = freqset : fmosc
+  with{
+    o1sr1 = o1sr : ba.sAndH(ta : ba.impulsify);
+    o1st1 = o1st : ba.sAndH(ta : ba.impulsify);
+    ta1 = ta : @(10);
+    cf = o1f : +(o1f : *((en.ar(0.001,o1st1,ta1) : pow(2.7)) : *(o1sr1))) : min(19000); //calculate op1 freq during freq slide
+    freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
+    freqset = _ : *(freqcontrol) : +(freqcontrol);
+    clip(x) = x : min(1,_) : max(0,_);
+    // oscphase = ta1 == (0) : ba.impulsify;
+    wa1 = wa : si.smoo;
+    // fmosc = _ <: (((os.oscsin), (os.lf_triangle) : si.interpolate(clip(wa1))), (os.lf_saw) : si.interpolate(clip(wa1-(1)))), os.lf_squarewave : si.interpolate(clip(wa1-(2)));
+    fmosc = _ : os.lf_saw <: (*(ma.PI) : sin <:_,(*(20) : ma.tanh : min(1)) : si.interpolate(clip(wa1))),_ : si.interpolate(clip(wa1-(1)));
+  };
+
+//---------ADSR----------//
+/* Fixed duration ADSR envelope for FMSynth module */
+adsr(a,d,s,r,t) = _ : *(en.dx7envelope(a1,d1,r1,1,1,s1,0,0,t1) : pow(2.7))
+with {
+  a1 = a : ba.sAndH(t : ba.impulsify);
+  d1 = d : ba.sAndH(t : ba.impulsify);
+  s1 = s : ba.sAndH(t : ba.impulsify);
+  r1 = r : ba.sAndH(t : ba.impulsify);
+  t1 = t : @(2);
 };
