@@ -120,7 +120,7 @@
 #X obj 192 519 outlet beat;
 #X obj 46 340 t f f;
 #X obj 91 292 r \$0-sequencer-on;
-#X obj 103 312 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+#X obj 103 312 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
 1;
 #X obj 46 65 f.seq.beatdivision;
 #X obj 46 163 f.seq.swing;
