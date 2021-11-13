@@ -1,9 +1,9 @@
-#N canvas 767 383 411 225 10;
+#N canvas 767 383 411 290 10;
 #X obj 33 12 inlet;
 #X text 140 48 \$1 = instance;
 #X text 140 62 \$2 = \$0;
 #X text 137 32 Receive and parse OSC messages from synth;
-#N canvas 421 322 669 556 MIX_BUS___ 1;
+#N canvas 421 322 669 556 MIX_BUS___ 0;
 #X obj 123 37 inlet;
 #X obj 176 452 s to-o-s-c-interface;
 #X obj 176 429 oscformat panning\$1;
@@ -745,6 +745,7 @@
 #X obj 40 585 s to-o-s-c-interface;
 #X obj 113 474 s to-o-s-c-interface;
 #X obj 180 367 s to-o-s-c-interface;
+#X obj 212 589 outlet;
 #X connect 1 0 3 0;
 #X connect 2 0 1 0;
 #X connect 3 0 4 0;
@@ -776,6 +777,9 @@
 #X connect 22 0 26 0;
 #X connect 23 0 20 0;
 #X restore 33 189 pd MOD_______;
+#N canvas 0 23 570 536 LFO_______ 0;
+#X obj 37 37 inlet;
+#X restore 33 210 pd LFO_______;
 #X connect 0 0 4 0;
 #X connect 4 0 5 0;
 #X connect 5 0 6 0;
@@ -783,3 +787,4 @@
 #X connect 7 0 8 0;
 #X connect 8 0 11 0;
 #X connect 11 0 12 0;
+#X connect 12 0 13 0;
