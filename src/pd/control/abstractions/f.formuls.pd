@@ -1,9 +1,6 @@
-#N canvas 153 90 554 246 10;
+#N canvas 153 90 373 140 10;
 #X text 254 34 \$1 = \$0 \; \$2 = instance;
-#X obj 29 151 r \$0-formuls-param-out;
 #X text 179 13 <- parse incoming messages;
-#X text 168 146 <- retreive parameter value from faust DSP then format
-and send to GUI;
 #X obj 29 16 f.util.oscinparse \$2 \$1;
 #N canvas 0 25 227 298 MESSAGE_THROTTLE 0;
 #X obj 49 220 spigot;
@@ -31,6 +28,6 @@ and send to GUI;
 #X restore 29 66 pd MESSAGE_THROTTLE;
 #X obj 29 89 s to-o-s-c-interface;
 #X obj 29 45 r \$2-message-collect;
-#X obj 30 181 f.util.oscoutparse \$2 \$1 formuls flooper;
-#X connect 5 0 6 0;
-#X connect 7 0 5 0;
+#X obj 29 114 f.util.reset \$2 \$1;
+#X connect 3 0 4 0;
+#X connect 5 0 3 0;

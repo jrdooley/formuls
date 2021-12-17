@@ -11,66 +11,67 @@ import("stdfaust.lib");
 //------FORMULS------//
 /* main synth function */
 // Two audio signals in: 1st is sent to ADSR to trigger it; 2nd receives from another synth and controls FM modulation
-synth(inmod,sigtrig) = inmod : *(extmod) <: (_ : fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : ba.selectn(2,adsron)
+synth(inmod,sigtrig) = inmod : *(extmod) <: (_ : fmosc(oxO,orx,otx,op2freq,op2depth,nx,waveshape,t) : *(velocity)), (par(i,15,(_ : fmosc(ox(i,c,t),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),tx(i,c,c2)) : adsr(attack,decay,sustain,release,tx(i,c,c2)) : *(vx(i,c))) : *(poly(i,c))) :> _) : si.interpolate(adsron : si.smoo)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
   /* fmosc controls */
   adsron = hslider("adsron",0,0,1,1) : int; // toggle between polyphonic adsr and monophone sustained oscillator tone.
-  polyphonic = checkbox("polyphonic") : vbargraph("polyphonicO",0,1) : int;
+  polyphonic = checkbox("polyphonic") : int;
   poly(i,x) = polyphonic +(i==x) : min(1);
 
   st = (sigtrig : si.smoo: >(thresh)) : *(thresh!=1): ba.impulsify : int;
-  thresh = hslider("threshold",1,0,1,0.01) : vbargraph("thresholdO",0,1) : pow(6); // sets ADSR trigger threshold for incomgin signal
-  thchaos = hslider("thresholdchaos",0,0,1,0.01) : pow(3);
-  thchaostrig = hslider("thresholdchaostrig",0,0,1,1);
+  thresh = 1;
+  // thresh = hslider("threshold",1,0,1,0.01) : pow(6); // sets ADSR trigger threshold for incomgin signal
+  // thchaos = hslider("thresholdchaos",0,0,1,0.01) : pow(3);
+  // thchaostrig = hslider("thresholdchaostrig",0,0,1,1);
   trigx = button("triggerx");
   t = trigx : +(st) : min(1) : int; // triggers synth voice
 
   //Counter to select voice
   counterMod = 15;
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
-  c = +(1)~(ba.sAndH(t : ba.impulsify)) : %(counterMod) : vbargraph("voicenumberO",0,16) : int; // Incremental counter for voice select.
+  c = +(1)~(ba.sAndH(t : ba.impulsify)) : %(counterMod) : int; // Incremental counter for voice select.
   c2 = c +(1) : %(counterMod) : int; // Used to turn off next voice in preparation for triggering.
 
   //----SYNTH_PARAMETERS----//
 
   // extmod: external input modulates frequency of Oscillator.
-  extmod = hslider("extmodulation",0,0,1,0.01) : vbargraph("extmodulationO",0,1) : pow(2.7) : *(16) : si.smoo;
+  extmod = hslider("extmodulation",0,0,1,0.01) : *(16) : si.smoo;
 
   // waveshape: sine -> triangle -> rising sawtooth -> squarewave
-  waveshape = hslider("waveshape",0,0,1,0.01) : vbargraph("waveshapeO",0,1) : *(2);
+  waveshape = hslider("waveshape",0,0,1,0.01) : *(2);
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
-  op1freq = hslider("op1freq",8,0,22050,0.001) : vbargraph("op1freqO",0,22050); // carrier frequency
+  op1freq = hslider("op1freq",8,0,22050,0.001); // carrier frequency
   oxO = op1freq;
   ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
 
-  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : vbargraph("op1sliderangeO",0,1) : *(5);
+  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : *(5);
   orx = op1sliderange;
 
-  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : vbargraph("op1slidetimeO",0,1) : pow(4) : *(2); //time taken for carrier frequency slide
+  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : *(2); //time taken for carrier frequency slide
   otx = op1slidetime;
 
-  op2freq = hslider("op2freq",0,0,1,0.001) : vbargraph("op2freqO",0,1) : *(2) : max(0.001); // mod freq is relative to op1 freq
+  op2freq = hslider("op2freq",0,0,1,0.001) : *(2) : max(0.001); // mod freq is relative to op1 freq
   o2fx(i,x,y) = op2freq : ba.sAndH((i==x));
 
-  op2depth = hslider("op2depth",0,0,1,0.001) : vbargraph("op2depthO",0,1) : *(2); // mod depth is relative to op1 freq
+  op2depth = hslider("op2depth",0,0,1,0.001) : *(2); // mod depth is relative to op1 freq
   o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
 
-  noise = hslider("noise",0,0,1,1) : vbargraph("noiseO",0,1) : pow(4.2) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
+  noise = hslider("noise",0,0,1,1) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nx = noise;
 
-  noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : vbargraph("noisefilterfreqO",0,1) : pow(4.2) : *(0.999) : +(0.001) : *(22050); // noise filter amount
+  noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : *(0.999) : +(0.001) : *(22050); // noise filter amount
 
   /* ADSR controls */
-  attack = hslider("attack",0,0,1,0.001) : vbargraph("attackO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
-  decay = hslider("decay",0,0,1,0.001) : vbargraph("decayO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
-  sustain = hslider("sustain",0,0,1,0.01) : vbargraph("sustainO",0,1);
-  release = hslider("release",0,0,1,0.001) : vbargraph("releaseO",0,1) : pow(3.1) : *(0.9999) : +(0.0001) : *(10);
+  attack = hslider("attack",0,0,1,0.001) : *(0.9999) : +(0.0001) : *(10);
+  decay = hslider("decay",0,0,1,0.001) : *(0.9999) : +(0.0001) : *(10);
+  sustain = hslider("sustain",0,0,1,0.01);
+  release = hslider("release",0,0,1,0.001) : *(0.9999) : +(0.0001) : *(10);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  velocity = hslider("velocity",0,0,1,0.01) : vbargraph("velocityO",0,1) : pow(2.7) : si.smoo;
+  velocity = hslider("velocity",0,0,1,0.01) : si.smoo;
   vchaos = hslider("velocitychaos",0,0,1,0.01);
   vchaostrig = hslider("velocitychaostrig",0,0,1,1);
   vx(i,x) = velocity : ba.sAndH((i==x));

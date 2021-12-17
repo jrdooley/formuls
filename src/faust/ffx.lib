@@ -7,7 +7,7 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
-fx = _ <: _,(saturation : bitcrush : pitchshift : filter : delay : am : gate) : si.interpolate(fxsend);
+fx = _ <: _,(pitchshift : saturation : bitcrush : filter : delay : am : gate) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -20,9 +20,9 @@ with {
 //------AMPLITUDE_MODULATION-----//
 am = _ : *(1-(amd *(amf : amosc)))
 with{
-  amw = hslider("amwave",0,0,1,0.001) : vbargraph("amwaveO",0,1) : *(3);
-  amf = hslider("amfreq",0,0,1,0.001) : vbargraph("amfreqO",0,1) : pow(3.1) : *(99.9) : max(0.1) : vbargraph("amfreqhzO",0.1,100) : si.smoo;
-  amd = hslider("amdepth",0,0,1,0.01) : vbargraph("amdepthO",0,1) : pow(3.1) : si.smoo;
+  amw = hslider("amwave",0,0,1,0.001) : *(3);
+  amf = hslider("amfreq",0,0,1,0.001) : *(99.9) : max(0.1) : si.smoo;
+  amd = hslider("amdepth",0,0,1,0.01) : si.smoo;
 
   clip(x) = x : min(1,_) : max(0,_);
   amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_trianglepos : si.interpolate(clip(amw))), os.lf_sawpos : si.interpolate(clip(amw-(1)))), os.lf_squarewavepos : si.interpolate(clip(amw-2))));
@@ -31,24 +31,24 @@ with{
 /* tanh waveshape distortion */
 saturation = _ <: _,(_ : *(1.57) : ma.tanh) : si.interpolate(sat)
 with{
-  sat = hslider("saturation",0,0,1,0.01) : vbargraph("saturationO",0,1) : si.smoo;
+  sat = hslider("saturation",0,0,1,0.01) : si.smoo;
 };
 //-----------RESONANT_FILTER---------------//
 filter = _ : fi.highpass(2,hip) : fi.resonlp(lop,res,1)
 with {
-  hip = hslider("highpass",0,0,1,0.001) : vbargraph("highpassO",0,1) : *(136) : ba.midikey2hz : si.smoo;
-  lop = hslider("lowpass",1,0,1,0.001) : vbargraph("lowpassO",0,1) : *(135) : ba.midikey2hz : si.smoo;
-  res = hslider("filterresonance",0,0,1,0.001) : pow(2.7) : vbargraph("resonanceO",0,1) : *(99) : +(1) : si.smoo;
+  hip = hslider("highpass",0,0,1,0.001) : *(136) : ba.midikey2hz : si.smoo;
+  lop = hslider("lowpass",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
+  res = hslider("filterresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
 };
 //-----------BITCRUSHER---------------//
 bitcrush = _ : ba.downSample(bit)
 with {
-  bit = hslider("bitcrush",0,0,1,0.01) : vbargraph("bitcrushO",0,1) : 1-(_) : pow(2.7) : *(47950) : +(50) : si.smoo;
+  bit = hslider("bitcrush",0,0,1,0.01) : 1-(_) : *(47950) : +(50) : si.smoo;
 };
 //------------PITCHSHIFT------------//
 pitchshift = _ : ef.transpose(300,50,pit) //
 with {
-  pit = hslider("pitchshift",0.5,0,1,0.1) : vbargraph("pitchshiftO",0,1) : *(48) : -(24) : si.smoo;
+  pit = hslider("pitchshift",0.5,0,1,0.1) : *(48) : -(24) : si.smoo;
 };
 //-------------DELAY---------------//
 // delay(tempo,t) = _ <:_,(*(ds) : ef.echo(1,dt,df)) :> _
@@ -56,33 +56,33 @@ delay = _ <:_,lagrangedelay :> _
 with {
   N	= int(2^17);
 
-  ds = hslider("delaysend",0,0,1,0.01) : vbargraph("delaysendO",0,1) : si.smoo;
-  dt = hslider("delaytime",0,0,1,0.01) : vbargraph("delaytimeO",0,1) : *(ma.SR) : si.smoo;
-  df = hslider("delayfeedback",0,0,1,0.01) : vbargraph("delayfeedbackO",0,1) : si.smoo;
+  ds = hslider("delaysend",0,0,1,0.01) : si.smoo;
+  dt = hslider("delaytime",0,0,1,0.01) : *(ma.SR) : si.smoo;
+  df = hslider("delayfeedback",0,0,1,0.01) : si.smoo;
 
   lagrangedelay = *(ds) : (+ :de.sdelay(N, 24, dt)) ~ *(df);
 };
 //-------------GATE---------------//
 gate = _ : ef.gate_mono(gt,ga,gh,gr) : _
 with {
-  gt = hslider("gatethresh",0,0,1,0.01) : vbargraph("gatethreshO",0,1) : pow(0.3) : *(60) : -(60); //short = gt
-  ga = hslider("gateattack",0.001,0,1,0.01) : vbargraph("gateattackO",0,1) : pow(3) : *(0.25) : +(0.001); // short = ga
-  gh = hslider("gatehold",0,0,1,0.01) : vbargraph("gateholdO",0,1) : pow(3) : *(0.25) : +(0.001); // short = gh
-  gr = hslider("gaterelease",0,0,1,0.01) : vbargraph("gatereleaseO",0,1) : pow(3) : +(0.001); // short = gr
+  gt = hslider("gatethresh",0,0,1,0.01) : *(60) : -(60); //short = gt
+  ga = hslider("gateattack",0.001,0,1,0.01) : *(0.25) : +(0.001); // short = ga
+  gh = hslider("gatehold",0,0,1,0.01) : *(0.25) : +(0.001); // short = gh
+  gr = hslider("gaterelease",0,0,1,0.01) : +(0.001); // short = gr
 };
 //------ENVELOPE_FOLLOWER/SIDECHAIN----//
 envelopefollower = _ : max(-1) : min(1) : an.amp_follower_ar(0.01, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
 with{
-  enveloperelease = hslider("enveloperelease",0.001,0.001,1,0.001) : vbargraph("envelopereleaseO",0,1) : pow(1.7) : *(0.999) : +(0.001) : si.smoo;
-  envelopedepth = hslider("envelopedepth",0,0,1,0.01) : vbargraph("envelopedepthO",0,1) : si.smoo;
-  envelopeside = checkbox("envelopeside") : vbargraph("envelopesideO",0,1);
+  enveloperelease = hslider("enveloperelease",0.001,0.001,1,0.001) : *(0.999) : +(0.001) : si.smoo;
+  envelopedepth = hslider("envelopedepth",0,0,1,0.01) : si.smoo;
+  envelopeside = checkbox("envelopeside");
   env = *(envelopedepth) : +(1-envelopedepth); // envelope follow algorithm
   side = 1-(_) *(envelopedepth); // sidechain algorithm
 };
 //------PANNING----//
 panner = _ : sp.panner(pan)
 with{
-    pan = hslider("panning",0.5,0,1,0.01) : vbargraph("panningO",0,1) : si.smoo;
+    pan = hslider("panning",0.5,0,1,0.01) : si.smoo;
 };
 
 //-------------REVERB-------------//
