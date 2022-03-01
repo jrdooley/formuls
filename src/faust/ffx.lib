@@ -120,10 +120,10 @@ with {
 
 //------------DJEQ-----------//
 // 3 band dj-style EQ.
-djeq = djlop : djhip
+djfilter = djlop : djhip
 with{
-  fc = hslider("djeqcutoff",0.5,0,1,0.01) : si.smoo;
-  r = hslider("djeqresonance",1,1,100,1) : si.smoo;
+  fc = hslider("djfiltercutoff",0.5,0,1,0.01) : si.smoo;
+  r = hslider("djfilterresonance",1,1,100,1) : si.smoo;
 
   fh = fc : -(0.6) : max(0) : *(2.5) : pow(2.7) : *(5000) : +(5); // scales "filtercutoff" values between 0.6-1 to lie between 5-5000Hz (high pass)
   fl = fc : *(2.5) : min(1) : pow(2.7) : *(9980) : +(80); // scales "filtercutoff" values between 0-0.4 to lie between 80-10060Hz (low pass)

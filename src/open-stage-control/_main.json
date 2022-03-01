@@ -1,5 +1,5 @@
 {
-  "version": "1.12.0",
+  "version": "1.14.6",
   "type": "session",
   "createdWith": "Open Stage Control",
   "content": {
@@ -27,7 +27,6 @@
     "value": "",
     "default": "",
     "linkId": "",
-    "script": "",
     "address": "auto",
     "preArgs": "",
     "typeTags": "",
@@ -62,7 +61,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -98,7 +96,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "/@{this.id}",
             "preArgs": "",
             "typeTags": "",
@@ -112,7 +109,9 @@
             "start": 0,
             "traversing": true,
             "velocity": false,
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -148,7 +147,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -183,7 +181,6 @@
                 "value": "",
                 "default": 0,
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -197,7 +194,9 @@
                 "vertical": false,
                 "on": 1,
                 "off": 0,
-                "doubleTap": false
+                "doubleTap": false,
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "text",
@@ -223,14 +222,15 @@
                 "value": "@{tempoglobal.value}",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "/@{this.id}",
                 "preArgs": "",
                 "decimals": 2,
                 "target": "",
                 "html": "",
                 "align": "center",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -257,7 +257,6 @@
                 "value": "",
                 "default": 110,
                 "linkId": "",
-                "script": "",
                 "address": "/@{this.id}",
                 "preArgs": "",
                 "typeTags": "",
@@ -281,7 +280,10 @@
                 "sensitivity": 1,
                 "steps": 240,
                 "origin": "auto",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -315,7 +317,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "/@{this.id}",
                 "preArgs": "",
                 "typeTags": "",
@@ -323,7 +324,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -347,11 +350,10 @@
                 "html": "",
                 "css": "",
                 "colorTextOn": "auto",
-                "mode": "slide",
+                "mode": "toggle",
                 "value": "",
                 "default": 1,
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -365,11 +367,15 @@
                 "vertical": false,
                 "on": 2,
                 "off": 1,
-                "doubleTap": false
+                "doubleTap": false,
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -412,7 +418,6 @@
             "target": "",
             "ignoreDefaults": false,
             "bypass": false,
-            "script": "",
             "widgets": [
               {
                 "type": "panel",
@@ -452,7 +457,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "preArgs": "",
                 "typeTags": "",
                 "decimals": 2,
@@ -471,7 +475,6 @@
                     "height": "16.6%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "widgetId": "slider",
                     "props": "{\n  \"variables\": { \"name\": \"reverb\", \"n\": @{parent.variables.n} }\n}",
@@ -521,7 +524,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "/@{this.id}",
                     "preArgs": "",
                     "typeTags": "",
@@ -530,7 +532,10 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": "",
+                    "onTouch": ""
                   },
                   {
                     "type": "button",
@@ -565,14 +570,15 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "preArgs": "",
                     "typeTags": "",
                     "decimals": 2,
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -606,7 +612,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "preArgs": "",
                     "typeTags": "",
                     "decimals": 2,
@@ -614,11 +619,15 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "clone",
@@ -638,7 +647,6 @@
                     "colour": "#ff0000"
                   }
                 },
-                "script": "",
                 "comments": "",
                 "address": "auto",
                 "variables": "@{parent.variables}"
@@ -661,7 +669,6 @@
                     "colour": "#f77604"
                   }
                 },
-                "script": "",
                 "comments": "",
                 "address": "auto",
                 "variables": "@{parent.variables}"
@@ -684,7 +691,6 @@
                     "colour": "#e4ed3b"
                   }
                 },
-                "script": "",
                 "comments": "",
                 "address": "auto",
                 "variables": "@{parent.variables}"
@@ -707,7 +713,6 @@
                     "colour": "#3bed6d"
                   }
                 },
-                "script": "",
                 "comments": "",
                 "address": "auto",
                 "variables": "@{parent.variables}"
@@ -730,14 +735,15 @@
                     "colour": "#00ffd4"
                   }
                 },
-                "script": "",
                 "comments": "",
                 "address": "auto",
                 "variables": "@{parent.variables}"
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -781,7 +787,6 @@
             "target": "",
             "ignoreDefaults": false,
             "bypass": false,
-            "script": "",
             "widgets": [
               {
                 "type": "button",
@@ -823,7 +828,8 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -874,7 +880,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "knob",
@@ -923,7 +931,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "modal",
@@ -975,7 +985,6 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": "",
                 "widgets": [
                   {
                     "type": "matrix",
@@ -1026,9 +1035,10 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "script": "",
                     "widgets": [],
-                    "tabs": []
+                    "tabs": [],
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -1070,10 +1080,13 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "script": ""
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
-                "tabs": []
+                "tabs": [],
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -1124,7 +1137,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -1175,10 +1190,14 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -1214,7 +1233,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -1246,7 +1264,6 @@
                 "value": 1,
                 "default": 1,
                 "linkId": "",
-                "script": "",
                 "address": "/@{this.id}",
                 "preArgs": "",
                 "decimals": 3,
@@ -1272,7 +1289,10 @@
                 "logScale": false,
                 "sensitivity": 1,
                 "steps": 240,
-                "origin": "auto"
+                "origin": "auto",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "text",
@@ -1297,7 +1317,6 @@
                 "value": "LEVEL\n(NO LIMITER)",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -1305,7 +1324,9 @@
                 "comments": "",
                 "vertical": false,
                 "wrap": true,
-                "align": "center"
+                "align": "center",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -1330,7 +1351,6 @@
                 "value": 0,
                 "default": 0,
                 "linkId": "",
-                "script": "",
                 "address": "/@{this.id}",
                 "preArgs": "",
                 "decimals": 3,
@@ -1356,7 +1376,10 @@
                 "logScale": false,
                 "sensitivity": 1,
                 "steps": 240,
-                "origin": "auto"
+                "origin": "auto",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "text",
@@ -1381,7 +1404,6 @@
                 "value": "LIMITER\nLEVEL",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -1389,17 +1411,21 @@
                 "vertical": false,
                 "wrap": true,
                 "comments": "",
-                "align": "center"
+                "align": "center",
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "text",
             "top": "0%",
             "left": "55%",
-            "id": "djeqcutofflabel",
+            "id": "djfiltercutofflabel",
             "visible": true,
             "width": "35%",
             "height": "20%",
@@ -1418,7 +1444,6 @@
             "value": "DJ FILTER",
             "default": 0.5,
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "decimals": 3,
@@ -1426,13 +1451,15 @@
             "comments": "",
             "vertical": false,
             "wrap": false,
-            "align": "center"
+            "align": "center",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "fader",
             "top": "0%",
             "left": "55%",
-            "id": "djeqcutoff",
+            "id": "djfiltercutoff",
             "visible": true,
             "interaction": true,
             "width": "35%",
@@ -1465,7 +1492,6 @@
             "value": "",
             "default": 0.5,
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -1477,7 +1503,10 @@
             "knobSize": 10,
             "horizontal": true,
             "gradient": [],
-            "snap": false
+            "snap": false,
+            "onValue": "",
+            "onCreate": "",
+            "onTouch": ""
           },
           {
             "type": "button",
@@ -1502,7 +1531,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "/@{this.id}",
             "preArgs": "",
             "decimals": 2,
@@ -1519,7 +1547,9 @@
             "label": "REVERB\n\nBYPASS",
             "on": 1,
             "off": 0,
-            "mode": "toggle"
+            "mode": "toggle",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "button",
@@ -1544,7 +1574,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "/@{this.id}",
             "preArgs": "",
             "decimals": 2,
@@ -1561,7 +1590,9 @@
             "label": "REVERB\n\nLIMITER\n\nSEND",
             "on": 1,
             "off": 0,
-            "mode": "toggle"
+            "mode": "toggle",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -1605,7 +1636,6 @@
             "target": "",
             "ignoreDefaults": false,
             "bypass": false,
-            "script": "",
             "widgets": [
               {
                 "type": "matrix",
@@ -1639,7 +1669,6 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": "",
                 "layout": "horizontal",
                 "gridTemplate": "",
                 "colorBg": "auto",
@@ -1656,7 +1685,9 @@
                   "label": " "
                 },
                 "widgets": [],
-                "tabs": []
+                "tabs": [],
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -1707,7 +1738,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -1749,14 +1782,19 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": ""
+                "onValue": "",
+                "onCreate": ""
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onValue": "",
+            "onCreate": ""
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -1786,7 +1824,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -1829,7 +1866,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -1844,7 +1880,6 @@
                 "value": "JS{{\n\nvar a = @{actglobal@{parent.variables.n}.value}\nvar b = @{trigglobal@{parent.variables.n}.value}\nvar c = @{chaostrigglobal@{parent.variables.n}.value}\n\nvar d = a + b + c\nvar output = \"false\"\n\nif (d == 0) {\noutput = \"false\"\n} else {\noutput = \"true\"\n}\n\nreturn [output]\n}}",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -1875,7 +1910,9 @@
                 "asYouType": false,
                 "validation": "",
                 "comments": "",
-                "numeric": false
+                "numeric": false,
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "clone",
@@ -1888,7 +1925,6 @@
                 "height": "100%",
                 "expand": true,
                 "css": "border-radius: 10px",
-                "script": "",
                 "comments": "",
                 "props": "{\n\"n\": @{parent.variables.n}}",
                 "widgetId": "modepanelparent",
@@ -1929,7 +1965,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -1949,7 +1984,6 @@
                     "height": "50%",
                     "expand": true,
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": {\"name\": \"op1\",\n  \"n\": @{parent.variables}}\n}",
                     "widgetId": "xy",
@@ -1982,12 +2016,13 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "decimals": 2,
                     "target": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "clone",
@@ -2000,7 +2035,6 @@
                     "height": "50%",
                     "expand": true,
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "widgetId": "xy",
                     "props": "{\n  \"variables\": {\"name\": \"op2\",\n  \"n\": @{parent.variables}}\n}",
@@ -2018,7 +2052,6 @@
                     "height": "10%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"extmodulation\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -2067,7 +2100,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2080,7 +2112,7 @@
                         "type": "matrix",
                         "top": "0%",
                         "left": "0%",
-                        "id": "extmodulationinput@{parent.variables}",
+                        "id": "extmodulationsource@{parent.variables}",
                         "visible": true,
                         "interaction": true,
                         "width": "100%",
@@ -2114,7 +2146,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -2124,7 +2155,9 @@
                         "bypass": false,
                         "widgets": [],
                         "tabs": [],
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "clone",
@@ -2139,14 +2172,15 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
-                        "script": "",
                         "comments": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
                     ],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "clone",
@@ -2159,7 +2193,6 @@
                     "height": "40%",
                     "expand": true,
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"op1slide\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "xy",
@@ -2177,7 +2210,6 @@
                     "height": "50%",
                     "expand": true,
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"noise\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "xy",
@@ -2186,7 +2218,9 @@
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "panel",
@@ -2222,7 +2256,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -2254,7 +2287,6 @@
                     "value": "",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2271,7 +2303,9 @@
                     "on": 1,
                     "off": 0,
                     "mode": "toggle",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "panel",
@@ -2307,7 +2341,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2322,7 +2355,6 @@
                         "value": "JS{{\n\nvar v = @{freqsnap@{parent.variables}}\n\nif (v == 0) {\n var label = \"true\"\n}\nif (v == 1) {\nvar label = \"false\"}\n\nreturn label\n}}",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -2330,7 +2362,9 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "menu",
@@ -2356,15 +2390,14 @@
                         "layout": "vertical",
                         "gridTemplate": "",
                         "values": {
-                          "^arrow-up": 0,
-                          "^arrow-down": 1,
-                          "^arrow-up ^arrow-down": 2,
-                          "^dice": 3
+                          "^dice": 0,
+                          "^arrow-up": 1,
+                          "^arrow-down": 2,
+                          "^arrow-up ^arrow-down": 3
                         },
                         "value": "",
                         "default": 0,
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -2382,7 +2415,9 @@
                         "toggle": false,
                         "doubleTap": false,
                         "weights": "",
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "text",
@@ -2407,15 +2442,16 @@
                         "vertical": false,
                         "wrap": false,
                         "align": "center",
-                        "value": "JS{{\n\nvar v = @{gendirection@{parent.variables}}\n\nif (v == 0) {\n var label = \"^arrow-up\"\n}\nif (v == 1) {\nvar label = \"^arrow-down\"}\nif (v == 2) {\nvar label = \"^arrow-up ^arrow-down\"}\nif (v == 3) {\n var label = \"^dice\"\n}\nreturn label\n}}",
+                        "value": "JS{{\n\nvar v = @{gendirection@{parent.variables}}\n\nif (v == 1) {\n var label = \"^arrow-up\"\n}\nif (v == 2) {\nvar label = \"^arrow-down\"}\nif (v == 3) {\nvar label = \"^arrow-up ^arrow-down\"}\nif (v == 0) {\n var label = \"^dice\"\n}\nreturn label\n}}",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "decimals": 2,
                         "target": "",
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "clone",
@@ -2428,7 +2464,6 @@
                         "height": "20%",
                         "expand": "false",
                         "css": "",
-                        "script": "",
                         "comments": "",
                         "props": "{\n \"variables\": {\"name\": \"genrange\",\n  \"n\": @{parent.variables},\n  \"vals\": [ 1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7,\n  8,\n  9,\n  10,\n  11,\n  12,\n  13,\n  14,\n  15,\n  16,\n  17,\n  18,\n  19,\n  20,\n  21,\n  22,\n  23,\n  24 ],\n  \"gridsize\": 12}\n}",
                         "widgetId": "menu",
@@ -2446,9 +2481,8 @@
                         "height": "20%",
                         "expand": "false",
                         "css": "",
-                        "script": "",
                         "comments": "",
-                        "props": "{\n \"variables\": {\"name\": \"genstepsize\",\n  \"n\": @{parent.variables},\n  \"vals\": [ 1, 2, 3, 4,5,6,7,8 ],\n  \"gridsize\": 4}\n}",
+                        "props": "{\n \"variables\": {\"name\": \"genstepsize\",\n  \"n\": @{parent.variables},\n  \"vals\": [ 1, 2, 3, 4, 5, 6, 7, 8 ],\n  \"gridsize\": 4}\n}",
                         "widgetId": "menu",
                         "address": "auto",
                         "variables": "@{parent.variables}"
@@ -2488,7 +2522,6 @@
                         "value": "",
                         "default": 1,
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -2507,7 +2540,9 @@
                         "toggle": false,
                         "doubleTap": false,
                         "weights": "",
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "menu",
@@ -2544,7 +2579,6 @@
                         "value": "",
                         "default": 1,
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -2563,7 +2597,9 @@
                         "toggle": false,
                         "doubleTap": false,
                         "weights": "",
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "text",
@@ -2591,12 +2627,13 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "decimals": 2,
                         "target": "",
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "text",
@@ -2624,12 +2661,13 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "decimals": 2,
                         "target": "",
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "variable",
@@ -2637,7 +2675,6 @@
                         "value": "JS{{\n\nvar v = @{polyphonic@{parent.variables}}\n\nif (v == 0) {\n var label = \"true\"\n}\nif (v == 1) {\nvar label = \"false\"}\n\nreturn label\n}}",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -2645,11 +2682,15 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       }
                     ],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -2674,7 +2715,6 @@
                     "value": "",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2691,7 +2731,9 @@
                     "on": 1,
                     "off": 0,
                     "mode": "toggle",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -2717,7 +2759,6 @@
                     "value": "",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2733,7 +2774,9 @@
                     "on": 1,
                     "off": 0,
                     "mode": "toggle",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -2759,7 +2802,6 @@
                     "value": "",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2775,7 +2817,9 @@
                     "on": 1,
                     "off": 0,
                     "mode": "toggle",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "variable",
@@ -2783,7 +2827,6 @@
                     "value": "JS{{\n\nvar v = @{adsron@{parent.variables}}\n\nif (v == 0) {\n var label = \"true\"\n}\nif (v == 1) {\nvar label = \"false\"}\n\nreturn label\n}}",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2791,7 +2834,9 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "variable",
@@ -2799,7 +2844,6 @@
                     "value": "JS{{\n\nvar v = @{adsron@{parent.variables}}\n\nif (v == 0) {\n var label = \"#525252\"\n}\nif (v == 1) {\nvar label = \"auto\"}\n\nreturn label\n}}",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -2807,11 +2851,15 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "panel",
@@ -2847,7 +2895,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -2867,7 +2914,6 @@
                     "height": "12.5%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"pitchshift\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "split",
@@ -2888,7 +2934,6 @@
                     "css": "",
                     "widgetId": "xy",
                     "props": "{\n  \"variables\": {\"name\": \"distortion\",\n  \"n\": @{parent.variables}}\n}",
-                    "script": "",
                     "address": "auto",
                     "variables": "@{parent.variables}"
                   },
@@ -2903,7 +2948,6 @@
                     "height": "12.5%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"highpass\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -2924,7 +2968,6 @@
                     "css": "",
                     "widgetId": "xy",
                     "props": "{\n  \"variables\": {\"name\": \"resonantfilter\",\n  \"n\": @{parent.variables}}\n}",
-                    "script": "",
                     "address": "auto",
                     "variables": "@{parent.variables}"
                   },
@@ -2939,7 +2982,6 @@
                     "height": "12.5%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"delaytime\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -2960,7 +3002,6 @@
                     "css": "",
                     "widgetId": "xy",
                     "props": "{\n  \"variables\": {\"name\": \"delay\",\n  \"n\": @{parent.variables}}\n}",
-                    "script": "",
                     "address": "auto",
                     "variables": "@{parent.variables}"
                   },
@@ -2975,7 +3016,6 @@
                     "height": "37.5%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"amfreqdepth\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "xy",
@@ -2993,7 +3033,6 @@
                     "height": "12.5%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"amwave\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -3002,7 +3041,9 @@
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "panel",
@@ -3038,7 +3079,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -3075,7 +3115,6 @@
                     "value": "JS{{\n\nvar x = Math.ceil(@{seqlength@{parent.variables}} / 8)\nvar y = 8.33\n\nreturn [x * y] \n\n}}",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3084,7 +3123,9 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "comments": "",
-                    "numeric": false
+                    "numeric": false,
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "matrix",
@@ -3124,7 +3165,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3134,7 +3174,9 @@
                     "bypass": false,
                     "widgets": [],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "matrix",
@@ -3172,7 +3214,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3182,7 +3223,9 @@
                     "bypass": false,
                     "widgets": [],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -3215,7 +3258,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3224,7 +3266,9 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -3250,7 +3294,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3266,7 +3309,9 @@
                     "on": 1,
                     "off": 0,
                     "mode": "toggle",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "clone",
@@ -3279,7 +3324,6 @@
                     "height": "14%",
                     "expand": true,
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n \"variables\": {\"name\": \"seqlength\",\n  \"n\": @{parent.variables},\n  \"vals\": [\n  1,\n  2,\n  3,\n  4,\n  5,\n  6,\n  7,\n  8,\n  9,\n  10,\n  11,\n  12,\n  13,\n  14,\n  15,\n  16,\n  17,\n  18,\n  19,\n  20,\n  21,\n  22,\n  23,\n  24,\n  25,\n  26,\n  27,\n  28,\n  29,\n  30,\n  31,\n  32,\n  33,\n  34,\n  35,\n  36,\n  37,\n  38,\n  39,\n  40,\n  41,\n  42,\n  43,\n  44,\n  45,\n  46,\n  47,\n  48,\n  49,\n  50,\n  51,\n  52,\n  53,\n  54,\n  55,\n  56,\n  57,\n  58,\n  59,\n  60,\n  61,\n  62,\n  63,\n  64\n],\n  \"gridsize\": 8}\n}",
                     "widgetId": "menu",
@@ -3297,7 +3341,6 @@
                     "height": "14%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n \"variables\": {\"name\": \"seqtimebase\",\n  \"n\": @{parent.variables},\n  \"vals\": [ 1, 2, 3, 4, 5,6,7,8 ],\n  \"gridsize\": 4}\n}",
                     "widgetId": "menu",
@@ -3315,7 +3358,6 @@
                     "height": "14%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n \"variables\": {\"name\": \"seqtimebasemultiplier\",\n  \"n\": @{parent.variables},\n  \"vals\": [ 1, 2, 3, 4, 0.5, 0.25 ],\n  \"gridsize\": 4}\n}",
                     "widgetId": "menu",
@@ -3345,7 +3387,6 @@
                     "value": "",
                     "default": 1,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3374,7 +3415,9 @@
                     "toggle": false,
                     "doubleTap": false,
                     "weights": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "text",
@@ -3402,12 +3445,13 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "decimals": 2,
                     "target": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "variable",
@@ -3415,7 +3459,6 @@
                     "value": "JS{{\n\nvar v = @{seqon@{parent.variables}}\n\nif (v == 0) {\n var label = \"true\"\n}\nif (v == 1) {\nvar label = \"false\"}\n\nreturn label\n}}",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3423,11 +3466,15 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "panel",
@@ -3463,7 +3510,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -3483,7 +3529,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"velocity\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -3501,7 +3546,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"seqrandomadd\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -3550,7 +3594,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3570,7 +3613,6 @@
                         "height": "33%",
                         "expand": "false",
                         "css": "",
-                        "script": "",
                         "comments": "",
                         "props": "{\n  \"variables\": { \"name\": \"seqswing\", \"n\": @{parent.variables} }\n}",
                         "widgetId": "slider",
@@ -3588,7 +3630,6 @@
                         "height": "33%",
                         "expand": "false",
                         "css": "",
-                        "script": "",
                         "comments": "",
                         "props": "{\n  \"variables\": { \"name\": \"seqdelay\", \"n\": @{parent.variables} }\n}",
                         "widgetId": "slider",
@@ -3606,7 +3647,6 @@
                         "height": "33%",
                         "expand": "false",
                         "css": "",
-                        "script": "",
                         "comments": "",
                         "props": "{\n  \"variables\": { \"name\": \"seqwarp\", \"n\": @{parent.variables} }\n}",
                         "widgetId": "slider",
@@ -3615,7 +3655,9 @@
                       }
                     ],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "panel",
@@ -3651,7 +3693,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -3698,7 +3739,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -3708,7 +3748,9 @@
                         "bypass": false,
                         "widgets": [],
                         "tabs": [],
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "button",
@@ -3742,7 +3784,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -3750,7 +3791,9 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "button",
@@ -3784,7 +3827,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -3792,7 +3834,9 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "button",
@@ -3826,7 +3870,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -3834,7 +3877,9 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "fader",
@@ -3880,7 +3925,6 @@
                         "value": 1,
                         "default": 1,
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -3888,7 +3932,10 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": "",
+                        "onTouch": ""
                       },
                       {
                         "type": "fader",
@@ -3931,7 +3978,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -3939,7 +3985,10 @@
                         "target": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": "",
+                        "onTouch": ""
                       },
                       {
                         "type": "button",
@@ -3966,7 +4015,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "decimals": 2,
@@ -3981,11 +4029,15 @@
                         "typeTags": "",
                         "ignoreDefaults": false,
                         "bypass": false,
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       }
                     ],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "modal",
@@ -4029,7 +4081,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -4051,14 +4102,15 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
-                        "script": "",
                         "comments": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
                     ],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "clone",
@@ -4071,7 +4123,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"attack\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4089,7 +4140,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"decay\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4107,7 +4157,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"sustain\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4125,7 +4174,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"release\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4158,16 +4206,19 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "decimals": 2,
                     "target": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "panel",
@@ -4204,7 +4255,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "preArgs": "",
                 "typeTags": "",
                 "decimals": 2,
@@ -4255,7 +4305,6 @@
                     "value": "",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -4264,7 +4313,10 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": "",
+                    "onTouch": ""
                   },
                   {
                     "type": "fader",
@@ -4309,7 +4361,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -4318,7 +4369,10 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": "",
+                    "onTouch": ""
                   },
                   {
                     "type": "modal",
@@ -4362,7 +4416,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -4375,7 +4428,7 @@
                         "type": "matrix",
                         "top": "0%",
                         "left": "0%",
-                        "id": "envsideinput@{parent.variables}",
+                        "id": "envsidesource@{parent.variables}",
                         "visible": true,
                         "interaction": true,
                         "width": "100%",
@@ -4409,7 +4462,6 @@
                         "value": "",
                         "default": "",
                         "linkId": "",
-                        "script": "",
                         "address": "auto",
                         "preArgs": "",
                         "typeTags": "",
@@ -4419,7 +4471,9 @@
                         "bypass": false,
                         "widgets": [],
                         "tabs": [],
-                        "comments": ""
+                        "comments": "",
+                        "onValue": "",
+                        "onCreate": ""
                       },
                       {
                         "type": "clone",
@@ -4434,7 +4488,6 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
-                        "script": "",
                         "comments": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
@@ -4452,14 +4505,15 @@
                         "expand": "false",
                         "css": "",
                         "props": {},
-                        "script": "",
                         "comments": "",
                         "address": "auto",
                         "variables": "@{parent.variables}"
                       }
                     ],
                     "tabs": [],
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "menu",
@@ -4483,7 +4537,6 @@
                     "value": "",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "target": "",
@@ -4509,7 +4562,9 @@
                     "toggle": false,
                     "doubleTap": false,
                     "weights": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "text",
@@ -4533,7 +4588,6 @@
                     "value": "JS{{\n\nvar v = @{envside@{parent.variables.n}}\n\nif (v == 0) {\n var label = \"ENV\"\n}\nif (v == 1) {\nvar label = \"SIDE\"}\n\nreturn label\n}}",
                     "default": 0,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "target": "",
@@ -4542,7 +4596,9 @@
                     "vertical": false,
                     "wrap": false,
                     "align": "center",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "clone",
@@ -4555,7 +4611,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"fxsend\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4573,7 +4628,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"reverb\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4591,7 +4645,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"panning\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "split",
@@ -4641,7 +4694,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "/@{this.id}",
                     "preArgs": "",
                     "typeTags": "",
@@ -4650,7 +4702,10 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": "",
+                    "onTouch": ""
                   },
                   {
                     "type": "text",
@@ -4677,13 +4732,14 @@
                     "value": "AMP",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "target": "",
                     "html": "",
                     "decimals": 2,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -4717,7 +4773,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "preArgs": "",
                     "typeTags": "",
                     "decimals": 2,
@@ -4725,11 +4780,15 @@
                     "ignoreDefaults": false,
                     "bypass": false,
                     "html": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
                 "tabs": [],
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "panel",
@@ -4773,7 +4832,6 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "script": "",
                 "widgets": [
                   {
                     "type": "clone",
@@ -4786,7 +4844,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"gatethresh\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4804,7 +4861,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"gatehold\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4822,7 +4878,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"gaterelease\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4840,7 +4895,6 @@
                     "height": "14.28%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "props": "{\n  \"variables\": { \"name\": \"slew\", \"n\": @{parent.variables} }\n}",
                     "widgetId": "slider",
@@ -4873,12 +4927,13 @@
                     "value": "f  o  r  ^wave-square  u  l  s",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "decimals": 2,
                     "target": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "fader",
@@ -4924,7 +4979,6 @@
                     "value": "",
                     "default": 1,
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -4932,7 +4986,10 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": "",
+                    "onTouch": ""
                   },
                   {
                     "type": "button",
@@ -4973,8 +5030,9 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "script": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -5015,8 +5073,9 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "script": "",
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   },
                   {
                     "type": "button",
@@ -5050,7 +5109,6 @@
                     "value": "",
                     "default": "",
                     "linkId": "",
-                    "script": "",
                     "address": "auto",
                     "preArgs": "",
                     "typeTags": "",
@@ -5058,18 +5116,26 @@
                     "target": "",
                     "ignoreDefaults": false,
                     "bypass": false,
-                    "comments": ""
+                    "comments": "",
+                    "onValue": "",
+                    "onCreate": ""
                   }
                 ],
-                "tabs": []
+                "tabs": [],
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5099,7 +5165,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "/formuls1",
         "preArgs": "",
         "typeTags": "",
@@ -5121,14 +5186,15 @@
             "expand": "false",
             "css": "",
             "props": {},
-            "script": "",
             "comments": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5158,7 +5224,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5180,14 +5245,15 @@
             "expand": "false",
             "css": "",
             "props": {},
-            "script": "",
             "comments": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5217,7 +5283,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5239,14 +5304,15 @@
             "expand": "false",
             "css": "",
             "props": {},
-            "script": "",
             "comments": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5276,7 +5342,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5298,14 +5363,15 @@
             "expand": "false",
             "css": "",
             "props": {},
-            "script": "",
             "comments": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5335,7 +5401,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5357,14 +5422,15 @@
             "css": "",
             "widgetId": "fp0",
             "props": {},
-            "script": "",
             "comments": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5394,7 +5460,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5416,14 +5481,15 @@
             "expand": "false",
             "css": "",
             "props": {},
-            "script": "",
             "comments": "",
             "address": "auto",
             "variables": "@{parent.variables}"
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5450,7 +5516,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5461,8 +5526,8 @@
         "widgets": [
           {
             "type": "button",
-            "top": "36.25%",
-            "left": "37.96%",
+            "top": "63.45%",
+            "left": "38.15%",
             "id": "QUIT",
             "visible": true,
             "interaction": true,
@@ -5491,7 +5556,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "/pd",
             "preArgs": "",
             "typeTags": "",
@@ -5499,12 +5563,14 @@
             "target": "",
             "ignoreDefaults": false,
             "bypass": false,
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "button",
-            "top": "3.53%",
-            "left": "38.1%",
+            "top": "37.6%",
+            "left": "38.15%",
             "id": "resetglobal",
             "visible": true,
             "interaction": true,
@@ -5533,7 +5599,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "/resetglobal",
             "preArgs": "",
             "typeTags": "",
@@ -5541,11 +5606,15 @@
             "target": "",
             "ignoreDefaults": false,
             "bypass": false,
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       },
       {
         "type": "tab",
@@ -5574,7 +5643,6 @@
         "value": "",
         "default": "",
         "linkId": "",
-        "script": "",
         "address": "auto",
         "preArgs": "",
         "typeTags": "",
@@ -5617,7 +5685,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -5658,7 +5725,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5666,7 +5732,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -5700,7 +5768,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5708,7 +5775,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -5742,7 +5811,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5750,7 +5818,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "xy",
@@ -5781,7 +5851,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5801,7 +5870,10 @@
                 },
                 "logScaleX": false,
                 "logScaleY": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "xy",
@@ -5832,7 +5904,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5852,7 +5923,10 @@
                 },
                 "logScaleX": false,
                 "logScaleY": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "xy",
@@ -5883,7 +5957,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5903,7 +5976,10 @@
                 },
                 "logScaleX": false,
                 "logScaleY": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "xy",
@@ -5934,7 +6010,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -5954,7 +6029,10 @@
                 },
                 "logScaleX": false,
                 "logScaleY": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -5981,7 +6059,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -5996,11 +6073,15 @@
                 "doubleTap": false,
                 "typeTags": "",
                 "ignoreDefaults": false,
-                "bypass": false
+                "bypass": false,
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -6036,7 +6117,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -6077,7 +6157,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6085,7 +6164,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -6119,7 +6200,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6127,7 +6207,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -6161,7 +6243,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6169,7 +6250,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -6215,7 +6298,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6223,7 +6305,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6266,7 +6351,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6274,7 +6358,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6317,7 +6404,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6325,7 +6411,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6368,7 +6457,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6376,7 +6464,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -6403,7 +6494,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -6418,11 +6508,15 @@
                 "doubleTap": false,
                 "typeTags": "",
                 "ignoreDefaults": false,
-                "bypass": false
+                "bypass": false,
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -6458,7 +6552,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -6499,7 +6592,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6507,7 +6599,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -6541,7 +6635,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6549,7 +6642,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -6583,7 +6678,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6591,7 +6685,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -6639,7 +6735,6 @@
                 "value": "",
                 "default": 0.5,
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6648,7 +6743,10 @@
                 "ignoreDefaults": false,
                 "bypass": false,
                 "origin": 0.5,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6691,7 +6789,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6699,7 +6796,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6742,7 +6842,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6750,7 +6849,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6793,7 +6895,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6801,7 +6902,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -6828,7 +6932,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -6843,11 +6946,15 @@
                 "doubleTap": false,
                 "typeTags": "",
                 "ignoreDefaults": false,
-                "bypass": false
+                "bypass": false,
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -6883,7 +6990,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -6924,7 +7030,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6932,7 +7037,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -6966,7 +7073,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -6974,7 +7080,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -7008,7 +7116,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7016,7 +7123,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "range",
@@ -7061,7 +7170,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7069,7 +7177,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -7112,7 +7223,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7120,7 +7230,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -7163,7 +7276,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7171,7 +7283,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -7214,7 +7329,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7222,7 +7336,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -7249,7 +7366,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -7264,11 +7380,15 @@
                 "doubleTap": false,
                 "typeTags": "",
                 "ignoreDefaults": false,
-                "bypass": false
+                "bypass": false,
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -7304,7 +7424,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -7345,7 +7464,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7353,7 +7471,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -7387,7 +7507,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7395,7 +7514,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -7429,7 +7550,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7437,7 +7557,9 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "menu",
@@ -7462,9 +7584,8 @@
                 "css": "",
                 "doubleTap": false,
                 "value": "",
-                "default": 0.5,
+                "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7484,7 +7605,9 @@
                 "toggle": false,
                 "values": "@{parent.variables.vals}",
                 "weights": "",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "fader",
@@ -7527,7 +7650,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7535,7 +7657,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -7578,7 +7703,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7586,7 +7710,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -7629,7 +7756,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7637,7 +7763,10 @@
                 "target": "",
                 "ignoreDefaults": false,
                 "bypass": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": "",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -7664,7 +7793,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "decimals": 2,
@@ -7679,11 +7807,15 @@
                 "doubleTap": false,
                 "typeTags": "",
                 "ignoreDefaults": false,
-                "bypass": false
+                "bypass": false,
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "panel",
@@ -7719,7 +7851,6 @@
             "value": "",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -7752,7 +7883,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7768,7 +7898,9 @@
                 "off": 0,
                 "mode": "toggle",
                 "doubleTap": false,
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -7794,7 +7926,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7810,7 +7941,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -7836,7 +7969,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7852,7 +7984,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -7878,7 +8012,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -7894,7 +8027,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "modal",
@@ -7918,7 +8053,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "target": "",
@@ -7959,7 +8093,6 @@
                     "height": "100%",
                     "expand": "false",
                     "css": "",
-                    "script": "",
                     "comments": "",
                     "address": "auto",
                     "colorText": "rgba(255,255,255,1)",
@@ -7997,10 +8130,15 @@
                     "decimals": 2,
                     "target": "",
                     "ignoreDefaults": false,
-                    "bypass": false
+                    "bypass": false,
+                    "onValue": "",
+                    "onCreate": "",
+                    "onTouch": ""
                   }
                 ],
-                "tabs": []
+                "tabs": [],
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -8026,7 +8164,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -8042,7 +8179,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -8068,7 +8207,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -8084,7 +8222,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -8110,7 +8250,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "target": "",
@@ -8126,7 +8265,9 @@
                 "ignoreDefaults": false,
                 "bypass": true,
                 "html": "",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -8152,7 +8293,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -8168,13 +8308,15 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
                 "top": "auto",
                 "left": "auto",
-                "id": "evenglobal@{parent.variables.n}",
+                "id": "evenglobal",
                 "visible": true,
                 "interaction": true,
                 "width": "100%",
@@ -8194,7 +8336,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -8210,7 +8351,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -8236,7 +8379,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "typeTags": "",
@@ -8252,7 +8394,9 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               },
               {
                 "type": "button",
@@ -8278,7 +8422,6 @@
                 "value": "",
                 "default": "",
                 "linkId": "",
-                "script": "",
                 "address": "auto",
                 "preArgs": "",
                 "target": "",
@@ -8294,11 +8437,15 @@
                 "ignoreDefaults": false,
                 "bypass": false,
                 "html": "",
-                "comments": ""
+                "comments": "",
+                "onValue": "",
+                "onCreate": ""
               }
             ],
             "tabs": [],
-            "comments": ""
+            "comments": "",
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "input",
@@ -8306,7 +8453,6 @@
             "value": "JS{{\n\nvar a = @{actglobal@{parent.variables.n}.value}\nvar b = @{trigglobal@{parent.variables.n}.value}\nvar c = @{chaostrigglobal@{parent.variables.n}.value}\n\nvar d = a + b + c\nvar output = \"false\"\n\nif (d == 0) {\noutput = \"false\"\n} else {\noutput = \"true\"\n}\n\nreturn [output]\n}}",
             "default": "",
             "linkId": "",
-            "script": "",
             "address": "auto",
             "preArgs": "",
             "typeTags": "",
@@ -8337,7 +8483,9 @@
             "asYouType": false,
             "validation": "",
             "comments": "",
-            "numeric": false
+            "numeric": false,
+            "onValue": "",
+            "onCreate": ""
           },
           {
             "type": "text",
@@ -8349,7 +8497,6 @@
             "height": "100%",
             "expand": true,
             "css": "",
-            "script": "",
             "comments": "",
             "address": "auto",
             "colorText": "auto",
@@ -8370,14 +8517,21 @@
             "linkId": "",
             "preArgs": "",
             "decimals": 2,
-            "target": ""
+            "target": "",
+            "onValue": "",
+            "onCreate": ""
           }
         ],
         "tabs": [],
-        "comments": ""
+        "comments": "",
+        "onValue": "",
+        "onCreate": ""
       }
     ],
     "html": "",
-    "comments": ""
+    "comments": "",
+    "onValue": "",
+    "hideMenu": false,
+    "onCreate": ""
   }
 }

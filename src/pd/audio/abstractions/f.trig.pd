@@ -1,13 +1,13 @@
-#N canvas 0 23 450 300 12;
+#N canvas 0 23 292 300 12;
 #X obj 70 95 t b b;
 #X msg 70 140 0;
 #X obj 70 161 t a;
 #X msg 106 137 1;
 #X obj 70 229 outlet;
 #X obj 70 42 inlet;
-#X obj 157 231 outlet~;
-#X obj 157 186 sig~;
-#X msg 70 185 triggerx \$1;
+#X obj 167 231 outlet~;
+#X obj 167 186 sig~;
+#X msg 70 188 triggerx \$1;
 #X obj 70 119 del 2;
 #X connect 0 0 9 0;
 #X connect 0 1 3 0;

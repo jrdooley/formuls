@@ -12,4 +12,4 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 fx = library("ffx.lib");
 
-process = si.bus(2) : fx.repeater : sp.stereoize(fx.djeq);
+process = si.bus(2) : fx.repeater : sp.stereoize(fx.djfilter);
