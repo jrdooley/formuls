@@ -32,22 +32,23 @@ else
   endif
 endif
 
-LIBPD_DIR = ../libpd
+LIBPD_DIR = ../libs/libpd
 LIBPD = $(LIBPD_DIR)/libs/libpd.$(SOLIB_EXT)
 
-SRC_FILES = src/PdObject.cpp src/main.cpp src/RtAudio.cpp
-TARGET = formulsengine
+SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp
+TARGET = ../../build/formulsengine
 
 CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
             -I$(LIBPD_DIR)/libpd_wrapper/util -I$(LIBPD_DIR)/cpp \
-            -I./src -std=c++11 -DLIBPD_USE_STD_MUTEX -O3
+            -I./formulsengine -std=c++11 -DLIBPD_USE_STD_MUTEX -O3
 
 .PHONY: clean clobber
 
 $(TARGET): ${SRC_FILES:.cpp=.o} $(LIBPD)
 	g++ -o $(TARGET) $^ $(LIBPD) $(AUDIO_API)
 ifeq ($(PLATFORM), mac)
-	mkdir -p ./libs && cp $(LIBPD) ./libs
+	mkdir -p ../../build/libs && cp $(LIBPD) ../../build/libs
+	mkdir -p ../../build/pd && cp -r ./pd ../../build/
 endif
 
 $(LIBPD):

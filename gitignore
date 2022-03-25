@@ -1,0 +1,5 @@
+# ignore all files in build folder. This notably includes binaries
+formuls/
+
+# ignore the externals. These are placed there for developing/editing pd patchs
+src/pd/externals

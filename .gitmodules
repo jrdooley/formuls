@@ -1,6 +1,6 @@
-[submodule "src/pd/abstractions/flib"]
-	path = src/pd/abstractions/flib
-	url = https://jrdooley@github.com/jrdooley/flib.git
 [submodule "src/libpd"]
 	path = src/libpd
 	url = https://jrdooley@github.com/libpd/libpd.git
+[submodule "src/libs/libpd"]
+	path = src/libs/libpd
+	url = https://github.com/libpd/libpd.git

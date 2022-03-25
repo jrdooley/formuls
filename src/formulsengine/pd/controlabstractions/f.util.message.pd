@@ -1,0 +1,30 @@
+#N canvas 365 321 451 424 12;
+#X obj 101 28 inlet;
+#X obj 144 123 tgl 15 0 empty empty rec 17 7 0 10 -262144 -1 -1 0 1
+;
+#X obj 181 124 tgl 15 0 empty empty loop 17 7 0 10 -262144 -1 -1 0
+1;
+#X obj 224 124 tgl 15 0 empty empty act 17 7 0 10 -262144 -1 -1 0 1
+;
+#X floatatom 103 121 5 0 1 0 - - -;
+#X obj 100 335 list trim;
+#X floatatom 263 122 5 0 1 1 chaos - -;
+#X obj 96 166 list prepend /\$1/\$2;
+#X obj 166 226 list prepend /\$1/\$3record;
+#X obj 191 256 list prepend /\$1/\$3loop;
+#X obj 207 290 list prepend /\$1/\$3act;
+#X obj 239 314 list prepend /\$1/\$3chaos;
+#X obj 100 358 s formuls\$4;
+#X connect 0 0 4 0;
+#X connect 1 0 8 0;
+#X connect 2 0 9 0;
+#X connect 3 0 10 0;
+#X connect 4 0 7 0;
+#X connect 5 0 12 0;
+#X connect 6 0 11 0;
+#X connect 7 0 5 0;
+#X connect 8 0 5 0;
+#X connect 9 0 5 0;
+#X connect 10 0 5 0;
+#X connect 11 0 5 0;
+#X coords 0 -1 1 1 236 40 1 100 100;

@@ -1,0 +1,69 @@
+#N canvas 450 298 475 440 10;
+#X obj 69 81 inlet~;
+#N canvas 1 69 450 300 delwrite 0;
+#X obj 118 111 inlet~;
+#X obj 117 207 outlet~;
+#X obj 119 149 delwrite~ \$0-this 4000;
+#X connect 0 0 2 0;
+#X restore 261 344 pd delwrite;
+#X obj 153 356 outlet~;
+#X obj 261 290 *~;
+#X obj 276 237 line~;
+#X obj 276 213 pack f 10;
+#X obj 153 216 lop~ 32;
+#X obj 191 109 loadbang;
+#X obj 153 76 inlet delayTime;
+#X obj 276 190 clip 0 0.99;
+#X obj 276 76 inlet feedback;
+#X obj 191 134 \$1;
+#X obj 228 134 \$2;
+#X obj 153 196 sig~;
+#X obj 69 129 s~ \$0-this;
+#X obj 273 319 r~ \$0-this;
+#X text 61 6 VARIABLE DELAY;
+#N canvas 751 110 503 525 LICENCE 0;
+#X text 63 55 Attribution 4 International (CC BY 4.0) This is a human-readable
+summary of (and not a substitute for) the license. Disclaimer This
+license is acceptable for Free Cultural Works.;
+#X text 63 131 You are free to: Share - copy and redistribute the material
+in any medium or format.;
+#X text 63 181 Adapt - remix \, transform \, and build upon the material
+for any purpose \, even commercially.;
+#X text 63 231 The licensor cannot revoke these freedoms as long as
+you follow the license terms. Under the following terms:;
+#X text 63 281 Attribution - You must give appropriate credit \, provide
+a link to the license \, and indicate if changes were made. You may
+do so in any reasonable manner \, but not in any way that suggests
+the licensor endorses you or your use.;
+#X text 63 357 No additional restrictions - You may not apply legal
+terms or technological measures that legally restrict others from doing
+anything the license permits.;
+#X text 63 420 Notices: You do not have to comply with the license
+for elements of the material in the public domain or where your use
+is permitted by an applicable exception or limitation. No warranties
+are given. The license may not give you all of the permissions necessary
+for your intended use. For example \, other rights such as publicity
+\, privacy \, or moral rights may limit how you use the material.;
+#X text 64 19 J.R.Dooley \, 2013;
+#X restore 356 32 pd LICENCE;
+#X obj 153 173 clip 1 4000;
+#X text 62 25 \$1 = delay time (0-4000ms) \; \$2 = feedback (0-0.99)
+;
+#X obj 153 238 delread4~ \$0-this;
+#X connect 0 0 14 0;
+#X connect 3 0 1 0;
+#X connect 4 0 3 1;
+#X connect 5 0 4 0;
+#X connect 6 0 20 0;
+#X connect 7 0 12 0;
+#X connect 7 0 11 0;
+#X connect 8 0 18 0;
+#X connect 9 0 5 0;
+#X connect 10 0 9 0;
+#X connect 11 0 18 0;
+#X connect 12 0 9 0;
+#X connect 13 0 6 0;
+#X connect 15 0 1 0;
+#X connect 18 0 13 0;
+#X connect 20 0 2 0;
+#X connect 20 0 3 0;
