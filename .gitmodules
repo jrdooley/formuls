@@ -1,6 +1,3 @@
-[submodule "src/libpd"]
-	path = src/libpd
-	url = https://jrdooley@github.com/libpd/libpd.git
 [submodule "src/libs/libpd"]
 	path = src/libs/libpd
 	url = https://github.com/libpd/libpd.git
