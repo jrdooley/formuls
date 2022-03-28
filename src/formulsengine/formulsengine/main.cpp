@@ -33,7 +33,7 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFra
 void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes the argument that sets the audio device
    unsigned int sampleRate = 48000;
    // unsigned int bufferFrames = 128;
-   unsigned int bufferFrames = 256; // JD: this value can be changed
+   unsigned int bufferFrames = 1024; // JD: this value can be changed
 
    // init pd
    if(!lpd.init(0, channelsOut, sampleRate)) {
