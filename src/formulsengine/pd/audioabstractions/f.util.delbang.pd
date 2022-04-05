@@ -1,0 +1,10 @@
+#N canvas 0 23 450 300 12;
+#X obj 56 82 loadbang;
+#X obj 56 106 del \$1;
+#X obj 56 130 \$2;
+#X obj 56 154 outlet;
+#X text 44 26 delbang /// loadbang with a delay and message variable
+;
+#X connect 0 0 1 0;
+#X connect 1 0 2 0;
+#X connect 2 0 3 0;
