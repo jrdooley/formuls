@@ -7,7 +7,7 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
-fx = _ <: _,(pitchshift : saturation : bitcrush : filter : delay : am : gate) : si.interpolate(fxsend);
+fx = _ <: _,(pitchshift : saturation : bitcrush : filter : am : delay : gate) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -133,8 +133,8 @@ with{
 
 //------------REPEATER------//
 // Glitchy tempo-synchronised repeater effect.
-// A stereo effect. Two delayensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
-repeater = _,_ : (_ <: par(i,2,((delayensemble(i), _*(parallel) :> _))) :> _ ),(_ <: par(i,2,((delayensemble(i), _*(parallel) :> _))) :> _ ) :> _,_
+// Two delayensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
+repeater = _ <: par(i,2,((delayensemble(i), _*(parallel) :> _))) :> _
 with {
   tempo = hslider("bpm",120,1,240,1) : 60/(_) : ba.sec2samp(_); // global tempo
   div = hslider("beatdivision",1,1,5,1) : int; //sample/capture duration in beats

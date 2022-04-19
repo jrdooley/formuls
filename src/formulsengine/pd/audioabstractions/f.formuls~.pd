@@ -78,7 +78,9 @@
 #X obj 30 145 route reverb triggerx;
 #X obj 174 202 route volume;
 #X connect 0 1 25 0;
+#X connect 0 1 27 0;
 #X connect 0 2 26 0;
+#X connect 0 2 27 0;
 #X connect 0 3 27 0;
 #X connect 1 0 39 0;
 #X connect 1 1 35 0;
