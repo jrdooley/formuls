@@ -8,7 +8,7 @@ var=$(pwd) # finds wokring directory
 ./open-stage-control/open-stage-control.app/Contents/MacOS/open-stage-control --no-gui -s 127.0.0.1:8888 -o 8889 -l ./open-stage-control/_main.json &
 
 # starts "audio" instance of pd, loads _main-audio.pd patch
-./formulsengine 1 $1 4 &
+./formulsengine 1 $1 16 &
 
 # starts "control" instance of pd, loads _main-control.pd patch
 ./formulsengine 0 $1 1 &

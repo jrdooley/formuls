@@ -7,11 +7,11 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
-fx = _ <: _,(pitchshift : saturation : bitcrush : filter : am : delay : gate) : si.interpolate(fxsend);
+fx = _ <: _,(am : chorus : bitcrush : saturation : filter : delay : gate) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
-  fxs = hslider("fxsend",1,0,1,0.01) : vbargraph("fxsendO",0,1);
+  fxs = hslider("fxsend",1,0,1,0.01);
 };
 
 //----------------------------------------------------------------------------------------//
@@ -51,16 +51,43 @@ with {
   pit = hslider("pitchshift",0.5,0,1,0.1) : *(48) : -(24) : si.smoo;
 };
 //-------------DELAY---------------//
-// delay(tempo,t) = _ <:_,(*(ds) : ef.echo(1,dt,df)) :> _
-delay = _ <:_,lagrangedelay :> _
+//interpolated delay with reverse function
+delay = _ <: (_,lagrangedelay :> _),(_,reversedelay : si.interpolate(ds)) : si.interpolate(dlr)
 with {
   N	= int(2^17);
 
   ds = hslider("delaysend",0,0,1,0.01) : si.smoo;
-  dt = hslider("delaytime",0,0,1,0.01) : *(ma.SR) : si.smoo;
+  dt = hslider("delaytime",0,0,1,0.01);
   df = hslider("delayfeedback",0,0,1,0.01) : si.smoo;
+  dlr = checkbox("delayreverse") : int;
 
-  lagrangedelay = *(ds) : (+ :de.sdelay(N, 24, dt)) ~ *(df);
+  dtlag = dt*(ma.SR) : si.smoo;
+  dtrevpre = dt : *(5) : +(12) : int;
+  dtrev = 2^(dtrevpre) : int;
+
+  lagrangedelay = *(ds) : (+ :de.sdelay(N, 24, dtlag)) ~ *(df);
+  reversedelay = _ : (+ : (ef.reverseDelayRamped(dtrev,0))) ~ *(df);
+};
+//-------------CHORUS-------------//
+// courtesy of Albert Graef, simplified by formuls
+chorus(x) = x+level*de.fdelay(1<<16, t, x)
+with {
+  depth	= hslider("chorus",0,0,1,0.01) : si.smoo;
+
+  level	= depth > 0 : si.smoo;
+  freq	= os.osc(1) : *(0.5) : +(0.25);
+  dtime	= 0.02;
+
+  t = ma.SR*dtime/2*(1+depth*tblosc(1<<16, sin, freq, 0));
+
+  tblosc(n,f,freq,mod) = (1-d)*rdtable(n,wform,i&(n-1)) + d*rdtable(n,wform,(i+1)&(n-1))
+  with {
+      wform = ba.time*(2.0*ma.PI)/n : f;
+      phase = freq/ma.SR : (+ : ma.decimal) ~ _;
+      modphase = ma.decimal(phase+mod/(2*ma.PI))*n;
+      i = int(floor(modphase));
+      d = ma.decimal(modphase);
+  };
 };
 //-------------GATE---------------//
 gate = _ : ef.gate_mono(gt,ga,gh,gr) : _
@@ -84,6 +111,10 @@ panner = _ : sp.panner(pan)
 with{
     pan = hslider("panning",0.5,0,1,0.01) : si.smoo;
 };
+
+//----------------------------------------//
+//-------------MASTER BUS FX--------------//
+//----------------------------------------//
 
 //-------------REVERB-------------//
 // Oneknob stereo reverb

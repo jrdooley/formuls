@@ -1,6 +1,6 @@
 #N canvas 1270 572 405 332 12;
 #X msg 44 44 trig bang;
-#X msg 70 92 ctrig bang;
+#X msg 70 97 ctrig bang;
 #X obj 44 23 r \$1-value-send;
 #X obj 70 72 r \$1-value-send;
 #X msg 112 192 slew \$1;
