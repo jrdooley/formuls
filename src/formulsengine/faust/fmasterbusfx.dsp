@@ -14,6 +14,6 @@ fx = library("ffx.lib");
 
 reverbinlevel = hslider("reverblimiterlevel",0,0,1,0.01) : si.smoo;
 
-routing = si.bus(2) : _, *(reverbinlevel) :> _ : fx.repeater : fx.limiter : fx.djfilter;
-
+routing = _,_,_,_,_,_ : _,_, *(reverbinlevel),*(reverbinlevel),fx.repeater :> _,_ : fx.limiter, fx.limiter;
+// routing = si.bus(2) : _, *(reverbinlevel) :> _ : fx.repeater : fx.limiter : fx.djfilter;
 process = routing;
