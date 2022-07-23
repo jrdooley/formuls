@@ -7,7 +7,8 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
-fx = _ <: _,(am : chorus : bitcrush : saturation : filter : delay : gate) : si.interpolate(fxsend);
+// fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
+fx = _ <: _,(am : chorus : saturation : filter : gate : delay) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -34,11 +35,12 @@ with{
   sat = hslider("saturation",0,0,1,0.01) : si.smoo;
 };
 //-----------RESONANT_FILTER---------------//
-filter = _ : fi.highpass(2,hip) : fi.resonlp(lop,res,1)
+filter = _ : fi.resonhp(hip,hires,1) : fi.resonlp(lop,lores,1)
 with {
   hip = hslider("highpass",0,0,1,0.001) : *(136) : ba.midikey2hz : si.smoo;
+  hires = hslider("highpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
   lop = hslider("lowpass",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
-  res = hslider("filterresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
+  lores = hslider("lowpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
 };
 //-----------BITCRUSHER---------------//
 bitcrush = _ : ba.downSample(bit)
@@ -117,25 +119,13 @@ with{
 //----------------------------------------//
 
 //-------------REVERB-------------//
-// Oneknob stereo reverb
-reverb = sp.stereoize(fi.lowpass(1,3100) : fi.highpass(1,100)) <: re.fdnrev0(MAXDELAY,DELAYS,BSO,FREQS,DURS,duration,NONL) :> sp.stereoize(*(gain))
-with{
-  N = 16; 	// Feedback Delay Network (FDN) order (power of 2, 2 to 16)
-  NB = 7; 	// Number of T60-controlled frequency-bands (3 or more)
-  BSO = 3;	// Order of each lowpass/highpass bandsplit (odd positive integer)
-
-  MAXDELAY = 8192; // sync w delays and prime_power_delays above
-  DECAYTIME = 98.769;
-  DURS = (DECAYTIME,DECAYTIME*(0.892),DECAYTIME*(0.713),DECAYTIME*(0.521),DECAYTIME*(0.301),DECAYTIME*(0.249),DECAYTIME*(0.113)); // Calculate delay times for each freq band
-  FREQS = (250,500,1000,2000,4000,8000); // NB-1 default crossover frequencies (Hz)
-  SHAPE = 1.7; // early reflections: location of closest wall
-  LATE = SHAPE+(10.108); // late reflections: location of farthest away wall
-  DELAYS = de.prime_power_delays(N,SHAPE,LATE);
-  NONL = 0.913; // reverb  non-linearity setting.
-
-  // shape = hslider("shape",20,0.1,63,0.1) : si.smoo;
-  duration = hslider("duration",0.5,0,1,0.01) : *(0.1) : +(0.9) : si.smoo;
-  gain = hslider("gain",0,0,1,0.01) :  *(0.25) : si.smoo;
+//stereo reverb
+rev = re.jpverb(revtime, damp, size, early_diff, 0, 1, 1, 1, 1, 500, 2000)
+with {
+    revtime = hslider("revtime",1,0.1,10,0.1);
+    damp = hslider("damping",0,0,1,0.01) : si.smoo;
+    size = hslider("size",1,0.5,3,0.1) : si.smoo;
+    early_diff = hslider("diffusion",0,0,1,0.01) : si.smoo;
 };
 
 //------------LIMITER-----------//
@@ -180,4 +170,20 @@ with {
   delayvoicer(i,d,x) = _*(x != capcountr) : (+ : de.sdelay(96000,1024,tempo/(d))) ~ *((x == capcountr)*(capr)) : *(i==divr) : *(x == capcountr); //i = instance, d = beat division, j = incoming instance number(truth test)
 
   delayensemble(x) = _,_ <: (delayvoicel(1,4,x), delayvoicel(2,5,x), delayvoicel(3,6,x), delayvoicel(4,8,x), delayvoicel(5,10,x),delayvoicel(6,12,x),delayvoicel(7,16,x) :> _ : *(capl) : *(level)),(delayvoicer(1,1,x), delayvoicer(2,2,x), delayvoicer(3,4,x), delayvoicer(4,8,x), delayvoicer(5,16,x) :> _ : *(capr) : *(level));
+};
+
+//-------------DIGITAlISER----------//
+// Creatin' dat digital sound!
+digitaliser = _ <:_,(ef.transpose(300,50,amount) : ba.downSample(downsample) : bitcrusher : ef.transpose(300,50,amount*(-1))) : si.interpolate(level)
+with {
+amount = hslider("digitaliseramount",0,0,1,0.01) : si.smoo;
+level = hslider("digitaliserlevel",0,0,1,0.01) : si.smoo;
+
+downsample = amount : 1-(_) : pow(3) : *(47000) : +(1000);
+shift = amount : *(24);
+crush = amount : pow(5) : 1-(_) : *(6) : +(1.5);
+
+bitcrusher(x) = round(x * scaler) / scaler;
+scaler = float(2^crush - 1);
+round(x) = floor(x + 0.5);
 };

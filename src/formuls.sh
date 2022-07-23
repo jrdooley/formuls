@@ -4,8 +4,8 @@
 
 var=$(pwd) # finds wokring directory
 
-# starts open-stage-control and loads formuls-ui. This is available at 127.0.0.1:8080. GUI sends OSC messages on 8888, receives messages on 8889
-./open-stage-control/open-stage-control.app/Contents/MacOS/open-stage-control --no-gui -s 127.0.0.1:8888 -o 8889 -l ./open-stage-control/_main.json &
+# starts open-stage-control and loads formuls-ui. This is available at 127.0.0.1:8080. GUI sends OSC messages on 9000, receives messages on 9001
+./open-stage-control/open-stage-control.app/Contents/MacOS/open-stage-control --no-gui -s 127.0.0.1:9000 -o 9001 -l ./open-stage-control/_main.json --client-options framerate=25 hdpi=0 &
 
 # starts "audio" instance of pd, loads _main-audio.pd patch
 ./formulsengine 1 $1 16 &

@@ -33,7 +33,8 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFra
 void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes the argument that sets the audio device
    unsigned int sampleRate = 48000;
    // unsigned int bufferFrames = 128;
-   unsigned int bufferFrames = 512; // JD: this value can be changed
+  unsigned int bufferFrames = 512; // JD: this value can be changed. 512 is the lowest value though
+   // unsigned int bufferFrames = 1024; // JD: This value still causes audio dropouts...maybe it's the faust externals...?
 
    // init pd
    if(!lpd.init(0, channelsOut, sampleRate)) {

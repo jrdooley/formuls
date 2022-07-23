@@ -41,7 +41,7 @@
 #X connect 12 0 10 0;
 #X connect 13 0 0 0;
 #X restore 47 490 pd SEQ_WRITE_____________;
-#N canvas 763 50 379 565 SEQ_READ______________ 0;
+#N canvas 941 55 379 565 SEQ_READ______________ 0;
 #X obj 46 513 outlet;
 #X obj 46 387 tabread \$0-sequencer;
 #X obj 46 448 == 1;
@@ -52,7 +52,7 @@
 #X obj 73 187 r \$0-warp;
 #X obj 109 141 r \$0-swing;
 #X obj 46 37 r \$0-beat;
-#N canvas 0 25 358 405 SEQUENCER_SYNCHRONY 0;
+#N canvas 158 523 358 405 SEQUENCER_SYNCHRONY 0;
 #X obj 176 114 == 0;
 #X obj 58 217 f;
 #X obj 83 217 + 1;
@@ -83,9 +83,10 @@
 #X connect 10 1 11 0;
 #X connect 11 0 1 0;
 #X connect 12 0 13 1;
-#X connect 13 0 1 0;
+#X connect 13 0 1 1;
+#X connect 13 0 7 0;
 #X restore 46 110 pd SEQUENCER_SYNCHRONY;
-#N canvas 0 23 385 385 RANDOM_ADD_DROP___ 0;
+#N canvas 0 25 385 385 RANDOM_ADD_DROP___ 0;
 #X obj 223 231 t b;
 #X obj 223 102 random 100;
 #X obj 223 207 moses 0;
@@ -167,7 +168,7 @@
 #X obj 203 595 outlet beat;
 #X obj 48 461 s \$0-sequencer-on;
 #X obj 397 140 s val-send;
-#N canvas 0 23 259 311 SEQ_GUI_UPDATE 0;
+#N canvas 0 25 259 311 SEQ_GUI_UPDATE 0;
 #X obj 53 34 r \$0-val-send;
 #X obj 53 55 sel 0 1;
 #X obj 53 260 outlet;

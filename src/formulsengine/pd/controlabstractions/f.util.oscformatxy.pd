@@ -1,4 +1,4 @@
-#N canvas 998 146 870 922 10;
+#N canvas 998 130 870 922 10;
 #X text 470 214 \$1 = \$0;
 #X obj 138 868 outlet;
 #X text 470 229 \$2 = synth instance (only used in Pd \, not faust
@@ -212,8 +212,8 @@ scaling);
 #X obj 563 595 spigot;
 #X obj 596 574 r automateRecord;
 #X obj 563 554 r \$0-spigot;
-#X msg 563 615 0;
 #X obj 563 637 s \$3\$2-act-gui;
+#X msg 563 615 0;
 #X connect 4 0 68 0;
 #X connect 5 0 6 0;
 #X connect 8 0 1 0;
@@ -275,7 +275,7 @@ scaling);
 #X connect 68 5 37 0;
 #X connect 69 0 27 0;
 #X connect 70 0 35 0;
-#X connect 71 0 74 0;
+#X connect 71 0 75 0;
 #X connect 72 0 71 1;
 #X connect 73 0 71 0;
-#X connect 74 0 75 0;
+#X connect 75 0 74 0;
