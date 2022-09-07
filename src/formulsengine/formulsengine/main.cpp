@@ -15,7 +15,12 @@
 #include "PdBase.hpp"
 #include "RtAudio.h"
 #include "PdObject.h"
+//#include "external/abl_link~.hpp"
+#include "external/z_libpd.h"
 
+extern "C" {
+  void abl_link_tilde_setup();
+}
 
 RtAudio audio;
 pd::PdBase lpd;
@@ -32,15 +37,15 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFra
 
 void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes the argument that sets the audio device
    unsigned int sampleRate = 48000;
-   // unsigned int bufferFrames = 128;
-  unsigned int bufferFrames = 512; // JD: this value can be changed. 512 is the lowest value though
-   // unsigned int bufferFrames = 1024; // JD: This value still causes audio dropouts...maybe it's the faust externals...?
+   unsigned int bufferFrames = 512; // JD: this value can be changed. 512 is the lowest value though
 
    // init pd
    if(!lpd.init(0, channelsOut, sampleRate)) {
       std::cerr << "Could not init pd" << std::endl;
       exit(1);
    }
+
+   abl_link_tilde_setup();
 
    // receive messages from pd
    lpd.setReceiver(&pdObject);

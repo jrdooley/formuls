@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="L9dULy" name="formuls2" projectType="audioplug" version="1.0.0"
+              bundleIdentifier="com.grame.formuls2" includeBinaryInAppConfig="1"
+              buildVST="0" buildVST3="1" buildAU="1" buildAUv3="1" buildRTAS="0"
+              buildAAX="0" buildStandalone="1" pluginName="formuls2" pluginDesc="formuls2"
+              pluginManufacturer="formuls" pluginManufacturerCode="Manu" pluginCode="a3b8"
+              pluginChannelConfigs="" pluginIsSynth="0" pluginWantsMidiIn="0"
+              pluginProducesMidiOut="0" pluginIsMidiEffectPlugin="0" pluginEditorRequiresKeys="0"
+              pluginAUExportPrefix="formuls2AU" pluginRTASCategory="" aaxIdentifier="com.formuls.formuls2"
+              pluginAAXCategory="2" pluginFormats="buildAU,buildAUv3,buildVST3,buildStandalone"
+              displaySplashScreen="1" jucerFormatVersion="1" enableIAA="0"
+              pluginCharacteristicsValue="">
+  <MAINGROUP id="DIThxi" name="formuls2">
+    <GROUP id="{3EA8B881-7A5A-9E29-6E83-82528C15E424}" name="Source">
+      <FILE id="BecAMR" name="FaustPluginProcessor.cpp" compile="1" resource="0"
+            file="FaustPluginProcessor.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX" extraCompilerFlags="-I /usr/local/include/ -DNVOICES=NUM_VOICES -DFAUSTFLOAT=float"
+               extraDefs="OSCCTRL ">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="formuls2"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="formuls2"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_utils" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="/Users/formuls/JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+    <XCODE_IPHONE targetFolder="Builds/iOS" iosScreenOrientation="UIInterfaceOrientationPortrait,UIInterfaceOrientationLandscapeLeft,UIInterfaceOrientationLandscapeRight"
+                  extraDefs="OSCCTRL " extraCompilerFlags="-I /usr/local/include/ -DNVOICES=NUM_VOICES -DFAUSTFLOAT=float">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="formuls2"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="formuls2"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_utils" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="/Users/formuls/JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_IPHONE>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" extraDefs="OSCCTRL " extraCompilerFlags="-I /usr/local/include/ -DNVOICES=NUM_VOICES -DFAUSTFLOAT=float">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" isDebug="1" optimisation="1" targetName="formuls2"/>
+        <CONFIGURATION name="Release" isDebug="0" optimisation="3" targetName="formuls2"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_utils" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="/Users/formuls/JUCE/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+    <ANDROIDSTUDIO targetFolder="Builds/Android" extraDefs="OSCCTRL " extraCompilerFlags="-I /usr/local/include/ -DNVOICES=NUM_VOICES -DFAUSTFLOAT=float">
+      <CONFIGURATIONS>
+        <CONFIGURATION name="Debug" androidArchitectures="armeabi x86" isDebug="1" optimisation="1"
+                       targetName="formuls2"/>
+        <CONFIGURATION name="Release" androidArchitectures="" isDebug="0" optimisation="3"
+                       targetName="formuls2"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_utils" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_opengl" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_audio_basics" path="/Users/formuls/JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="/Users/formuls/JUCE/modules"/>
+      </MODULEPATHS>
+    </ANDROIDSTUDIO>
+    <VS2019 targetFolder="Builds/VisualStudio2019" extraDefs="OSCCTRL " extraCompilerFlags="-DNVOICES=NUM_VOICES -DFAUSTFLOAT=float">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug"/>
+        <CONFIGURATION isDebug="0" name="Release"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_osc"/>
+        <MODULEPATH id="juce_opengl"/>
+        <MODULEPATH id="juce_gui_extra"/>
+        <MODULEPATH id="juce_gui_basics"/>
+        <MODULEPATH id="juce_graphics"/>
+        <MODULEPATH id="juce_events"/>
+        <MODULEPATH id="juce_data_structures"/>
+        <MODULEPATH id="juce_core"/>
+        <MODULEPATH id="juce_audio_utils"/>
+        <MODULEPATH id="juce_audio_processors"/>
+        <MODULEPATH id="juce_audio_plugin_client"/>
+        <MODULEPATH id="juce_audio_formats"/>
+        <MODULEPATH id="juce_audio_devices"/>
+        <MODULEPATH id="juce_audio_basics"/>
+      </MODULEPATHS>
+    </VS2019>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_opengl" showAllCode="1" useLocalCopy="0"/>
+    <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_QUICKTIME="disabled" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <LIVE_SETTINGS>
+    <WINDOWS/>
+  </LIVE_SETTINGS>
+</JUCERPROJECT>

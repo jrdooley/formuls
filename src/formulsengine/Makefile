@@ -35,8 +35,10 @@ endif
 LIBPD_DIR = ../libs/libpd
 LIBPD = $(LIBPD_DIR)/libs/libpd.$(SOLIB_EXT)
 
-SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp
-TARGET = ../../build/formulsengine
+abl_link~.class.sources = externals/abl_link~.cpp externals/abl_link_instance.cpp
+
+SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp external/abl_link~.cpp external/abl_link_instance.cpp
+TARGET = ../../build/formulsengine ../../build/abl_link~.pd_darwin
 
 CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
             -I$(LIBPD_DIR)/libpd_wrapper/util -I$(LIBPD_DIR)/cpp \
@@ -55,7 +57,7 @@ $(LIBPD):
 	cd $(LIBPD_DIR) && make UTIL=true EXTRA=true
 
 clean:
-	rm -f src/*.o
+	rm -f formulsengine/*.o
 
 clobber: clean
 	rm -f $(TARGET)
