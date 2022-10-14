@@ -29,4 +29,4 @@ mute = hslider("mute",0,0,1,1) : 1-(_) : si.smoo;
 //---------------------------------------------------------------------------------------//
 
 /* Signal inputs: 1)input synth voice frequency modulation;  2)input envelope follower; Signal outputs: 1)left audio channel; 2)right audio channel; 3) mono signal when synth muted */
-process(mod,env) = fs.synth(mod) : fx.fx : *(env : fx.envelopefollower) : volume <: (*(mute) : fx.panner),_;
+process(mod,env) = fs.synth(mod) : fx.fx : *(env : fx.envelopefollower) : volume <: fx.panner <: *(mute),*(mute),_,_;

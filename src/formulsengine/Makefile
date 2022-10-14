@@ -37,8 +37,9 @@ LIBPD = $(LIBPD_DIR)/libs/libpd.$(SOLIB_EXT)
 
 abl_link~.class.sources = externals/abl_link~.cpp externals/abl_link_instance.cpp
 
-SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp external/abl_link~.cpp external/abl_link_instance.cpp
-TARGET = ../../build/formulsengine ../../build/abl_link~.pd_darwin
+SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp
+EXT_FILES = external/abl_link~.cpp external/abl_link_instance.cpp
+TARGET = ../../build/formulsengine
 
 CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
             -I$(LIBPD_DIR)/libpd_wrapper/util -I$(LIBPD_DIR)/cpp \

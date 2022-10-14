@@ -15,12 +15,12 @@
 #include "PdBase.hpp"
 #include "RtAudio.h"
 #include "PdObject.h"
-//#include "external/abl_link~.hpp"
+#include "external/abl_link~.hpp"
 #include "external/z_libpd.h"
 
-extern "C" {
-  void abl_link_tilde_setup();
-}
+// extern "C" {
+//   void abl_link_tilde_setup();
+// }
 
 RtAudio audio;
 pd::PdBase lpd;
