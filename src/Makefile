@@ -32,14 +32,11 @@ else
   endif
 endif
 
-LIBPD_DIR = ../libs/libpd
+LIBPD_DIR = ./libs/libpd
 LIBPD = $(LIBPD_DIR)/libs/libpd.$(SOLIB_EXT)
 
-abl_link~.class.sources = externals/abl_link~.cpp externals/abl_link_instance.cpp
-
 SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp
-EXT_FILES = external/abl_link~.cpp external/abl_link_instance.cpp
-TARGET = ../../build/formulsengine
+TARGET = ../build/formulsengine
 
 CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
             -I$(LIBPD_DIR)/libpd_wrapper/util -I$(LIBPD_DIR)/cpp \
@@ -50,15 +47,15 @@ CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
 $(TARGET): ${SRC_FILES:.cpp=.o} $(LIBPD)
 	g++ -o $(TARGET) $^ $(LIBPD) $(AUDIO_API)
 ifeq ($(PLATFORM), mac)
-	mkdir -p ../../build/libs && cp $(LIBPD) ../../build/libs
-	mkdir -p ../../build/pd && cp -r ./pd ../../build/
+	mkdir -p ../build/ && cp $(LIBPD) ../build/
+	mkdir -p ../build/pd && cp -r ./pd ../build/
 endif
 
 $(LIBPD):
 	cd $(LIBPD_DIR) && make UTIL=true EXTRA=true
 
 clean:
-	rm -f formulsengine/*.o
+	rm -f src/*.o
 
 clobber: clean
 	rm -f $(TARGET)

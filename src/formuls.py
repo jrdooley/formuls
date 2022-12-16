@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
-
 import sounddevice as sd
 import os
+import sys
 from tkinter import *
+import pathlib
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # Create main window
 mainWindow =Tk()
@@ -35,30 +46,33 @@ runx = 1
 def RUN():
     deviceGet = clicked.get()
     audioOutput = deviceGet[0]
-    command1 = "./gui/node ./gui/open-stage-control/ -s 127.0.0.1:9000 -o 9001 -l ./gui/_main.json --client-options framerate=25 hdpi=0 &" # run o-s-c interface
-    command2 = "./formulsengine 1 " + audioOutput + " 16 &" # audio process
-    command3 = "./formulsengine 0 " + audioOutput + " 1 &" # control process
+    # command0 = "cd " + resource_path("")
+    command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " -s 127.0.0.1:9000 -o 9001 -l " + resource_path("gui/_main.json") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
+    command2 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " 1 " + audioOutput + " 16 &" # audio process
+    command3 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " 0 " + audioOutput + " 1 &" # control process
+    # os.system(command0)
     os.system(command1)
     os.system(command2)
     os.system(command3)
+    os.system("pwd")
 
 # function to stop formulsengines and node/open stage control
 def STOP():
     os.system("killall formulsengine")
     os.system("killall node")
 
-# function to kill all subprocesses and quit
+# function to kill all subprocesses and exit the program
 def QUIT():
     os.system("killall formulsengine")
     os.system("killall node")
-    quit()
+    sys.exit()
 
 # load images for run, stop and quit buttons
-runicon = PhotoImage(file = r"icons/run.png")
+runicon = PhotoImage(file = resource_path("icons/run.png"))
 runicon = runicon.subsample(2,2)
-stopicon = PhotoImage(file = r"icons/stop.png")
+stopicon = PhotoImage(file = resource_path("icons/stop.png"))
 stopicon = stopicon.subsample(2,2)
-quiticon = PhotoImage(file = r"icons/quit.png")
+quiticon = PhotoImage(file = resource_path("icons/quit.png"))
 quiticon = quiticon.subsample(3,3)
 
 # create run, stop and quit buttons

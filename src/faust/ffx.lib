@@ -157,13 +157,14 @@ with{
 //------------REPEATER------//
 // Glitchy tempo-synchronised repeater effect.
 // Two delayensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
-repeater = _,_ <: delayensemble(0),delayensemble(1) :> _,_
+repeater = _,_ <: delayensemble(0),delayensemble(1) :> _,_ <: sp.stereoize(_ *(1-(mono))), (sp.stereoize(_ *(mono)) : + <: si.bus(2)) :> _,_
 with {
   tempo = hslider("bpm",120,1,240,1) : 60/(_) : ba.sec2samp(_); // global tempo
   divl = hslider("beatdivisionl",1,1,5,1) : int; //sample/capture duration in beats
   divr = hslider("beatdivisionr",1,1,5,1) : int; //sample/capture duration in beats
   capl = button("capturel"); // capture some sound!
   capr = button("capturer"); // capture some sound!
+  mono = checkbox("repeatermono") : si.smoo; //sums channels together or creates true stereo glitching
   level = hslider("repeaterlevel",1,0,1,0.01) : pow(2.7) : si.smoo; // effect level
 
   capcountl = +(1)~(ba.sAndH(capl : ba.impulsify)) : %(2) : int;
