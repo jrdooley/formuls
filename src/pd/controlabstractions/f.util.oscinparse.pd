@@ -20,8 +20,7 @@
 #X obj 277 183 pack f f \$1;
 #X obj 154 224 pack f f \$1;
 #X obj 31 264 pack f f \$1;
-#X obj 31 62 route extmodulationsource\$1 thresholdsource\$1 envsidesource\$1
-, f 62;
+#X obj 31 62 route extmodulationsource\$1 thresholdsource\$1 envsidesource\$1, f 62;
 #X msg 154 246 formuls\$3 thresholdsource \$1 \$2;
 #X msg 31 286 formuls\$3 extmodulationsource \$1 \$2;
 #X msg 277 205 formuls\$3 envsidesource \$1 \$2;
@@ -55,7 +54,7 @@
 #X connect 21 0 23 0;
 #X connect 22 0 23 0;
 #X restore 41 193 pd MOD_INPUT_____________;
-#N canvas 473 463 358 415 ENV_MASTER_PAN________ 0;
+#N canvas 842 511 358 415 ENV_MASTER_PAN________ 0;
 #X obj 17 27 inlet;
 #X obj 17 350 outlet;
 #N canvas 1585 512 335 339 MUTE_MESSAGE_ASSEMBLE 0;
@@ -85,7 +84,6 @@
 #X obj 108 143 s reverb\$1;
 #X obj 17 122 f.util.oscformat \$0 \$1 reverb 0;
 #X obj 17 164 f.util.oscformat \$0 \$1 panning 0.5;
-#X obj 17 185 f.util.oscformat \$0 \$1 volume 0;
 #N canvas 0 25 293 291 VOLUME_TO_FAUST_ACTIVE 0;
 #X obj 74 71 > 0;
 #X obj 121 93 s \$0-volume;
@@ -119,8 +117,7 @@
 #N canvas 0 25 330 313 RESET________________ 0;
 #X obj 37 37 inlet;
 #X obj 37 84 route reset\$1;
-#X obj 37 173 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc #000000
-#000000;
+#X obj 37 173 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000;
 #X obj 37 223 s \$0-reset;
 #X obj 46 203 s \$1-reset;
 #X obj 37 154 sel 1;
@@ -138,20 +135,20 @@
 #X connect 7 0 5 0;
 #X restore 17 293 pd RESET________________;
 #X obj 17 101 f.util.oscformat \$0 \$1 envelopeside 1;
-#X obj 17 66 f.util.oscformatxy \$0 \$1 envelopereleasedepth enveloperelease
-0 0 4 envelopedepth 0 0 2.7;
-#X connect 0 0 12 0;
-#X connect 2 0 8 0;
+#X obj 17 66 f.util.oscformatxy \$0 \$1 envelopereleasedepth enveloperelease 0 0 4 envelopedepth 0 0 2.7;
+#X obj 17 185 f.util.oscformat \$0 \$1 volume 0 0 2.7;
+#X connect 0 0 11 0;
+#X connect 2 0 7 0;
 #X connect 4 0 5 0;
 #X connect 4 1 3 0;
-#X connect 5 0 6 0;
-#X connect 6 0 2 0;
-#X connect 6 1 7 0;
-#X connect 8 0 10 0;
-#X connect 8 1 9 0;
-#X connect 10 0 1 0;
-#X connect 11 0 4 0;
-#X connect 12 0 11 0;
+#X connect 5 0 12 0;
+#X connect 7 0 9 0;
+#X connect 7 1 8 0;
+#X connect 9 0 1 0;
+#X connect 10 0 4 0;
+#X connect 11 0 10 0;
+#X connect 12 0 2 0;
+#X connect 12 1 6 0;
 #X restore 41 171 pd ENV_MASTER_PAN________;
 #N canvas 787 251 437 390 FX____________________ 0;
 #X obj 17 7 inlet;
@@ -252,8 +249,7 @@
 #X msg 379 114 looptrig \$1;
 #X msg 459 114 chaostrig \$1;
 #X obj 300 92 f.util.xywidgetparse \$1 op1;
-#X obj 20 59 route amfreqdepth\$1 amfreqdepthchaos\$1 amfreqdepthlfofreq\$1
-amfreqdepthlfodepth\$1 amfreqdepthlabel\$1;
+#X obj 20 59 route amfreqdepth\$1 amfreqdepthchaos\$1 amfreqdepthlfofreq\$1 amfreqdepthlfodepth\$1 amfreqdepthlabel\$1;
 #X msg 356 221 amdepthlfodepth\$2 \$1;
 #X msg 286 324 amdepthlfofreq\$2 \$1;
 #X msg 200 419 amdepthchaos\$2 \$1;
@@ -356,8 +352,7 @@ amfreqdepthlfodepth\$1 amfreqdepthlabel\$1;
 #X connect 10 0 2 0;
 #X connect 10 0 6 0;
 #X restore 17 319 pd FXSEND________;
-#X obj 17 150 f.util.oscformatxy \$0 \$1 delay delayfeedback 0 0 1
-delaysend 0 0 2.7;
+#X obj 17 150 f.util.oscformatxy \$0 \$1 delay delayfeedback 0 0 1 delaysend 0 0 2.7;
 #X obj 17 88 f.util.oscformat \$0 \$1 chorus 0;
 #N canvas 282 25 377 492 DELAY_TIME_________________ 0;
 #X obj 37 17 inlet;
@@ -430,8 +425,7 @@ delaysend 0 0 2.7;
 #X obj 66 8 inlet;
 #X obj 66 180 list split 2;
 #X obj 448 715 outlet;
-#X obj 180 256 f.util.oscformatxy \$0 \$1 resonantfilter lowpass 1
-0 1 lowpassresonance 0 0 2.7;
+#X obj 180 256 f.util.oscformatxy \$0 \$1 resonantfilter lowpass 1 0 1 lowpassresonance 0 0 2.7;
 #X obj 267 471 t b a;
 #X obj 226 495 unpack f f;
 #X obj 294 544 unpack f f;
@@ -448,16 +442,14 @@ delaysend 0 0 2.7;
 #X msg 110 261 1 \$1;
 #X obj 110 282 -;
 #X obj 66 301 pack f f;
-#X obj 66 429 f.util.oscformatxy \$0 \$1 resonantfilter highpass 0
-0 1 highpassresonance 0 0 2.7;
+#X obj 66 429 f.util.oscformatxy \$0 \$1 resonantfilter highpass 0 0 1 highpassresonance 0 0 2.7;
 #X msg 248 522 1 \$1;
 #X obj 248 543 -;
 #X obj 123 148 list prepend resonantfilterchaos\$1;
 #X obj 180 125 list prepend resonantfilterlfofreq\$1;
 #X obj 237 103 list prepend resonantfilterlfodepth\$1;
 #X obj 294 81 list prepend resonantfilterlabel\$1;
-#X obj 66 29 route resonantfilter\$1 resonantfilterchaos\$1 resonantfilterlfofreq\$1
-resonantfilterlfodepth\$1 resonantfilterlabel\$1;
+#X obj 66 29 route resonantfilter\$1 resonantfilterchaos\$1 resonantfilterlfofreq\$1 resonantfilterlfodepth\$1 resonantfilterlabel\$1;
 #X msg 226 597 resonantfilterREAL\$5 \$1 \$2 \$3 \$4;
 #X connect 0 0 27 0;
 #X connect 1 0 16 0;
@@ -498,8 +490,7 @@ resonantfilterlfodepth\$1 resonantfilterlabel\$1;
 #X connect 28 0 8 0;
 #X restore 17 68 pd RESONANT_FILTER____;
 #X obj 17 48 f.util.oscformat \$0 \$1 saturation 0 0 1;
-#X obj 17 287 f.util.oscformatxy \$0 \$1 gateholdrelease gatehold 0
-0 3 gaterelease 0 0 3;
+#X obj 17 287 f.util.oscformatxy \$0 \$1 gateholdrelease gatehold 0 0 3 gaterelease 0 0 3;
 #X obj 17 224 f.util.oscformat \$0 \$1 amphasereset 0;
 #X obj 17 203 f.util.oscformat \$0 \$1 amwave 0 3;
 #X obj 17 245 f.util.oscformat \$0 \$1 gatethresh 0 0 0.1;
@@ -704,8 +695,7 @@ resonantfilterlfodepth\$1 resonantfilterlabel\$1;
 #X msg 297 320 2;
 #X msg 323 319 3;
 #X msg 358 319 4;
-#X obj 53 226 f.seq.automater \$0 \$0-seq-time-base-multiplier 0.5
-0;
+#X obj 53 226 f.seq.automater \$0 \$0-seq-time-base-multiplier 0.5 0;
 #X connect 0 0 1 0;
 #X connect 1 0 7 0;
 #X connect 1 1 24 0;
@@ -794,10 +784,8 @@ resonantfilterlfodepth\$1 resonantfilterlabel\$1;
 #X connect 6 0 2 0;
 #X connect 7 0 4 0;
 #X restore 258 354 pd SEQDELAY___;
-#X obj 44 250 f.util.oscformatxy \$2 \$1 seqrandomadddrop seqrandomadd
-0 0 1 seqrandomdrop 0 0 1;
-#X obj 44 423 f.util.oscformatxy \$0 \$1 flamspreadhits flamspread
-0 0 1.4 flamhits 0 0 1.4;
+#X obj 44 250 f.util.oscformatxy \$2 \$1 seqrandomadddrop seqrandomadd 0 0 1 seqrandomdrop 0 0 1;
+#X obj 44 423 f.util.oscformatxy \$0 \$1 flamspreadhits flamspread 0 0 1.4 flamhits 0 0 1.4;
 #X connect 0 0 9 0;
 #X connect 2 0 3 0;
 #X connect 3 0 4 0;
@@ -1178,14 +1166,10 @@ resonantfilterlfodepth\$1 resonantfilterlabel\$1;
 #X obj 17 10 inlet;
 #X obj 17 366 outlet;
 #X obj 17 131 f.util.oscformat \$0 \$1 extmodulation 0 0 2.7;
-#X obj 17 184 f.util.oscformatxy \$0 \$1 op2 op2freq 0 8 1 op2depth
-0 8 1;
-#X obj 17 237 f.util.oscformatxy \$0 \$1 op2 op2freq 0 8 1 op2depth
-0 8 1;
-#X obj 17 258 f.util.oscformatxy \$0 \$1 noise noisefilterfreq 0 0
-4.2 noise 0 0 4.2;
-#N canvas 229 213 689 839 OP1_____________________________________
-0;
+#X obj 17 184 f.util.oscformatxy \$0 \$1 op2 op2freq 0 8 1 op2depth 0 8 1;
+#X obj 17 237 f.util.oscformatxy \$0 \$1 op2 op2freq 0 8 1 op2depth 0 8 1;
+#X obj 17 258 f.util.oscformatxy \$0 \$1 noise noisefilterfreq 0 0 4.2 noise 0 0 4.2;
+#N canvas 229 213 689 839 OP1_____________________________________ 0;
 #X obj 87 18 inlet;
 #X obj 87 432 unpack f f;
 #X obj 150 598 r xglobal;
@@ -1218,10 +1202,8 @@ resonantfilterlfodepth\$1 resonantfilterlabel\$1;
 #X obj 96 385 r \$0-\$1-reset;
 #X obj 51 492 spigot 1;
 #N canvas 0 23 450 300 PITCH_LENGTH_CALCULATE 0;
-#X text 104 133 <- "* 11": total number of octaves covered by the pitch
-range;
-#X text 87 161 <- total number of pitches covered by the 11 octave
-pitch range;
+#X text 104 133 <- "* 11": total number of octaves covered by the pitch range;
+#X text 87 161 <- total number of pitches covered by the 11 octave pitch range;
 #X obj 41 135 f;
 #X obj 41 30 inlet;
 #X obj 41 236 outlet;
@@ -1421,8 +1403,7 @@ pitch range;
 #X msg 377 205 waveshapelfodepth\$2 \$1;
 #X msg 299 290 waveshapelfofreq\$2 \$1;
 #X msg 610 106 reverse \$1;
-#X obj 87 49 route op1\$1 op1chaos\$1 op1lfofreq\$1 op1lfodepth\$1
-op1label\$1;
+#X obj 87 49 route op1\$1 op1chaos\$1 op1lfofreq\$1 op1lfodepth\$1 op1label\$1;
 #X connect 0 0 42 0;
 #X connect 1 0 4 0;
 #X connect 1 1 11 0;
@@ -1494,10 +1475,8 @@ op1label\$1;
 #X connect 8 0 0 0;
 #X connect 8 1 9 0;
 #X restore 17 110 pd FREQSNAP________________________________;
-#X obj 17 152 f.util.oscformatxy \$0 \$1 op1slide op1sliderange 0 0
-2.7 op1slidetime 0 0 3;
-#X obj 17 205 f.util.oscformatxy \$0 \$1 noise noisefilterfreq 0 0
-6 noise 0 0 6;
+#X obj 17 152 f.util.oscformatxy \$0 \$1 op1slide op1sliderange 0 0 2.7 op1slidetime 0 0 3;
+#X obj 17 205 f.util.oscformatxy \$0 \$1 noise noisefilterfreq 0 0 6 noise 0 0 6;
 #X connect 0 0 6 0;
 #X connect 2 0 8 0;
 #X connect 3 0 9 0;
@@ -1575,8 +1554,7 @@ op1label\$1;
 #X obj 55 29 r automater-out-\$1;
 #X obj 334 147 outlet;
 #X obj 272 84 s reverse\$1;
-#X obj 30 49 route actglobal\$1 trigglobal\$1 chaostrigglobal\$1 reverseglobal\$1
-;
+#X obj 30 49 route actglobal\$1 trigglobal\$1 chaostrigglobal\$1 reverseglobal\$1;
 #X connect 0 0 7 0;
 #X connect 4 0 7 0;
 #X connect 7 0 3 0;

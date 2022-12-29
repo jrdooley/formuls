@@ -36,7 +36,7 @@ LIBPD_DIR = ./libs/libpd
 LIBPD = $(LIBPD_DIR)/libs/libpd.$(SOLIB_EXT)
 
 SRC_FILES = formulsengine/PdObject.cpp formulsengine/main.cpp formulsengine/RtAudio.cpp
-TARGET = ../build/formulsengine
+TARGET = ../build/pd/formulsengine
 
 CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
             -I$(LIBPD_DIR)/libpd_wrapper/util -I$(LIBPD_DIR)/cpp \
@@ -47,7 +47,7 @@ CXXFLAGS += -I$(LIBPD_DIR)/pure-data/src -I$(LIBPD_DIR)/libpd_wrapper \
 $(TARGET): ${SRC_FILES:.cpp=.o} $(LIBPD)
 	g++ -o $(TARGET) $^ $(LIBPD) $(AUDIO_API)
 ifeq ($(PLATFORM), mac)
-	mkdir -p ../build/ && cp $(LIBPD) ../build/
+	mkdir -p ../build/libs && cp $(LIBPD) ../build/libs
 	mkdir -p ../build/pd && cp -r ./pd ../build/
 endif
 
