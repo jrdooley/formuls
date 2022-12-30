@@ -1,3 +1,6 @@
 [submodule "src/libs/libpd"]
 	path = src/libs/libpd
 	url = https://github.com/libpd/libpd.git
+[submodule "src/libs/abl_link"]
+	path = src/libs/abl_link
+	url = https://jrdooley@github.com/libpd/abl_link.git
