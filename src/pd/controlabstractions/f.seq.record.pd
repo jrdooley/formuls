@@ -6,25 +6,19 @@
 #X obj 152 267 s \$0-trigger;
 #X obj 65 350 s \$0-value;
 #X obj 94 311 max 0.01;
-#X text 36 502 receives tick in from "master-time-in" \, spaced at
-10ms apart;
+#X text 36 502 receives tick in from "master-time-in" \, spaced at 10ms apart;
 #N canvas 2 63 450 614 TEST_UNIT___ 0;
-#X obj 115 55 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
-1;
+#X obj 115 55 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 115 75 record \$1;
-#X obj 113 144 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 0 1;
+#X obj 113 144 hsl 128 15 0 127 0 0 empty empty empty -2 -8 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 110 164 value \$1;
-#X floatatom 111 231 5 0 0 0 - - -;
+#X floatatom 111 231 5 0 0 0 - - - 0;
 #X msg 111 250 tempo \$1;
-#X obj 111 318 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
-1;
+#X obj 111 318 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 111 338 reverse \$1;
-#X obj 111 388 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
-1;
+#X obj 111 388 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 111 408 note-trigger-on \$1;
-#X obj 111 489 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
--1 -1;
+#X obj 111 489 bng 15 250 50 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000;
 #X msg 111 508 trigger bang;
 #X obj 115 97 s \$0-test-u;
 #X obj 110 186 s \$0-test-u;
@@ -49,13 +43,7 @@
 #X obj 38 467 outlet;
 #X obj 152 245 t b;
 #X obj 233 466 outlet;
-#X text 39 539 \$1 = \$0 \; \$2 = array size \; record (0/1) = activates
-sequencer recording \; value = value to be stored to sequencer array
-\; tempo (0.001+) = controls sequencer array read speed \; reverse
-(0/1) = reverses the sequencer array read direction \; note-trigger-on
-(0/1) = activates "note triggering" of sequencer array \; trigger (bang)
-= triggers one pass through the sequencer array \; float (0/1) = controls
-master on/off of sequencer;
+#X text 39 539 \$1 = \$0 \; \$2 = array size \; record (0/1) = activates sequencer recording \; value = value to be stored to sequencer array \; tempo (0.001+) = controls sequencer array read speed \; reverse (0/1) = reverses the sequencer array read direction \; note-trigger-on (0/1) = activates "note triggering" of sequencer array \; trigger (bang) = triggers one pass through the sequencer array \; float (0/1) = controls master on/off of sequencer;
 #X text 216 26 \$3 = automate/seq mode (0/1);
 #N canvas 400 38 427 833 AUTOMATER_PLAYBACK_MODULE_____ 0;
 #X obj 49 156 i 0;
@@ -146,8 +134,7 @@ master on/off of sequencer;
 #X obj 163 572 t f f;
 #X obj 245 601 r \$0-record;
 #X obj 49 598 spigot 1;
-#X obj 142 111 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
-1;
+#X obj 142 111 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 49 7 r \$1-param-throttle;
 #X connect 0 0 1 0;
 #X connect 0 0 11 0;
@@ -209,13 +196,13 @@ master on/off of sequencer;
 #X connect 58 0 28 0;
 #X restore 38 421 pd AUTOMATER_PLAYBACK_MODULE_____;
 #N canvas 602 348 287 423 SEQUENCER_PLAYBACK_MODULE_____ 0;
-#X obj 42 375 outlet;
+#X obj 75 395 outlet;
 #X obj 42 91 spigot;
 #X obj 155 104 r \$0-reverse;
-#X obj 177 146 r \$0-length;
-#X obj 133 167 pack f f;
-#X obj 133 208 -;
-#X msg 133 187 \$2 \$1;
+#X obj 200 136 r \$0-length;
+#X obj 155 157 pack f f;
+#X obj 155 198 -;
+#X msg 155 177 \$2 \$1;
 #X obj 42 241 t a;
 #X obj 42 39 r \$0-beat;
 #X obj 42 298 sel -1;
@@ -223,31 +210,29 @@ master on/off of sequencer;
 #X obj 75 344 line 0 10;
 #X obj 120 303 r \$0-seq-trans-time;
 #X obj 75 71 r \$0-seq-play;
-#X obj 164 52 r \$0-mode;
 #X obj 42 273 tabread \$0-this-2;
 #X obj 42 125 f.util.switch;
-#X connect 1 0 16 0;
-#X connect 2 0 16 1;
+#X connect 1 0 15 0;
+#X connect 2 0 15 1;
 #X connect 3 0 4 1;
 #X connect 4 0 6 0;
 #X connect 5 0 7 0;
 #X connect 6 0 5 0;
-#X connect 7 0 15 0;
+#X connect 7 0 14 0;
 #X connect 8 0 1 0;
 #X connect 9 1 10 0;
 #X connect 10 0 11 0;
 #X connect 11 0 0 0;
 #X connect 12 0 10 1;
 #X connect 13 0 1 1;
-#X connect 15 0 9 0;
-#X connect 16 0 7 0;
-#X connect 16 1 4 0;
+#X connect 14 0 9 0;
+#X connect 15 0 7 0;
+#X connect 15 1 4 0;
 #X restore 252 422 pd SEQUENCER_PLAYBACK_MODULE_____;
 #N canvas 2 58 335 390 AUTOMATER_RECORD_MODULE_______ 0;
 #X obj 55 282 tabwrite \$0-this;
 #X obj 55 184 f;
-#X obj 55 111 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 0
-1;
+#X obj 55 111 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X obj 55 206 t a b;
 #X obj 87 229 i;
 #X obj 116 228 + 1;
@@ -318,8 +303,7 @@ master on/off of sequencer;
 #X obj 324 128 s \$0-seq-trans-time;
 #X obj 402 87 s \$0-seq-value;
 #X obj 266 107 s \$0-seq-play;
-#X obj 37 53 route record value tempo reverse trigger seqrecord seqstep
-beat mode seqplay seqtranstime seqreset seqvalue active;
+#X obj 37 53 route record value tempo reverse trigger seqrecord seqstep beat mode seqplay seqtranstime seqreset seqvalue active;
 #X obj 452 142 r \$1-reset;
 #X connect 0 0 31 0;
 #X connect 6 0 2 0;

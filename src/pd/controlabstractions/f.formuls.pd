@@ -17,9 +17,8 @@
 #X obj 99 222 r inter-act-overide;
 #N canvas 642 104 525 218 MESSAGE_FILTER 0;
 #X obj 50 29 inlet;
-#X obj 381 178 outlet;
-#X obj 50 70 route waveshape\$1 resonantfilter\$2 resonantfilterREAL\$2
-;
+#X obj 377 178 outlet;
+#X obj 50 70 route waveshape\$1 resonantfilter\$2 resonantfilterREAL\$2;
 #X obj 268 122 list trim;
 #X obj 268 101 oscformat resonantfilter\$2;
 #X connect 0 0 2 0;
@@ -59,8 +58,7 @@
 #X obj 50 39 inlet;
 #X obj 50 75 route formuls\$2;
 #X obj 371 371 list prepend formuls\$2;
-#X obj 50 110 route dummy dummy resonantfilter triggerx flamhits flamspread
-;
+#X obj 50 110 route dummy dummy resonantfilter triggerx flamhits flamspread;
 #X msg 198 265 triggerx bang;
 #X obj 297 150 * 200;
 #X obj 198 243 f.util.drip;
