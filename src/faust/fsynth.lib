@@ -41,20 +41,20 @@ with{
   waveshape = hslider("waveshape",0,0,1,0.01) : *(2);
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
-  op1freq = hslider("op1freq",8,0,22050,0.001); // carrier frequency
+  op1freq = hslider("oscfreq",8,0,22050,0.001); // carrier frequency
   oxO = op1freq;
   ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
 
-  op1sliderange = hslider("op1sliderange",0,0,1,0.001) : *(5);
+  op1sliderange = hslider("oscsliderange",0,0,1,0.001) : *(5);
   orx = op1sliderange;
 
-  op1slidetime = hslider("op1slidetime",0,0,1,0.001) : *(2); //time taken for carrier frequency slide
+  op1slidetime = hslider("oscslidetime",0,0,1,0.001) : *(2); //time taken for carrier frequency slide
   otx = op1slidetime;
 
-  op2freq = hslider("op2freq",0,0,1,0.001) : *(2) : max(0.001); // mod freq is relative to op1 freq
+  op2freq = hslider("fmfreq",0,0,1,0.001) : *(2) : max(0.001); // mod freq is relative to op1 freq
   o2fx(i,x,y) = op2freq : ba.sAndH((i==x));
 
-  op2depth = hslider("op2depth",0,0,1,0.001) : *(2); // mod depth is relative to op1 freq
+  op2depth = hslider("fmdepth",0,0,1,0.001) : *(2); // mod depth is relative to op1 freq
   o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
 
   noise = hslider("noise",0,0,1,1) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency

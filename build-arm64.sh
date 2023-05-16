@@ -6,7 +6,7 @@ mkdir build
 cp -r src/gui build/gui
 cp -r src/icons build/icons
 cp -r src/pd build/pd
-cp src/formuls-0.1-1.py build/formuls-0.1-1.py
+cp src/formuls-0.1-2.py build/formuls-0.1-2.py
 
 # build faust pd externals
 cd src/faust
@@ -25,9 +25,9 @@ mv abl_link~.pd_darwin ../../../../build/pd/externals
 
 # download open stage control and nodejs
 cd ../../../gui
-wget https://github.com/jean-emmanuel/open-stage-control/releases/download/v1.22.0/open-stage-control_1.22.0_node.zip
-unzip open-stage-control-1.22.0-node.zip
-cp -r open-stage-control-1.22.0-node ../../build/gui/open-stage-control
+wget https://github.com/jean-emmanuel/open-stage-control/releases/download/v1.25.0/open-stage-control_1.25.0_node.zip
+unzip open-stage-control_1.25.0_node.zip
+cp -r open-stage-control_1.25.0_node ../../build/gui/open-stage-control
 
 wget https://nodejs.org/dist/v18.12.1/node-v18.12.1-darwin-arm64.tar.gz
 tar -xf node-v18.12.1-darwin-arm64.tar.gz
@@ -39,11 +39,11 @@ make
 
 # run pyinstaller and build app bundle
 cd ../build
-pyinstaller formuls-0.1-1.py
+pyinstaller formuls-0.1-2.py
 
-cp -r icons dist/formuls-0.1-1/icons
-cp -r pd dist/formuls-0.1-1/pd
-cp -r gui dist/formuls-0.1-1/gui
-cp -r libs dist/formuls-0.1-1/libs
+cp -r icons dist/formuls-0.1-2/icons
+cp -r pd dist/formuls-0.1-2/pd
+cp -r gui dist/formuls-0.1-2/gui
+cp -r libs dist/formuls-0.1-2/libs
 
-cp -r dist/formuls-0.1-1 ../formuls-0.1-1.app
+cp -r dist/formuls-0.1-2 ../formuls-0.1-2.app
