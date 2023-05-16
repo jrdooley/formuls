@@ -2,10 +2,11 @@
 
 ### Requirements
 You must have the following installed before attempting to build formuls:
-- python 3.x (python.org)
-- sounddevice python library (https://pypi.org/project/sounddevice/)
-- pyinstaller (pyinstaller.org)
 - faust (faust.grame.fr)
+- python 3.x (python.org)
+- pyinstaller (pyinstaller.org)
+- sounddevice python library (https://pypi.org/project/sounddevice/)
+- wget (this can be installed via homebrew: https://brew.sh/)
 
 ### libraries
 formuls uses libpd and abl_link. These are included as submodules when checking out the formuls git repo using the following command:

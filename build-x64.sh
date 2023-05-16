@@ -20,6 +20,8 @@ faust2puredata formuls.dsp
 mv *.pd_darwin ../../build/pd/externals
 
 # build ableton link (abl_link~_) pd external
+cp ../libs/libpd/pure-data/src/m_pd.h ../libs/abl_link/external/m_pd.h
+cp ../libs/libpd/pure-data/src/s_stuff.h ../libs/abl_link/external/s_stuff.h
 cd ../libs/abl_link/external
 make
 mv abl_link~.pd_darwin ../../../../build/pd/externals
