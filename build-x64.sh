@@ -6,6 +6,7 @@ mkdir build
 cp -r src/gui build/gui
 cp -r src/icons build/icons
 cp -r src/pd build/pd
+mkdir build/pd/externals
 cp src/formuls-0.1-2.py build/formuls-0.1-2.py
 
 # build faust pd externals
@@ -39,7 +40,7 @@ make
 
 # run pyinstaller and build app bundle
 cd ../build
-pyinstaller formuls-0.1-2.py
+python3 -m pyinstaller formuls-0.1-2.py
 
 cp -r icons dist/formuls-0.1-2/icons
 cp -r pd dist/formuls-0.1-2/pd
