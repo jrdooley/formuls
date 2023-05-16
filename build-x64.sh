@@ -40,7 +40,7 @@ make
 
 # run pyinstaller and build app bundle
 cd ../build
-python3 -m pyinstaller formuls-0.1-2.py
+pyinstaller formuls-0.1-2.py
 
 cp -r icons dist/formuls-0.1-2/icons
 cp -r pd dist/formuls-0.1-2/pd
