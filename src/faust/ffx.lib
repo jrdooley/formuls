@@ -186,7 +186,7 @@ downsample = amount : 1-(_) : pow(3) : *(47000) : +(1000);
 shift = amount : *(24);
 crush = amount : pow(5) : 1-(_) : *(6) : +(1.5);
 
-bitcrusher(x) = round(x * scaler) / scaler;
+bitcrusher(x) = roundf(x * scaler) / scaler;
 scaler = float(2^crush - 1);
-round(x) = floor(x + 0.5);
+roundf(x) = floor(x + 0.5);
 };

@@ -1,4 +1,4 @@
-#N canvas 1345 818 373 172 10;
+#N canvas 323 687 373 172 10;
 #X text 254 34 \$1 = \$0 \; \$2 = instance;
 #X text 179 13 <- parse incoming messages;
 #X obj 29 16 f.util.oscinparse \$2 \$1;

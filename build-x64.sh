@@ -1,16 +1,7 @@
 #!/bin/zsh
 # macOS Intel 64bit build script
 
-# make build directories and copy assets across
-mkdir build
-cp -r src/gui build/gui
-cp -r src/icons build/icons
-cp -r src/pd build/pd
-mkdir build/pd/externals
-cp src/formuls-0.1-2.py build/formuls-0.1-2.py
 
-# build faust pd externals
-cd src/faust
 faust2puredata f_digitaliser.dsp
 faust2puredata f_limiter.dsp
 faust2puredata f_repeater.dsp
@@ -20,17 +11,15 @@ faust2puredata formuls.dsp
 mv *.pd_darwin ../../build/pd/externals
 
 # build ableton link (abl_link~_) pd external
-cp ../libs/libpd/pure-data/src/m_pd.h ../libs/abl_link/external/m_pd.h
-cp ../libs/libpd/pure-data/src/s_stuff.h ../libs/abl_link/external/s_stuff.h
 cd ../libs/abl_link/external
 make
 mv abl_link~.pd_darwin ../../../../build/pd/externals
 
 # download open stage control and nodejs
 cd ../../../gui
-wget https://github.com/jean-emmanuel/open-stage-control/releases/download/v1.25.0/open-stage-control_1.25.0_node.zip
-unzip open-stage-control_1.25.0_node.zip
-cp -r open-stage-control_1.25.0_node ../../build/gui/open-stage-control
+wget https://github.com/jean-emmanuel/open-stage-control/releases/download/v1.27.0/open-stage-control_1.27.0_node.zip
+unzip open-stage-control_1.27.0_node.zip
+cp -r open-stage-control_1.27.0_node ../../build/gui/open-stage-control
 
 wget https://nodejs.org/dist/v18.12.1/node-v18.12.1-darwin-x64.tar.gz
 tar -xf node-v18.12.1-darwin-x64.tar.gz
@@ -42,11 +31,11 @@ make
 
 # run pyinstaller and build app bundle
 cd ../build
-pyinstaller formuls-0.1-2.py
+python pyinstaller.py
 
-cp -r icons dist/formuls-0.1-2/icons
-cp -r pd dist/formuls-0.1-2/pd
-cp -r gui dist/formuls-0.1-2/gui
-cp -r libs dist/formuls-0.1-2/libs
+cp -r icons dist/formuls-0.2-alpha/_internal/icons
+cp -r pd dist/formuls-0.2-alpha/_internal/pd
+cp -r gui dist/formuls-0.2-alpha/_internal/gui
+cp -r libs dist/formuls-0.2-alpha/_internal/libs
 
-cp -r dist/formuls-0.1-2 ../formuls-0.1-2.app
+cp -r dist/formuls-0.2-alpha ../formuls-0.2-alpha.app
