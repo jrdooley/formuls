@@ -1,7 +1,16 @@
 #!/bin/zsh
 # macOS Intel 64bit build script
 
+# make build directories and copy assets across
+mkdir build
+cp -r src/gui build/gui
+cp -r src/icons build/icons
+cp -r src/pd build/pd
+mkdir build/pd/externals
+cp src/python/formuls-0.2-beta.py build/formuls-0.2-beta.py
+cp src/python/pyinstaller.py build/pyinstaller.py
 
+# build faust pd externals
 faust2puredata f_digitaliser.dsp
 faust2puredata f_limiter.dsp
 faust2puredata f_repeater.dsp
@@ -31,11 +40,11 @@ make
 
 # run pyinstaller and build app bundle
 cd ../build
-python pyinstaller.py
+python3.12 pyinstaller.py
 
-cp -r icons dist/formuls-0.2-alpha/_internal/icons
-cp -r pd dist/formuls-0.2-alpha/_internal/pd
-cp -r gui dist/formuls-0.2-alpha/_internal/gui
-cp -r libs dist/formuls-0.2-alpha/_internal/libs
+cp -r icons dist/formuls-0.2-beta/_internal/icons
+cp -r pd dist/formuls-0.2-beta/_internal/pd
+cp -r gui dist/formuls-0.2-beta/_internal/gui
+cp -r libs dist/formuls-0.2-beta/_internal/libs
 
-cp -r dist/formuls-0.2-alpha ../formuls-0.2-alpha.app
+cp -r dist/formuls-0.2-beta ../formuls-0.2-beta.app

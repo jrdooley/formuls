@@ -44,7 +44,7 @@ audioDeviceMenu.place(relx = 0.05, rely = 0.2)
 #Access the outputChannels Menu Widget using StringVar function
 outputChannelsClicked = StringVar()
 outputChannelsClicked.set("Channels...") # set optionMenu initial value
-channels = [2, 16]
+channels = [2, 14]
 outputChannels = StringVar()
 outputChannels.set(channels[1])
 

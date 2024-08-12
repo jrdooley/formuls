@@ -3,7 +3,8 @@
 ### Requirements
 You must have the following installed before attempting to build formuls:
 - faust (faust.grame.fr)
-- python 3.x (python.org)
+- python 3.12 (python.org)
+- Tkinter
 - pyinstaller (pyinstaller.org)
 - sounddevice python library (https://pypi.org/project/sounddevice/)
 - wget (this can be installed via homebrew: https://brew.sh/)
