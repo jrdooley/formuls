@@ -1,9 +1,4 @@
 # formuls
-<<<<<<< HEAD
-*formuls* is an experimental electronic musical instrument for synthesising and sculpting sound live.
-
-### License
-=======
 *formuls* is an experimental electronic musical instrument for synthesising and sculpting sound live!
 
 ![alt text](https://github.com/jrdooley/formuls/blob/main/formuls_image_1.png)
@@ -46,5 +41,4 @@ Listen to music made with formuls (the instrument) by formuls (the artist who ma
 https://formuls.bandcamp.com/
 
 ***
->>>>>>> ce7f54ae8d71f7627bf953bd282a7bc4fad1f1da
 This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/), James Dooley aka formuls 2014-24.
