@@ -34,7 +34,7 @@ To run formuls:
 ### Demos
 Watch the video below introducing formuls:
 
-[![alt text](https://img.youtube.com/vi/VUV06M74-40/0.jpg)](https://www.youtube.com/watch?v=VUV06M74-40)
+[![alt text](https://img.youtube.com/vi/Z_R3phNMLHo/0.jpg)](https://youtu.be/Z_R3phNMLHo)
 
 Listen to music made with formuls (the instrument) by formuls (the artist who made the instrument):
 
