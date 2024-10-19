@@ -3,7 +3,7 @@
 #X declare -path externals;
 #X obj 158 70 loadbang;
 #X msg 158 94 \; pd dsp 1;
-#N canvas 0 54 274 312 MESSAGE_RECEIVE 0;
+#N canvas 134 85 274 312 MESSAGE_RECEIVE 0;
 #X msg 58 94 listen 51984;
 #X obj 58 29 loadbang;
 #X obj 58 63 del 1000;

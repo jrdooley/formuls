@@ -1,4 +1,4 @@
-#N canvas 486 164 912 724 12;
+#N canvas 765 249 912 724 12;
 #X obj 30 87 route formuls\$1;
 #X obj 28 683 outlet;
 #X obj 30 19 inlet;
@@ -44,7 +44,7 @@
 #X obj 102 524 s \$0-formuls~;
 #X obj 387 298 r \$0-formuls~;
 #X obj 526 370 *~ 10;
-#N canvas 0 38 508 335 MESSAGE_FILTER 0;
+#N canvas 577 96 508 335 MESSAGE_FILTER 0;
 #X obj 75 45 inlet;
 #X obj 80 266 outlet;
 #X obj 75 89 route extmodulationsource thresholdsource envsidesource;

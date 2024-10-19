@@ -21,11 +21,12 @@ with {
 //------AMPLITUDE_MODULATION-----//
 am = _ : *(1-(amd *(amf : amosc)))
 with{
-  amw = hslider("amwave",0,0,1,0.001) : *(3);
+  amw = hslider("amwave",0,0,1,0.001) : *(3) : si.smoo;
   amf = hslider("amfreq",0,0,1,0.001) : *(99.9) : max(0.1) : si.smoo;
   amd = hslider("amdepth",0,0,1,0.01) : si.smoo;
 
   clip(x) = x : min(1,_) : max(0,_);
+  // sine -> triangle -> rising sawtooth -> square
   amosc = _ <: (((((os.oscsin : *(0.5) : +(0.5)), os.lf_trianglepos : si.interpolate(clip(amw))), os.lf_sawpos : si.interpolate(clip(amw-(1)))), os.lf_squarewavepos : si.interpolate(clip(amw-2))));
 };
 //-----------SATURATION---------------//
@@ -101,12 +102,12 @@ with {
   gr = hslider("gaterelease",0,0,1,0.01) : +(0.001); // short = gr
 };
 //------ENVELOPE_FOLLOWER/SIDECHAIN----//
-// envelope follower with fast attack (10ms)
+// envelope follower with fixed fast attack (10ms)
 envelopefollower = _ : max(-1) : min(1) : an.amp_follower_ar(0.01, enveloperelease) <: env, side : ba.selectn(2,envelopeside) : _
 with{
   enveloperelease = hslider("enveloperelease",0.001,0.001,1,0.001) : *(0.999) : +(0.001) : si.smoo;
   envelopedepth = hslider("envelopedepth",0,0,1,0.01) : si.smoo;
-  envelopeside = checkbox("envelopeside");
+  envelopeside = checkbox("envelopeside"); // 0 = envelope follow; 1  = sidechain (gain reduction)
   env = *(envelopedepth) : +(1-envelopedepth); // envelope follow algorithm
   side = 1-(_) *(envelopedepth); // sidechain algorithm
 };
