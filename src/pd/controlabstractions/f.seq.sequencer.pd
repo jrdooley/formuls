@@ -73,7 +73,7 @@
 #X obj 164 243 * 1;
 #X obj 103 362 >=;
 #X obj 103 383 sel 1;
-#X obj 177 175 r \$0-seqcyclerest;
+#X obj 177 175 r \$0-seqcycle;
 #X connect 0 0 4 1;
 #X connect 1 0 2 0;
 #X connect 1 0 10 0;
@@ -228,8 +228,8 @@
 #X connect 16 0 13 1;
 #X restore 325 519 pd SEQ_GUI_UPDATE;
 #X obj 325 593 outlet;
-#X obj 48 74 route seqon seqwrite randomadd randomdrop euclid euclidsteps euclidoffset seqlength seqinvert timebase timebasemultiply beatsync swing warp delay reset valuesend beat seqcyclerest;
-#X obj 421 92 s \$0-seqcyclerest;
+#X obj 48 74 route seqon seqwrite randomadd randomdrop euclid euclidsteps euclidoffset seqlength seqinvert timebase timebasemultiply beatsync swing warp delay reset valuesend beat seqcycle;
+#X obj 421 92 s \$0-seqcycle;
 #X connect 1 0 25 0;
 #X connect 11 0 0 0;
 #X connect 11 1 20 0;
