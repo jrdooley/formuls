@@ -1,0 +1,10 @@
+#N canvas 326 204 450 300 12;
+#X obj 71 42 inlet;
+#X obj 71 66 route seqwrite\$2-\$1;
+#X msg 71 154 seqwrite \$2 \$1;
+#X obj 71 123 pack f \$1;
+#X obj 71 205 outlet;
+#X connect 0 0 1 0;
+#X connect 1 0 3 0;
+#X connect 2 0 4 0;
+#X connect 3 0 2 0;

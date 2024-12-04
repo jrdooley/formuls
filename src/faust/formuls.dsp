@@ -11,6 +11,7 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 fx = library("ffx.lib");
 fs = library("fsynth.lib");
+// fo = library("fosc.lib");
 
 //--------------------------------//
 //-------GLOBAL_PARAMETERS--------//

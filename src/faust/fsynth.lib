@@ -4,14 +4,17 @@ declare license "MIT";
 declare options "[osc:on]";
 
 import("stdfaust.lib");
+fo = library("fosc.lib");
 
 //----------------------------------------------------------------------------------------//
 //-------------------------------------SYNTH----------------------------------------------//
 //----------------------------------------------------------------------------------------//
+polyphony = 24;
+
 //------FORMULS------//
 /* main synth function */
 // One audio signal in: receives from another synth and controls FM modulation
-synth(inmod) = inmod : *(extmod) <: (par(i,15,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
+synth(inmod) = inmod : *(extmod) <: (par(i,polyphony,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -27,7 +30,7 @@ with{
   tadsr = t *(adsron);
 
   //Counter to select voice
-  counterMod = 15;
+  counterMod = polyphony;
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
   c = +(1)~(ba.sAndH(tadsr : ba.impulsify)) : %(counterMod) : int; // Incremental counter for voice select.
   c2 = c +(1) : %(counterMod) : int; // Used to turn off next voice in preparation for triggering.
@@ -37,11 +40,11 @@ with{
   // extmod: external input modulates frequency of Oscillator.
   extmod = hslider("extmodulation",0,0,1,0.01) : *(16) : si.smoo;
 
-  // waveshape: sine -> triangle -> rising sawtooth -> squarewave
-  waveshape = hslider("waveshape",0,0,1,0.01) : *(2);
+  // waveshape: sine -> square -> rising sawtooth -> impulse
+  waveshape = hslider("waveshape",0,0,1,0.01) : *(3);
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
-  op1freq = hslider("oscfreq",8,0,22050,0.001); // carrier frequency
+  op1freq = hslider("oscfreq",0.001,0.001,22050,0.001); // carrier frequency
   oxO = op1freq;
   ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
 
@@ -90,7 +93,8 @@ fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta,adsron) = freqset : fmosc
     clip(x) = x : min(1,_) : max(0,_);
     oscphase = ta1 == (0) : ba.impulsify : ba.sAndH((ta1 *(adsron)));
     wa1 = wa : si.smoo;
-    fmosc = _ : os.lf_sawpos_reset(_,oscphase) *(2) : -(1) <: (*(ma.PI) : sin <:_,(*(20) : ma.tanh : min(1)) : si.interpolate(clip(wa1))),_ : si.interpolate(clip(wa1-(1)));
+    // fmosc = _ : os.lf_sawpos_reset(_,oscphase) *(2) : -(1) <: (*(ma.PI) : sin <:_,(*(20) : ma.tanh : min(1)) : si.interpolate(clip(wa1))),_ : si.interpolate(clip(wa1-(1)));
+    fmosc = _ : fo.multiwave4(_,wa1,oscphase);
   };
 
 //---------ADSR----------//

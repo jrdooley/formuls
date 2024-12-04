@@ -1,0 +1,19 @@
+declare author "James Dooley: info@formuls.co.uk";
+declare copyright "James Dooley";
+declare license "MIT";
+
+import("stdfaust.lib");
+
+multiwave4(f,w,p) = _ <: sine,squ,saw,puls : interpolate4(w)
+    with{
+        saw(y) = os.lf_sawpos_reset(y,p);
+        sine = saw : *(2) : -(1) : *(ma.PI) : sin;
+        // sine(x) = os.oscp(x,p);
+        squ = sine : *(100) : ma.tanh : min(1);
+        // saw(y) = os.sawNp(1,y,p);
+        // puls = saw : pow(50) : *(2.9) : -(1) : min(1,_) : max(0,_);
+        puls = saw : >(0.05) : min(1) : max(-1);
+
+        interpolate4(x) = _,_,_,_ : ((_,_ : si.interpolate(clip(x))),_ : si.interpolate(clip(x-(1)))),_ : si.interpolate(clip(x-(2)));
+        clip(x) = x : min(1,_) : max(0,_);
+    };

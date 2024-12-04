@@ -153,6 +153,7 @@
 #X obj 98 45 r \$0-timebase;
 #X obj 151 63 r \$0-timebase-multiplier;
 #X obj 46 84 f.seq.beatdivision;
+#X obj 278 517 outlet GUIBeat;
 #X connect 1 0 2 0;
 #X connect 2 0 10 0;
 #X connect 3 0 13 0;
@@ -171,6 +172,7 @@
 #X connect 16 0 17 0;
 #X connect 17 0 18 0;
 #X connect 18 0 3 0;
+#X connect 18 0 23 0;
 #X connect 19 0 22 0;
 #X connect 20 0 22 1;
 #X connect 21 0 22 2;
@@ -184,7 +186,7 @@
 #X obj 351 204 s \$0-warp;
 #X obj 333 225 s \$0-swing;
 #X obj 309 245 s \$0-beat-sync;
-#X obj 203 595 outlet beat;
+#X obj 123 595 outlet beat;
 #X obj 48 461 s \$0-sequencer-on;
 #X obj 397 140 s val-send;
 #N canvas 0 38 259 311 SEQ_GUI_UPDATE 0;
@@ -226,13 +228,15 @@
 #X connect 15 0 11 0;
 #X connect 15 1 16 0;
 #X connect 16 0 13 1;
-#X restore 325 519 pd SEQ_GUI_UPDATE;
-#X obj 325 593 outlet;
+#X restore 345 519 pd SEQ_GUI_UPDATE;
+#X obj 345 593 outlet;
 #X obj 48 74 route seqon seqwrite randomadd randomdrop euclid euclidsteps euclidoffset seqlength seqinvert timebase timebasemultiply beatsync swing warp delay reset valuesend beat seqcycle;
 #X obj 421 92 s \$0-seqcycle;
+#X obj 205 594 outlet beat-constant;
 #X connect 1 0 25 0;
 #X connect 11 0 0 0;
 #X connect 11 1 20 0;
+#X connect 11 2 27 0;
 #X connect 23 0 24 0;
 #X connect 25 0 21 0;
 #X connect 25 1 7 0;
