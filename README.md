@@ -3,7 +3,7 @@
 
 ![alt text](https://github.com/jrdooley/formuls/blob/main/formuls_image_1.png)
 
-Using an intuitive, novel touchscreen-based interface, formuls can sculpt primary sounds into kaleidoscopic meshes of finely tuned timbres and pulsating rhythms. Harnessing the power of simple gestural interactions typically used to operate smartphones and tablets, complex sound synthesis techniques are easy to access, control and explore, reducing the required instrumental technique to finger taps, drags and swipes. formuls aims to make synthesis easy for the beginner, while opening up a plethora of creative sonic possibilities to the seasoned sound designer.
+*formuls* aims to make synthesis easy for the beginner, while opening up a plethora of creative sonic possibilities to the seasoned sound designer. Using an intuitive, novel touchscreen-based interface, *formuls* can sculpt primary sounds into kaleidoscopic meshes of finely tuned timbres and pulsating rhythms. Harnessing the power of simple gestural interactions typically used to operate smartphones and tablets, complex sound synthesis techniques are easy to access, control and explore, reducing the required instrumental technique to finger taps, drags and swipes.
 
 This software uses [libpd](https://github.com/libpd/libpd), [Faust](https://faust.grame.fr/), [Open Stage Control](https://openstagecontrol.ammd.net/) and [Python](https://www.python.org/).
 
