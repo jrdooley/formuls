@@ -284,7 +284,8 @@
 #X obj 41 147 delwrite~ \$0-l 4000;
 #X obj 30 241 table \$0-spsample-l 192000;
 #X obj 31 94 f.audio.spectralpitchshift~;
-#X obj 133 71 r \$0-transpose;
+#X obj 133 51 r \$0-transpose;
+#X obj 133 72 * 1000;
 #X connect 0 0 25 0;
 #X connect 1 0 3 0;
 #X connect 5 0 23 0;
@@ -304,7 +305,8 @@
 #X connect 22 0 19 0;
 #X connect 25 0 3 0;
 #X connect 25 0 23 0;
-#X connect 26 0 25 1;
+#X connect 26 0 27 0;
+#X connect 27 0 25 1;
 #X restore 35 372 pd INCOMING_AUDIO_WRITE;
 #X obj 267 178 nbx 5 14 0 1 0 0 empty empty feedback 55 7 0 10 #fcfcfc #000000 #000000 0 256;
 #X obj 267 196 s \$0-feedback;
