@@ -41,7 +41,7 @@ make
 
 # run pyinstaller and build app bundle
 cd ../build
-python3.12 pyinstaller.py
+python3 pyinstaller.py
 
 cp -r icons dist/formuls-0.2.2-beta/_internal/icons
 cp -r pd dist/formuls-0.2.2-beta/_internal/pd

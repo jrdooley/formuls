@@ -9,7 +9,7 @@ fo = library("fosc.lib");
 //----------------------------------------------------------------------------------------//
 //-------------------------------------SYNTH----------------------------------------------//
 //----------------------------------------------------------------------------------------//
-polyphony = 24;
+polyphony = 20;
 
 //------FORMULS------//
 /* main synth function */
@@ -25,14 +25,15 @@ with{
   polyphonic = checkbox("polyphonic") : *(adsron);
   poly(i,x) = polyphonic +(i==x) : min(1) : max(0);
 
-  trigx = button("triggerx");
+  trigx = button("triggerx") <: _,@(2) : _ !=(_) : ba.impulsify;
   t = trigx : int; // triggers synth voice
   tadsr = t *(adsron);
 
   //Counter to select voice
   counterMod = polyphony;
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
-  c = +(1)~(ba.sAndH(tadsr : ba.impulsify)) : %(counterMod) : int; // Incremental counter for voice select.
+  // c = +(1)~(ba.sAndH(tadsr : ba.impulsify)) : %(counterMod) : int; // Incremental counter for voice select.
+  c = ba.counter(tadsr) : %(counterMod) : int; // Incremental counter for voice select.
   c2 = c +(1) : %(counterMod) : int; // Used to turn off next voice in preparation for triggering.
 
   //----SYNTH_PARAMETERS----//
@@ -43,6 +44,7 @@ with{
   // waveshape: sine -> square -> rising sawtooth -> impulse
   waveshape = hslider("waveshape",0,0,1,0.01) : *(3);
   wx(i,x,y) = waveshape : ba.sAndH((i==x) & (i!=y)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
+  // wx(i,x,y) = waveshape : ba.sAndH((i==x)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
   op1freq = hslider("oscfreq",0.001,0.001,22050,0.001); // carrier frequency
   oxO = op1freq;
@@ -73,7 +75,7 @@ with{
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
   velocity = hslider("velocity",0,0,1,0.01) : si.smoo;
-  vx(i,x) = velocity : ba.sAndH((i==x));
+  vx(i,x) = velocity : ba.sAndH((i==x)) : *(x!=(i)) : ba.line(4800);
 };
 
 //----------------------------------------------------------------------------------------//
