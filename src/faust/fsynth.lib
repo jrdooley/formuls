@@ -14,7 +14,7 @@ polyphony = 20;
 //------FORMULS------//
 /* main synth function */
 // One audio signal in: receives from another synth and controls FM modulation
-synth(inmod) = inmod : *(extmod) <: (par(i,polyphony,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,t),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
+synth(inmod) = inmod : *(extmod) <: (par(i,polyphony,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -75,7 +75,7 @@ with{
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
   velocity = hslider("velocity",0,0,1,0.01) : si.smoo;
-  vx(i,x) = velocity : ba.sAndH((i==x)) : *(x!=(i)) : ba.line(4800);
+  vx(i,x) = velocity : ba.sAndH((i==x));
 };
 
 //----------------------------------------------------------------------------------------//
