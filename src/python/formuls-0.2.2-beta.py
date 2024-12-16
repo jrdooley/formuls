@@ -70,13 +70,11 @@ def RUN():
         # command0 = "cd " + resource_path("")
         command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --load " + resource_path("gui/_main.json") + " --state " + resource_path("gui/_formuls-default.state") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
         command2 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " 1 " + audioOutput + " " + channelsOut + " &" # audio process
-        command3 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " 0 " + audioOutput + " 1 &" # control process
         
         # os.system(command0)
         os.system(command1)
         os.system(command2)
-        os.system(command3)
-        os.system("pwd")
+        # os.system("pwd")
         
         # change button label
         runButtonText.set("Stop formuls")

@@ -466,8 +466,8 @@
 #X obj 94 192 r \$0-reverse;
 #X obj 112 341 r \$0-trig;
 #X obj 214 338 r \$0-loop-trig;
-#X obj 218 464 r \$0-active;
-#X msg 218 485 active \$1;
+#X obj 238 434 r \$0-active;
+#X msg 238 455 active \$1;
 #X obj 61 512 f.seq.record \$0 6000;
 #X obj 112 436 spigot 0;
 #X obj 178 532 s \$0-to-spigot;
@@ -478,6 +478,7 @@
 #X obj 157 363 == 1;
 #X obj 169 436 spigot 0;
 #X obj 214 413 == 2;
+#X obj 112 482 spigot;
 #X connect 1 0 6 0;
 #X connect 2 0 21 0;
 #X connect 3 0 5 0;
@@ -486,13 +487,14 @@
 #X connect 6 0 17 0;
 #X connect 7 0 17 0;
 #X connect 8 0 17 0;
-#X connect 9 0 17 0;
+#X connect 9 0 27 0;
 #X connect 11 0 7 0;
 #X connect 12 0 8 0;
 #X connect 13 0 18 0;
 #X connect 14 0 24 0;
 #X connect 14 0 26 0;
 #X connect 15 0 16 0;
+#X connect 15 0 27 1;
 #X connect 16 0 17 0;
 #X connect 17 0 0 0;
 #X connect 17 1 19 0;
@@ -504,6 +506,7 @@
 #X connect 24 0 18 1;
 #X connect 25 0 9 0;
 #X connect 26 0 25 1;
+#X connect 27 0 17 0;
 #X restore 32 679 pd SEQ_RECORD_OBJECT________;
 #X obj 161 412 s \$0-chaos;
 #X obj 48 61 f.seq.automatermessage \$1;
