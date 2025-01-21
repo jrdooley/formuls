@@ -163,8 +163,9 @@
 #X obj 35 209 f.util.modinput;
 #X obj 35 188 pack f f;
 #X obj 35 280 outlet;
-#X obj 185 143 r \$2-reset;
-#X msg 185 164 reset 0;
+#X obj 225 141 r \$2-reset;
+#X msg 225 170 0;
+#X msg 153 169 reset bang;
 #X connect 0 0 2 0;
 #X connect 1 0 6 1;
 #X connect 2 0 3 0;
@@ -175,7 +176,9 @@
 #X connect 6 0 8 0;
 #X connect 7 0 6 0;
 #X connect 9 0 10 0;
+#X connect 9 0 11 0;
 #X connect 10 0 6 1;
+#X connect 11 0 6 0;
 #X restore 187 145 pd MOD_PARSE;
 #X msg 187 166 extmod \$1;
 #X obj 7 74 route \$3\$2 \$3chaos\$2 \$3lfofreq\$2 \$3lfodepth\$2 \$3mod\$2 \$3moddepth\$2 \$3label\$2;

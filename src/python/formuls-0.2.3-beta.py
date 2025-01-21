@@ -51,7 +51,7 @@ outputChannels.set(channels[1])
 #Create an instance of outputChannels Menu in the frame to select the number of audio output (stereo or individual channel outputs)
 outputChannelsMenu = OptionMenu(mainWindow, outputChannelsClicked, *channels)
 outputChannelsMenu.pack()
-outputChannelsMenu.configure(bg='green', width = 6)
+outputChannelsMenu.configure(bg='green', width = 10)
 outputChannelsMenu.place(relx = 0.05, rely = 0.35)
 
 # RUN function to access the selected menu item, then run formulsengine and node/open stage control when 'Start' is clicked.

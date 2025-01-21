@@ -226,7 +226,8 @@
 #X obj 168 278 outlet;
 #X obj 290 76 unpack f f;
 #X obj 343 126 r \$2-reset;
-#X msg 343 147 reset 0;
+#X msg 413 147 0;
+#X msg 343 147 reset bang;
 #X connect 0 0 3 0;
 #X connect 1 0 9 0;
 #X connect 2 0 17 0;
@@ -247,8 +248,11 @@
 #X connect 17 0 7 1;
 #X connect 17 1 13 1;
 #X connect 18 0 19 0;
+#X connect 18 0 20 0;
 #X connect 19 0 13 1;
 #X connect 19 0 7 1;
+#X connect 20 0 13 0;
+#X connect 20 0 7 0;
 #X restore 197 178 pd MOD_PARSE;
 #X msg 197 199 extmod \$1;
 #X obj 197 220 s \$0-x-auto;

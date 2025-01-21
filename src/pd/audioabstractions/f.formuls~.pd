@@ -1,4 +1,4 @@
-#N canvas 765 249 912 724 12;
+#N canvas 535 187 912 724 12;
 #X obj 30 87 route formuls\$1;
 #X obj 28 683 outlet;
 #X obj 30 19 inlet;
