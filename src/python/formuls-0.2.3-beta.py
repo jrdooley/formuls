@@ -51,7 +51,7 @@ outputChannels.set(channels[1])
 #Create an instance of outputChannels Menu in the frame to select the number of audio output (stereo or individual channel outputs)
 outputChannelsMenu = OptionMenu(mainWindow, outputChannelsClicked, *channels)
 outputChannelsMenu.pack()
-outputChannelsMenu.configure(bg='green', width = 10)
+outputChannelsMenu.configure(bg='green', width = 14)
 outputChannelsMenu.place(relx = 0.05, rely = 0.35)
 
 # RUN function to access the selected menu item, then run formulsengine and node/open stage control when 'Start' is clicked.
@@ -68,7 +68,7 @@ def RUN():
         channelsOut = outputChannels.get()
         
         # command0 = "cd " + resource_path("")
-        command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --load " + resource_path("gui/_main.json") + " --state " + resource_path("gui/_formuls-default.state") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
+        command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --read-only true --load " + resource_path("gui/_main.json") + " --state " + resource_path("gui/_formuls-default.state") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
         command2 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " 1 " + audioOutput + " " + channelsOut + " &" # audio process
         
         # os.system(command0)
