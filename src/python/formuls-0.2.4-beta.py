@@ -45,8 +45,6 @@ audioDeviceMenu.place(relx = 0.05, rely = 0.2)
 outputChannelsClicked = StringVar()
 outputChannelsClicked.set("Channels...") # set optionMenu initial value
 channels = [2, 14]
-outputChannels = StringVar()
-outputChannels.set(channels[1])
 
 #Create an instance of outputChannels Menu in the frame to select the number of audio output (stereo or individual channel outputs)
 outputChannelsMenu = OptionMenu(mainWindow, outputChannelsClicked, *channels)
@@ -65,16 +63,13 @@ def RUN():
     if is_on:
         deviceGet = audioDeviceClicked.get()
         audioOutput = deviceGet[0]
-        channelsOut = outputChannels.get()
+        channelsOut = outputChannelsClicked.get()
         
-        # command0 = "cd " + resource_path("")
         command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --read-only true --load " + resource_path("gui/_main.json") + " --state " + resource_path("gui/_formuls-default.state") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
-        command2 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " 1 " + audioOutput + " " + channelsOut + " &" # audio process
+        command2 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " " + audioOutput + " " + channelsOut + " &" # audio process
         
-        # os.system(command0)
         os.system(command1)
         os.system(command2)
-        # os.system("pwd")
         
         # change button label
         runButtonText.set("Stop formuls")

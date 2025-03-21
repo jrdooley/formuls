@@ -29,7 +29,7 @@ int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFra
    return 0;
 }
 
-void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes the argument that sets the audio device
+void init(int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes the argument that sets the audio device
    unsigned int sampleRate = 48000;
    unsigned int bufferFrames = 512; // JD: this value can be changed. 512 is the lowest value though
 
@@ -47,14 +47,16 @@ void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveS
    lpd.computeAudio(true);
 
    // load the patch
-   // pd::Patch patch = lpd.openPatch("_main.pd", "./pd");
-   if (thepatch == 0) {
-     pd::Patch patch = lpd.openPatch("_main-control.pd", "./pd");
-     std::cout << patch << std::endl;
-   } else {
-     pd::Patch patch = lpd.openPatch("_main-audio.pd", "./pd");
-     std::cout << patch << std::endl;
-   }
+   pd::Patch patch = lpd.openPatch("_main.pd", "./pd");
+   std::cout << patch << std::endl;
+
+   // if (thepatch == 0) {
+   //   pd::Patch patch = lpd.openPatch("_main-control.pd", "./pd");
+   //   std::cout << patch << std::endl;
+   // } else {
+   //   pd::Patch patch = lpd.openPatch("_main-audio.pd", "./pd");
+   //   std::cout << patch << std::endl;
+   // }
 
    // use the RtAudio API to connect to the default audio device
    if(audio.getDeviceCount()==0){
@@ -64,7 +66,7 @@ void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveS
 
    RtAudio::StreamParameters parameters;
    parameters.deviceId = deviceSelect; //JD: selects output device based on the incoming deviceSelect variable
-   parameters.nChannels = channelsOut; // JD: sets number of audio output channels. first two are clean, 3 + 4 are reverb
+   parameters.nChannels = channelsOut; // JD: sets number of audio output channels.
 
    RtAudio::StreamOptions options;
    options.streamName = "libpd rtaudio test";
@@ -89,19 +91,20 @@ void init(int thepatch, int deviceSelect, int channelsOut){  // JD: "int deviveS
 int main (int argc, char *argv[]) {
     int audioDevice;
     int channelOut;
-    int pdPatch;
+   //  int pdPatch;
 
  if (argc > 2) {
-   pdPatch = atoi(argv[1]);
-   audioDevice = atoi(argv[2]);
-   channelOut = atoi(argv[3]);
+   // pdPatch = atoi(argv[1]);
+   audioDevice = atoi(argv[1]);
+   channelOut = atoi(argv[2]);
  } else {
    // sets to default audio device "0" with two channel audio out.
    audioDevice = 0;
    channelOut = 2;
-   pdPatch = 0;
+   // pdPatch = 0;
  }
-  init(pdPatch, audioDevice, channelOut);
+//   init(pdPatch, audioDevice, channelOut);
+init(audioDevice, channelOut);
 
    // keep the program alive until it's killed with Ctrl+C
    while(1){

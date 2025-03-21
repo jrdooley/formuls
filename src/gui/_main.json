@@ -1,5 +1,5 @@
 {
-  "version": "1.27.1",
+  "version": "1.28.4",
   "type": "session",
   "createdWith": "Open Stage Control",
   "content": {
@@ -273,7 +273,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -329,7 +330,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -385,7 +387,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -441,7 +444,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -497,7 +501,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -553,7 +558,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -609,7 +615,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -665,7 +672,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -721,7 +729,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -777,7 +786,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -833,7 +843,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -889,7 +900,8 @@
                     "steps": "@{quantisationX.value}",
                     "origin": "auto",
                     "onTouch": "",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "button",
@@ -1509,8 +1521,7 @@
                   }
                 ],
                 "tabs": [],
-                "borderRadius": "auto",
-                "tabsPosition": "top"
+                "borderRadius": "auto"
               },
               {
                 "type": "button",
@@ -1851,7 +1862,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -1907,7 +1919,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -1963,7 +1976,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -2019,7 +2033,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -2224,8 +2239,7 @@
                 "onValue": "",
                 "widgets": [],
                 "tabs": [],
-                "borderRadius": "auto",
-                "tabsPosition": "top"
+                "borderRadius": "auto"
               },
               {
                 "type": "switch",
@@ -2471,7 +2485,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -2527,7 +2542,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -2583,7 +2599,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "matrix",
@@ -2636,8 +2653,7 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0,
-                    "tabsPosition": "top"
+                    "borderRadius": 0
                   },
                   {
                     "type": "switch",
@@ -2743,7 +2759,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -2900,7 +2917,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -2956,7 +2974,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3012,7 +3031,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3068,7 +3088,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "matrix",
@@ -3121,8 +3142,7 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0,
-                    "tabsPosition": "top"
+                    "borderRadius": 0
                   },
                   {
                     "type": "switch",
@@ -3228,7 +3248,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -3385,7 +3406,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3441,7 +3463,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3497,7 +3520,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3553,7 +3577,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -3710,7 +3735,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3766,7 +3792,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3822,7 +3849,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -3878,7 +3906,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -4035,7 +4064,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -4091,7 +4121,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -4147,7 +4178,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -4203,7 +4235,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -4318,8 +4351,7 @@
                 "props": {
                   "label": " "
                 },
-                "borderRadius": "auto",
-                "tabsPosition": "top"
+                "borderRadius": "auto"
               },
               {
                 "type": "switch",
@@ -4609,7 +4641,8 @@
                 "origin": "auto",
                 "onTouch": "",
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "matrix",
@@ -4663,8 +4696,7 @@
                   "mode": "toggle",
                   "label": " "
                 },
-                "borderRadius": "auto",
-                "tabsPosition": "top"
+                "borderRadius": "auto"
               },
               {
                 "type": "switch",
@@ -4817,8 +4849,7 @@
                 "props": {
                   "label": " "
                 },
-                "borderRadius": "auto",
-                "tabsPosition": "top"
+                "borderRadius": "auto"
               },
               {
                 "type": "switch",
@@ -5016,7 +5047,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -5072,7 +5104,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -5128,7 +5161,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -5184,7 +5218,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "matrix",
@@ -5237,8 +5272,7 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0,
-                    "tabsPosition": "top"
+                    "borderRadius": 0
                   },
                   {
                     "type": "switch",
@@ -5344,7 +5378,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -5501,7 +5536,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -5557,7 +5593,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -5613,7 +5650,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "fader",
@@ -5669,7 +5707,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "matrix",
@@ -5722,8 +5761,7 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0,
-                    "tabsPosition": "top"
+                    "borderRadius": 0
                   },
                   {
                     "type": "switch",
@@ -5829,7 +5867,8 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
@@ -5894,7 +5933,8 @@
                 "origin": "auto",
                 "onTouch": "",
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "text",
@@ -5987,7 +6027,8 @@
                 "origin": "auto",
                 "onTouch": "",
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "text",
@@ -6080,7 +6121,8 @@
                 "origin": "auto",
                 "onTouch": "",
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "text",
@@ -6173,7 +6215,8 @@
                 "snap": false,
                 "onTouch": "",
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "text",
@@ -6361,7 +6404,8 @@
                     "bypass": false,
                     "onCreate": "",
                     "onValue": "",
-                    "onTouch": ""
+                    "onTouch": "",
+                    "touchZone": "all"
                   },
                   {
                     "type": "button",
@@ -6463,7 +6507,8 @@
                     "bypass": false,
                     "onCreate": "",
                     "onValue": "",
-                    "onTouch": ""
+                    "onTouch": "",
+                    "touchZone": "all"
                   },
                   {
                     "type": "button",
@@ -6568,7 +6613,8 @@
                     "origin": "auto",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "button",
@@ -6988,14 +7034,14 @@
                     "onTouch": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   }
                 ],
                 "tabs": [],
                 "onValue": "",
                 "onCreate": "",
-                "borderRadius": "auto",
-                "tabsPosition": "top"
+                "borderRadius": "auto"
               },
               {
                 "type": "button",
@@ -9240,8 +9286,7 @@
                     "tabs": [],
                     "onValue": "",
                     "onCreate": "",
-                    "borderRadius": "auto",
-                    "tabsPosition": "top"
+                    "borderRadius": "auto"
                   },
                   {
                     "type": "panel",
@@ -13022,7 +13067,8 @@
                     "html": "",
                     "onTouch": "",
                     "borderRadius": "auto",
-                    "colorKnob": "auto"
+                    "colorKnob": "auto",
+                    "touchZone": "all"
                   },
                   {
                     "type": "text",
@@ -13877,15 +13923,15 @@
                                 "onTouch": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "colorKnob": "auto"
+                                "colorKnob": "auto",
+                                "touchZone": "all"
                               }
                             ],
                             "tabs": [],
                             "onValue": "",
                             "onCreate": "",
                             "lock": false,
-                            "borderRadius": "auto",
-                            "tabsPosition": "top"
+                            "borderRadius": "auto"
                           },
                           {
                             "type": "input",
@@ -14214,8 +14260,7 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": "auto",
-                    "tabsPosition": "top"
+                    "borderRadius": "auto"
                   },
                   {
                     "type": "modal",
@@ -14608,8 +14653,7 @@
                         "tabsPosition": "top"
                       }
                     ],
-                    "tabs": [],
-                    "tabsPosition": "top"
+                    "tabs": []
                   },
                   {
                     "type": "modal",
@@ -14716,15 +14760,15 @@
                         "onTouch": "",
                         "lock": false,
                         "borderRadius": "auto",
-                        "colorKnob": "auto"
+                        "colorKnob": "auto",
+                        "touchZone": "all"
                       }
                     ],
                     "tabs": [],
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": "auto",
-                    "tabsPosition": "top"
+                    "borderRadius": "auto"
                   },
                   {
                     "type": "modal",
@@ -14831,15 +14875,15 @@
                         "onTouch": "",
                         "lock": false,
                         "borderRadius": "auto",
-                        "colorKnob": "auto"
+                        "colorKnob": "auto",
+                        "touchZone": "all"
                       }
                     ],
                     "tabs": [],
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": "auto",
-                    "tabsPosition": "top"
+                    "borderRadius": "auto"
                   }
                 ],
                 "tabs": [],
@@ -16058,7 +16102,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "xy",
@@ -16114,7 +16159,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "xy",
@@ -16170,7 +16216,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "xy",
@@ -16226,7 +16273,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "matrix",
@@ -16279,8 +16327,7 @@
                   "label": "false"
                 },
                 "widgets": [],
-                "tabs": [],
-                "tabsPosition": "top"
+                "tabs": []
               },
               {
                 "type": "switch",
@@ -16383,8 +16430,7 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0,
-                "tabsPosition": "top"
+                "borderRadius": 0
               },
               {
                 "type": "switch",
@@ -16493,7 +16539,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "button",
@@ -16884,7 +16931,8 @@
                   "HIGH"
                 ],
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "pointsAttr": []
               },
               {
                 "type": "xy",
@@ -16940,7 +16988,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "xy",
@@ -16996,7 +17045,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "xy",
@@ -17052,7 +17102,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "axisLock": ""
+                "axisLock": "",
+                "label": ""
               },
               {
                 "type": "button",
@@ -17437,7 +17488,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -17493,7 +17545,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -17549,7 +17602,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -17605,7 +17659,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "matrix",
@@ -17658,8 +17713,7 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0,
-                "tabsPosition": "top"
+                "borderRadius": 0
               },
               {
                 "type": "switch",
@@ -17765,7 +17819,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "button",
@@ -18153,7 +18208,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -18209,7 +18265,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -18265,7 +18322,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -18321,7 +18379,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "button",
@@ -18705,7 +18764,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -18761,7 +18821,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -18817,7 +18878,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -18873,7 +18935,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "button",
@@ -19304,7 +19367,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -19360,7 +19424,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -19416,7 +19481,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "button",
@@ -19619,7 +19685,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -19675,7 +19742,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               },
               {
                 "type": "fader",
@@ -19731,7 +19799,8 @@
                 "onTouch": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "colorKnob": "auto"
+                "colorKnob": "auto",
+                "touchZone": "all"
               }
             ],
             "tabs": [],

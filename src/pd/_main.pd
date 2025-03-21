@@ -1548,14 +1548,18 @@
 #X obj 95 101 del 10;
 #X msg 159 132 110;
 #X obj 159 153 s \$0-bpm;
+#X msg 220 130 1;
+#X obj 220 154 s master-seq-on-off;
 #X connect 1 0 3 0;
 #X connect 1 0 6 0;
 #X connect 2 0 0 0;
 #X connect 3 0 2 0;
 #X connect 3 0 5 0;
+#X connect 3 0 8 0;
 #X connect 4 0 0 0;
 #X connect 5 0 4 0;
 #X connect 6 0 7 0;
+#X connect 8 0 9 0;
 #X restore 64 171 pd INIT_PARAMETER_SET;
 #X obj 66 37 declare -path controlabstractions;
 #X obj 66 59 declare -path externals;
