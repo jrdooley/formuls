@@ -1,3 +1,5 @@
 # ignore all files in build folder. This notably includes binaries
-build/
+/build/
+
+#OS files
 .DS_Store
