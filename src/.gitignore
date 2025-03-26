@@ -1,0 +1,6 @@
+# ignore all files in build folder. This notably includes binaries
+*.o
+
+#OS files
+.DS_Store
+Thumbs.db
