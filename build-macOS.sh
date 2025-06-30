@@ -27,10 +27,10 @@ mv abl_link~.pd_darwin ../../../../build/pd/externals
 
 # download open stage control and nodejs
 cd ../../../gui
-wget https://github.com/jean-emmanuel/open-stage-control/releases/download/v1.27.2/open-stage-control_1.27.2_node.zip
-unzip open-stage-control_1.27.2_node.zip
-cp -r open-stage-control_1.27.2_node ../../build/gui/open-stage-control
-rm -rf open-stage-control_1.27.2_nod*
+wget https://github.com/jean-emmanuel/open-stage-control/releases/download/v1.28.5/open-stage-control_1.28.5_node.zip
+unzip open-stage-control_1.28.5_node.zip
+cp -r open-stage-control_1.28.5_node ../../build/gui/open-stage-control
+rm -rf open-stage-control_1.28.5_nod*
 
 wget https://nodejs.org/dist/v18.12.1/node-v18.12.1-darwin-arm64.tar.gz
 tar -xf node-v18.12.1-darwin-arm64.tar.gz

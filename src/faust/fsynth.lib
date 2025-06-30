@@ -48,7 +48,8 @@ with{
 
   op1freq = hslider("oscfreq",0.001,0.001,22050,0.001); // carrier frequency
   oxO = op1freq;
-  ox(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
+  ox1(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
+  ox(i,x,y) = ba.if(adsron == 0,oxO,ox1(i,x,y)); // allows for smooth glide between frequencies if ADSR is not operational, with a view to making non-ADSR also polyphonic
 
   op1sliderange = hslider("oscsliderange",0,0,1,0.001) : *(5);
   orx = op1sliderange;
@@ -68,10 +69,14 @@ with{
   noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : *(0.999) : +(0.001) : *(22050); // noise filter amount
 
   /* ADSR controls */
-  attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
-  decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  // attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  // decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  // sustain = hslider("sustain",0,0,1,0.01);
+  // release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  attack = hslider("attack",0,0,1,0.0001) : *(10);
+  decay = hslider("decay",0,0,1,0.0001) : *(10);
   sustain = hslider("sustain",0,0,1,0.01);
-  release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  release = hslider("release",0,0,1,0.0001) : *(10);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
   velocity = hslider("velocity",0,0,1,0.01) : si.smoo;

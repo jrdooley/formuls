@@ -46,16 +46,35 @@ with {
   lop = hslider("lowpass",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
   lores = hslider("lowpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
 };
-//-----------BITCRUSHER---------------//
-bitcrush = _ : ba.downSample(bit)
+//-----------SIMPLEBITCRUSH---------------//
+simplebitcrush = _ : ba.downSample(bit)
 with {
   bit = hslider("bitcrush",0,0,1,0.01) : 1-(_) : *(47950) : +(50) : si.smoo;
 };
-//------------PITCHSHIFT------------//
-pitchshift = _ : ef.transpose(300,50,pit) //
+//-----------BITCRUSH---------------//
+bitcrush = _ : main
 with {
-  pit = hslider("pitchshift",0.5,0,1,0.1) : *(48) : -(24) : si.smoo;
+  bits = 2, hslider( "bits", 16, 1, 16, 1) : pow;
+
+  sampleFactor = hslider("downsamplingfactor",1, 1, 80, 1) : int;
+
+  mix = hslider("mix",1, 0, 1, 0.01);
+
+  counter(x) = int(_)~(_ <: ba.if(_<(x-1) , _+1 , 0));
+  dsWet(s,c) = _~(ba.if(c == 0 , s , _));
+  ds(s) = ba.if(sampleFactor > 1 , dsWet(s,counter(sampleFactor)) , s);
+  depthReduction(x) = rint(x * bits) / bits;
+  dryWet(m, a, b) = a * m + b * (1 - m);
+  main(a) = dryWet(mix, (depthReduction(ds(a))), a);
 };
+
+//------------PITCHSHIFT------------//
+pitchshift = _ <: _,ef.transpose(300,50,pit) : si.interpolate(mix)//
+with {
+  pit = hslider("pitchshift",0,-24,24,0.1) : si.smoo;
+  mix = hslider("pitchshiftmix",0,0,1,0.1);
+};
+
 //-------------DELAY---------------//
 //interpolated delay with reverse function
 delay = _ <: (_,lagrangedelay :> _),(_,reversedelay : si.interpolate(ds)) : si.interpolate(dlr)
@@ -157,6 +176,22 @@ with{
   djlop = fi.resonlp(fl,r,1);
 };
 
+//-------------DIGITAlISER----------//
+// Creatin' dat digital sound!
+digitaliser = _ <:_,(ef.transpose(300,50,amount) : ba.downSample(downsample) : bitcrusher : ef.transpose(300,50,amount*(-1))) : si.interpolate(level)
+with {
+amount = hslider("digitaliseramount",0,0,1,0.01) : si.smoo;
+level = hslider("digitaliserlevel",0,0,1,0.01) : si.smoo;
+
+downsample = amount : 1-(_) : pow(3) : *(47000) : +(1000);
+shift = amount : *(24);
+crush = amount : pow(5) : 1-(_) : *(6) : +(1.5);
+
+bitcrusher(x) = roundf(x * scaler) / scaler;
+scaler = float(2^crush - 1);
+roundf(x) = floor(x + 0.5);
+};
+
 //------------REPEATER------//
 // Glitchy tempo-synchronised repeater effect.
 // Two delayensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
@@ -178,18 +213,46 @@ with {
   delayensemble(x) = _,_ <: (delayvoicel(1,4,x), delayvoicel(2,5,x), delayvoicel(3,6,x), delayvoicel(4,8,x), delayvoicel(5,10,x),delayvoicel(6,12,x),delayvoicel(7,16,x) :> _ : *(capl) : *(level)),(delayvoicer(1,1,x), delayvoicer(2,2,x), delayvoicer(3,4,x), delayvoicer(4,8,x), delayvoicer(5,16,x) :> _ : *(capr) : *(level));
 };
 
-//-------------DIGITAlISER----------//
-// Creatin' dat digital sound!
-digitaliser = _ <:_,(ef.transpose(300,50,amount) : ba.downSample(downsample) : bitcrusher : ef.transpose(300,50,amount*(-1))) : si.interpolate(level)
-with {
-amount = hslider("digitaliseramount",0,0,1,0.01) : si.smoo;
-level = hslider("digitaliserlevel",0,0,1,0.01) : si.smoo;
+//----------------------------------------------------------------------------------------//
+//----------------------------------FLOOPER-----------------------------------------------//
+//----------------------------------------------------------------------------------------//
+//---------------flooper-------------//
+flooper = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo)),
+                        ((rwtable(floopertablesize,0.1,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo))
+  with {
+    //-------- paramter control interface
+    record = button("record") : int;
+    play = checkbox("play") : int;
+    loop = checkbox("loop") : *(play) : int;
+    reverse = checkbox("reverse") : int;
+    level = hslider("level",0,0,1,0.01) : pow(2) : si.smoo;
 
-downsample = amount : 1-(_) : pow(3) : *(47000) : +(1000);
-shift = amount : *(24);
-crush = amount : pow(5) : 1-(_) : *(6) : +(1.5);
+    speed = hslider("speed",1,0.125,20,0.125) : si.smoo;
+    duration = hslider("duration",0,0,10,1) : 2^(_);
+    readoffset = hslider("readoffset",0,0,1,0.01);
+    envelope = hslider("envelope",0,0,1,0.01) : 1-(_) : pow(10) : *(9999) : +(1) : si.smoo;
+    dropout = hslider("dropout",0,0,1,0.01) : pow(2) : si.smoo;
 
-bitcrusher(x) = roundf(x * scaler) / scaler;
-scaler = float(2^crush - 1);
-roundf(x) = floor(x + 0.5);
-};
+    //----table record functions-----//
+    floopertablesize = 3840002; //80 seconds of audio at 48kHz + 2 extra samples. 1st sample of table empty for readback without sound, last sample empty for write without overwriting existing sample.
+    recindex = ((+(1) : %(floopertablesize)) ~ *(record)) : +(1); // records audio to tables below
+
+    //--------calculate the recorded sample duration---//
+    I = int(record);				// convert button "Record" signal from float to integer
+    R = (I-I') <= 0;		// Reset capture when button is pressed
+    D = (+(I):*(R))~_ : +(1) : ba.sAndH(1-(record)) : si.smoo;		// Compute capture duration while button is pressed: 0..NNNN0..MMM
+
+    //-------- Table read and envelope control-------//
+    // "readindex" triggers counters and controls random sample drop out
+    samplelength = D : *(1/(duration)) : /(speed) : int; // calculates the duration of the sample/grain in samples
+    speed2 = speed : si.smoo;
+
+    countforward = ba.countup(samplelength,play==(0)), ba.sweep(samplelength,play) : ba.selectn(2,loop); // forward playback of sample
+    countbackward = ba.countdown(samplelength,play==(0)), ((<=(0) : ba.countdown(samplelength,play*(_)))~(_)) : ba.selectn(2,loop); // reverse/backward playback of sample
+    countfandb = countforward,countbackward : ba.selectn(2,reverse); //aggregate of countforward and countbackward functions
+    countmaster = countfandb <: *(speed2 : ba.sAndH(countfandb ==(0)));
+    sampledropout = no.lfnoise0(32) : *(0.5) : +(0.5) : ba.sAndH(countmaster <=(1) : ba.impulsify) : >(dropout); // calculate whether a sample/grain should play or not
+    readindex =  countmaster : +(readoffset *(D) : ba.sAndH(countfandb ==(0) : ba.impulsify)) : %(D) : *(sampledropout) : int; //the main counter that reads from the rwtable
+    // Grain/sample envelope: raised cosine envelope applied to amplitude
+    ampenvelope = _ : *(cos(countmaster/(samplelength*(speed2)) : *(ma.PI *(2))) : *(0.5) : +(0.5) : 1-(_) : *(envelope) : (_,1 : min));
+  };
