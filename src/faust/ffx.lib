@@ -9,7 +9,7 @@ fo = library("fosc.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
-fx = _ <: _,(am : chorus : saturation : filter : gate : delay) : si.interpolate(fxsend);
+fx = _ <: _,(am : chorus : saturation : pitchshift : filter : gate : delay) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -26,7 +26,7 @@ with{
   amw = hslider("amwave",0,0,1,0.001) : *(3) : si.smoo;
   amf = hslider("amfreq",0,0,1,0.001) : *(100) : max(0.01) : si.smoo;
   amd = hslider("amdepth",0,0,1,0.01) : si.smoo;
-  amp = button("amphasereset"); // phase reset
+  amp = hslider("amphasereset",0.5,0,1,0.01); // phase reset
 
   // sine -> square -> rising sawtooth -> impulse
   amosc = _ : fo.multiwave4(_,amw,amp) : *(0.5) : +(0.5);
@@ -69,7 +69,7 @@ with {
 };
 
 //------------PITCHSHIFT------------//
-pitchshift = _ <: _,ef.transpose(300,50,pit) : si.interpolate(mix)//
+pitchshift = _ <: _,ef.transpose(4000,4000,pit) : si.interpolate(mix)//
 with {
   pit = hslider("pitchshift",0,-24,24,0.1) : si.smoo;
   mix = hslider("pitchshiftmix",0,0,1,0.1);

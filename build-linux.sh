@@ -5,8 +5,9 @@
 mkdir build
 cp -r src/gui build/gui
 cp -r src/pd build/pd
-cp src/linux/formuls.sh build/formuls.sh
 mkdir build/pd/externals
+cp src/linux/formuls.sh build/formuls.sh
+chmod +x build/formuls.sh
 
 # build faust pd externals
 cd src/faust
@@ -29,11 +30,13 @@ rm -rf open-stage-control_1.29.5_nod*
 wget https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz
 tar -xf node-v22.17.0-linux-x64.tar.xz
 cp node-v22.17.0-linux-x64/bin/node ../../build/gui/node
+chmod +x ../../build/gui/node
 rm -rf node-v22.17.0-linux-x64*
 
 # build libpd and formulsengine
 cd ../
 make
+chmod +x ../build/formulsengine
 
 # clean up build files
 cd ../
