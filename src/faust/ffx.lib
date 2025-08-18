@@ -94,12 +94,12 @@ with {
   reversedelay = _ : (+ : (ef.reverseDelayRamped(dtrev,0))) ~ *(df);
 };
 //-------------CHORUS-------------//
-// courtesy of Albert Graef, simplified by formuls
+// courtesy of Albert Graef (https://github.com/brummer10/guitarix/blob/master/trunk/src/faust/chorus.dsp), simplified by formuls
 chorus(x) = x+level*de.fdelay(1<<16, t, x)
 with {
   depth	= hslider("chorus",0,0,1,0.01) : si.smoo;
 
-  level	= depth > 0 : si.smoo;
+  level	= 1;
   freq	= os.osc(1) : *(0.5) : +(0.25);
   dtime	= 0.02;
 
@@ -114,6 +114,22 @@ with {
       d = ma.decimal(modphase);
   };
 };
+
+//-------------PHASER--------------//
+phaser = pf.phaser2_mono(Notches,phase,width,frqmin,fratio,frqmax,speed,depth,fb,invert)
+    with{
+        Notches = 4;
+        phase = 0;
+        width = 1000;
+        frqmin = 100;
+        fratio = 1.5;
+        frqmax = 800;
+        speed = hslider("phaserspeed",0.5,0.5,10,0.01);
+        depth = hslider("phaserdepth",0,0,1,0.01);
+        fb = hslider("phaserfeedback",0,-1,1,0.1);
+        invert = 0;
+
+    };
 //-------------GATE---------------//
 gate = _ : ef.gate_mono(gt,ga,gh,gr) : _
 with {
