@@ -12660,7 +12660,7 @@
                     "expand": true,
                     "css": "",
                     "comments": "",
-                    "props": "{\n  \"variables\": { \"name\": \"seqrand\", \"uilabel\": \"Sequencer Add,Drop\",\"n\": @{parent.variables} }\n}",
+                    "props": "{\n  \"variables\": { \"name\": \"seqrandomadddrop\", \"uilabel\": \"Sequencer Add,Drop\",\"n\": @{parent.variables} }\n}",
                     "widgetId": "xy",
                     "lock": false,
                     "address": "auto",
