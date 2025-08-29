@@ -9,7 +9,7 @@ fo = library("fosc.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
-fx = _ <: _,(am : chorus : saturation : pitchshift : filter : gate : delay) : si.interpolate(fxsend);
+fx = _ <: _,(am : pitchshift : saturation : bitcrush : chorus : phaser : svffilter : gate : delay) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -45,6 +45,14 @@ with {
   hires = hslider("highpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
   lop = hslider("lowpass",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
   lores = hslider("lowpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
+};
+//-----------SVF_RESONANT_FILTER---------------//
+// combined resonant low and high pass filter
+svffilter = _ : fi.svf_morph(freq,q,type)
+with {
+  type = hslider("filtertype",0,0,1,0.01) : *(2) : si.smoo; // 0 = lop; 1 = bp; 2 = hp
+  freq = hslider("filterfreq",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
+  q = hslider("filterq",0,0,1,0.001) : *(99) : +(1) : si.smoo;
 };
 //-----------SIMPLEBITCRUSH---------------//
 simplebitcrush = _ : ba.downSample(bit)

@@ -1,4 +1,4 @@
-#N canvas 0 23 685 395 10;
+#N canvas 0 25 961 395 10;
 #X obj 117 20 inlet value;
 #X msg 182 125 chaos \$1;
 #X msg 247 125 lfofreq \$1;
@@ -7,8 +7,7 @@
 #X msg 469 146 looptrig \$1;
 #X msg 549 146 chaostrig \$1;
 #X obj 444 95 s \$0-reject;
-#X obj 117 74 route \$3\$2 \$3chaos\$2 \$3lfofreq\$2 \$3lfodepth\$2
-\$3label\$2;
+#X obj 117 74 route \$3\$2 \$3chaos\$2 \$3lfofreq\$2 \$3lfodepth\$2 \$3label\$2;
 #X obj 182 201 s \$0-auto;
 #X obj 118 344 outlet;
 #X obj 26 323 r \$0-reject;
@@ -19,6 +18,14 @@
 #X text 520 31 \$2 = instance no.;
 #X text 521 45 \$3 = param name;
 #X obj 144 275 r \$0-auto;
+#X msg 728 146 quantise \$1;
+#X msg 642 147 reverse \$1;
+#X obj 352 287 spigot;
+#X obj 385 266 r automateRecord;
+#X obj 352 329 s \$3\$2-act-gui;
+#X msg 352 307 0;
+#X obj 352 246 r \$0-spigot;
+#X obj 128 101 s \$0-spigot;
 #X connect 0 0 8 0;
 #X connect 1 0 9 0;
 #X connect 2 0 9 0;
@@ -27,6 +34,7 @@
 #X connect 5 0 9 0;
 #X connect 6 0 9 0;
 #X connect 8 0 10 0;
+#X connect 8 0 26 0;
 #X connect 8 1 1 0;
 #X connect 8 2 2 0;
 #X connect 8 3 3 0;
@@ -37,4 +45,12 @@
 #X connect 14 0 4 0;
 #X connect 14 1 5 0;
 #X connect 14 2 6 0;
+#X connect 14 3 20 0;
+#X connect 14 4 19 0;
 #X connect 18 0 10 0;
+#X connect 19 0 9 0;
+#X connect 20 0 9 0;
+#X connect 21 0 24 0;
+#X connect 22 0 21 1;
+#X connect 24 0 23 0;
+#X connect 25 0 21 0;

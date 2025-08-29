@@ -41,7 +41,7 @@
 #X connect 12 0 10 0;
 #X connect 13 0 0 0;
 #X restore 47 490 pd SEQ_WRITE_____________;
-#N canvas 941 55 379 565 SEQ_READ______________ 0;
+#N canvas 941 55 521 565 SEQ_READ______________ 0;
 #X obj 46 513 outlet;
 #X obj 46 387 tabread \$0-sequencer;
 #X obj 46 448 == 1;
@@ -122,9 +122,11 @@
 #X obj 95 339 outlet;
 #X obj 95 141 pow 1.7;
 #X obj 261 144 pow 1.7;
+#X msg 56 277 0;
 #X connect 0 0 10 0;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
+#X connect 2 1 18 0;
 #X connect 3 0 9 0;
 #X connect 4 0 11 0;
 #X connect 5 0 10 0;
@@ -134,12 +136,14 @@
 #X connect 8 0 11 1;
 #X connect 9 0 2 1;
 #X connect 10 0 15 0;
+#X connect 11 0 18 0;
 #X connect 11 1 5 0;
 #X connect 12 0 17 0;
 #X connect 13 0 16 0;
 #X connect 14 0 6 0;
 #X connect 16 0 7 0;
 #X connect 17 0 3 0;
+#X connect 18 0 15 0;
 #X restore 46 474 pd RANDOM_ADD_DROP___;
 #X obj 67 429 == 0;
 #X obj 192 519 outlet beat;

@@ -3,7 +3,7 @@
 #X declare -path externals;
 #X declare -path audioabstractions;
 #N canvas 270 627 268 182 CONTROL_TRIPES_ 0;
-#N canvas 246 475 432 392 OPEN_STAGE_CONTROL_RECEIVE_ 0;
+#N canvas 693 482 586 530 OPEN_STAGE_CONTROL_RECEIVE_ 0;
 #X obj 36 86 oscparse;
 #X obj 36 109 list trim;
 #X obj 36 18 loadbang;
@@ -11,8 +11,8 @@
 #X obj 36 315 del 500;
 #X msg 49 273 pd quit;
 #X obj 49 294 s to-faust;
-#X obj 150 323 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
-#X obj 150 344 s inter-act-overide;
+#X obj 130 323 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
+#X obj 130 344 s inter-act-overide;
 #N canvas 71 61 450 300 INTERFACE_ACTIVE_MESSAGE_SEND 0;
 #X obj 193 151 i;
 #X obj 219 151 + 1;
@@ -103,6 +103,9 @@
 #X connect 19 0 20 0;
 #X connect 20 0 25 0;
 #X restore 176 108 pd MOD_RECEIVE_;
+#X obj 324 242 route multixy_1;
+#X obj 324 269 f.util.multitouchdebounce;
+#X obj 324 293 print;
 #X connect 0 0 1 0;
 #X connect 1 0 16 0;
 #X connect 2 0 14 0;
@@ -118,8 +121,11 @@
 #X connect 16 1 9 0;
 #X connect 16 2 13 0;
 #X connect 16 3 11 0;
+#X connect 16 3 20 0;
 #X connect 17 0 15 0;
 #X connect 18 0 17 0;
+#X connect 20 0 21 0;
+#X connect 21 0 22 0;
 #X restore 28 38 pd OPEN_STAGE_CONTROL_RECEIVE_;
 #N canvas 267 452 251 178 FORMULS_MESSAGES___________ 0;
 #X obj 78 42 f.formuls \$0 1;
