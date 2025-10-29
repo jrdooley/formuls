@@ -1,6 +1,6 @@
-#N canvas 0 25 292 300 12;
+#N canvas 0 38 292 300 12;
 #X obj 70 249 outlet;
-#X obj 70 42 inlet;
+#X obj 70 22 inlet;
 #X msg 70 208 triggerx \$1;
 #X obj 70 95 t b;
 #X obj 70 119 i;

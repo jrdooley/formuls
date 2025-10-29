@@ -25,14 +25,13 @@ with{
   polyphonic = checkbox("polyphonic") : *(adsron);
   poly(i,x) = polyphonic +(i==x) : min(1) : max(0);
 
-  trigx = button("triggerx") <: _,@(2) : _ !=(_) : ba.impulsify;
+  trigx = button("triggerx") <: _,@(2) : _ !=(_) : ba.impulsify; // I need some comments explaining this!
   t = trigx : int; // triggers synth voice
   tadsr = t *(adsron);
 
   //Counter to select voice
   counterMod = polyphony;
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
-  // c = +(1)~(ba.sAndH(tadsr : ba.impulsify)) : %(counterMod) : int; // Incremental counter for voice select.
   c = ba.counter(tadsr) : %(counterMod) : int; // Incremental counter for voice select.
   c2 = c +(1) : %(counterMod) : int; // Used to turn off next voice in preparation for triggering.
 
@@ -47,11 +46,12 @@ with{
   // wx(i,x,y) = waveshape : ba.sAndH((i==x)); // function to decide whether message should be sent to a specific voice (see i,c,c2 & t definitions above)
 
   op1freq = hslider("oscfreq",0.001,0.001,22050,0.001); // carrier frequency
-  oxO = op1freq;
-  ox1(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify);
+  oxO = op1freq; // frequency value sent to oscillator when adsr is not active
+  // ox1(i,x,y) = oxO : ba.sAndH((i==x) & (y==1));
+  ox1(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify); // snaps current frequency value and sends it to oscillator when triggered and adsr is active
   ox(i,x,y) = ba.if(adsron == 0,oxO,ox1(i,x,y)); // allows for smooth glide between frequencies if ADSR is not operational, with a view to making non-ADSR also polyphonic
 
-  op1sliderange = hslider("oscsliderange",0,0,1,0.001) : *(5);
+  op1sliderange = hslider("oscsliderange",0,0,1,0.001) : *(7);
   orx = op1sliderange;
 
   op1slidetime = hslider("oscslidetime",0,0,1,0.001) : *(2); //time taken for carrier frequency slide
@@ -63,20 +63,16 @@ with{
   op2depth = hslider("fmdepth",0,0,1,0.001) : *(2); // mod depth is relative to op1 freq
   o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
 
-  noise = hslider("noise",0,0,1,1) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
+  noise = hslider("noise",0,0,1,0.001) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nx = noise;
 
   noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : *(0.999) : +(0.001) : *(22050); // noise filter amount
 
   /* ADSR controls */
-  // attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
-  // decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
-  // sustain = hslider("sustain",0,0,1,0.01);
-  // release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
-  attack = hslider("attack",0,0,1,0.0001) : *(10);
-  decay = hslider("decay",0,0,1,0.0001) : *(10);
+  attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
   sustain = hslider("sustain",0,0,1,0.01);
-  release = hslider("release",0,0,1,0.0001) : *(10);
+  release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
   velocity = hslider("velocity",0,0,1,0.01) : si.smoo;
@@ -94,7 +90,7 @@ fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta,adsron) = freqset : fmosc
     o1sr1 = o1sr : ba.sAndH(ta : ba.impulsify);
     o1st1 = o1st : ba.sAndH(ta : ba.impulsify);
     ta1 = ta;
-    cf = o1f : +(o1f : *((en.ar(0.0001,o1st1,ta1) : pow(2.7)) : *(o1sr1))) : min(19000); //calculate op1 freq during freq slide
+    cf = o1f : +(o1f : *(en.ar(0,o1st1,ta1) : pow(2.7) : *(2 : pow(o1sr1)))) : min(22050); //calculate op1 freq during freq slide
     freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
     freqset = _ : *(freqcontrol) : +(freqcontrol);
     clip(x) = x : min(1,_) : max(0,_);
