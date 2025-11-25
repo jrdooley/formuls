@@ -75,7 +75,7 @@ with{
   release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
-  velocity = hslider("velocity",0,0,1,0.01) : si.smoo;
+  velocity = hslider("velocity",1,0,1,0.01) : si.smoo;
   vx(i,x) = velocity : ba.sAndH((i==x));
 };
 

@@ -9,7 +9,7 @@ fo = library("fosc.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
-fx = _ <: _,(am : pitchshift : saturation : bitcrush : chorus : phaser : svffilter : gate : delay) : si.interpolate(fxsend);
+fx = _ <: _,(am : pitchshift : saturation : bitcrush : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -43,7 +43,7 @@ filter = _ : fi.resonhp(hip,hires,1) : fi.resonlp(lop,lores,1)
 with {
   hip = hslider("highpass",0,0,1,0.001) : *(136) : ba.midikey2hz : si.smoo;
   hires = hslider("highpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
-  lop = hslider("lowpass",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
+  lop = hslider("lowpass",1,0,1,0.001) : *(136) : ba.midikey2hz : si.smoo;
   lores = hslider("lowpassresonance",0,0,1,0.001) : *(99) : +(1) : si.smoo;
 };
 //-----------SVF_RESONANT_FILTER---------------//
@@ -51,7 +51,7 @@ with {
 svffilter = _ : fi.svf_morph(freq,q,type)
 with {
   type = hslider("filtertype",0,0,1,0.01) : *(2) : si.smoo; // 0 = lop; 1 = bp; 2 = hp
-  freq = hslider("filterfreq",1,0,1,0.001)  : *(135) : ba.midikey2hz : si.smoo;
+  freq = hslider("filterfreq",1,0,1,0.001) : *(136) : ba.midikey2hz : si.smoo;
   q = hslider("filterq",0,0,1,0.001) : *(99) : +(1) : si.smoo;
 };
 //-----------SIMPLEBITCRUSH---------------//
