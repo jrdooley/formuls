@@ -65,7 +65,8 @@ def RUN():
         audioOutput = deviceGet[0]
         channelsOut = outputChannelsClicked.get()
         
-        command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --read-only true --load " + resource_path("gui/_main.json") + " --state " + resource_path("gui/_formuls-default.state") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
+        # command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --read-only true --load " + resource_path("gui/_main.json") + " --state " + resource_path("gui/_formuls-default.state") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
+        command1 = resource_path("gui/node") + " " + resource_path("gui/open-stage-control/") + " --send 127.0.0.1:9000 --port 9001 --load " + resource_path("gui/_main.json") + " --client-options framerate=25 hdpi=0 &" # run o-s-c interface
         command2 = "cd " + resource_path("") + "; " + resource_path("pd/formulsengine") + " " + audioOutput + " " + channelsOut + " &" # audio process
         
         os.system(command1)
