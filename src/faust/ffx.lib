@@ -77,7 +77,7 @@ with {
 };
 
 //------------PITCHSHIFT------------//
-pitchshift = _ <: _,ef.transpose(4000,4000,pit) : si.interpolate(mix)//
+pitchshift = _ <: _,ef.transpose(1024,512,pit) : si.interpolate(mix)//
 with {
   pit = hslider("pitchshift",0,-24,24,0.1) : si.smoo;
   mix = hslider("pitchshiftmix",0,0,1,0.1);

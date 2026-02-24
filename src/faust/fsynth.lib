@@ -69,10 +69,10 @@ with{
   noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : *(0.999) : +(0.001) : *(22050); // noise filter amount
 
   /* ADSR controls */
-  attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
-  decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(20); // 10 second maximum duration
+  decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(20);
   sustain = hslider("sustain",0,0,1,0.01);
-  release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(10);
+  release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(20);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
   velocity = hslider("velocity",1,0,1,0.01) : si.smoo;

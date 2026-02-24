@@ -1,5 +1,5 @@
 {
-  "version": "1.28.4",
+  "version": "1.29.8",
   "type": "session",
   "createdWith": "Open Stage Control",
   "content": {
@@ -1521,7 +1521,8 @@
                   }
                 ],
                 "tabs": [],
-                "borderRadius": "auto"
+                "borderRadius": "auto",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -1696,7 +1697,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "bypass": false
+                "bypass": false,
+                "interaction": false
               },
               {
                 "type": "clone",
@@ -2043,7 +2045,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -2144,7 +2147,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -2239,7 +2243,8 @@
                 "onValue": "",
                 "widgets": [],
                 "tabs": [],
-                "borderRadius": "auto"
+                "borderRadius": "auto",
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -2653,7 +2658,8 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0
+                    "borderRadius": 0,
+                    "onTouch": ""
                   },
                   {
                     "type": "switch",
@@ -2769,7 +2775,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "panel",
@@ -3143,7 +3150,8 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0
+                    "borderRadius": 0,
+                    "onTouch": ""
                   },
                   {
                     "type": "switch",
@@ -3259,7 +3267,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "panel",
@@ -3588,7 +3597,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "panel",
@@ -3918,7 +3928,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "panel",
@@ -4248,7 +4259,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               }
             ],
             "tabs": [],
@@ -4256,7 +4268,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -4354,7 +4367,8 @@
                 "props": {
                   "label": " "
                 },
-                "borderRadius": "auto"
+                "borderRadius": "auto",
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -4625,7 +4639,8 @@
                 "borderRadius": "auto",
                 "vertical": false,
                 "wrap": false,
-                "align": "center"
+                "align": "center",
+                "interaction": false
               },
               {
                 "type": "fader",
@@ -4736,7 +4751,8 @@
                   "mode": "toggle",
                   "label": " "
                 },
-                "borderRadius": "auto"
+                "borderRadius": "auto",
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -4792,7 +4808,8 @@
             ],
             "tabs": [],
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -4889,7 +4906,8 @@
                 "props": {
                   "label": " "
                 },
-                "borderRadius": "auto"
+                "borderRadius": "auto",
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -5313,7 +5331,8 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0
+                    "borderRadius": 0,
+                    "onTouch": ""
                   },
                   {
                     "type": "switch",
@@ -5429,7 +5448,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "panel",
@@ -5803,7 +5823,8 @@
                     "onValue": "",
                     "onCreate": "",
                     "lock": false,
-                    "borderRadius": 0
+                    "borderRadius": 0,
+                    "onTouch": ""
                   },
                   {
                     "type": "switch",
@@ -5919,7 +5940,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "fader",
@@ -6013,7 +6035,8 @@
                 "onCreate": "",
                 "onValue": "",
                 "borderRadius": "auto",
-                "bypass": false
+                "bypass": false,
+                "interaction": false
               },
               {
                 "type": "fader",
@@ -6107,7 +6130,8 @@
                 "onCreate": "",
                 "onValue": "",
                 "borderRadius": "auto",
-                "bypass": false
+                "bypass": false,
+                "interaction": false
               },
               {
                 "type": "fader",
@@ -6201,7 +6225,8 @@
                 "wrap": true,
                 "align": "center",
                 "borderRadius": "auto",
-                "bypass": false
+                "bypass": false,
+                "interaction": false
               },
               {
                 "type": "fader",
@@ -6295,13 +6320,15 @@
                 "wrap": false,
                 "align": "center",
                 "borderRadius": "auto",
-                "bypass": false
+                "bypass": false,
+                "interaction": false
               }
             ],
             "tabs": [],
             "html": "",
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -6855,13 +6882,15 @@
                         "decoupled": false
                       }
                     ],
-                    "tabs": []
+                    "tabs": [],
+                    "onTouch": ""
                   }
                 ],
                 "tabs": [],
                 "html": "",
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               },
               {
                 "type": "clone",
@@ -6984,7 +7013,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -7190,7 +7220,8 @@
                 "tabs": [],
                 "onValue": "",
                 "onCreate": "",
-                "borderRadius": "auto"
+                "borderRadius": "auto",
+                "onTouch": ""
               },
               {
                 "type": "button",
@@ -7425,7 +7456,8 @@
             ],
             "tabs": [],
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           }
         ],
         "tabs": [],
@@ -7434,7 +7466,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -7723,10 +7756,12 @@
                         "borderRadius": "auto",
                         "vertical": false,
                         "wrap": false,
-                        "align": "center"
+                        "align": "center",
+                        "interaction": false
                       }
                     ],
-                    "tabs": []
+                    "tabs": [],
+                    "onTouch": ""
                   },
                   {
                     "type": "panel",
@@ -7958,11 +7993,13 @@
                             "variables": "@{parent.variables}"
                           }
                         ],
-                        "tabs": []
+                        "tabs": [],
+                        "onTouch": ""
                       }
                     ],
                     "tabs": [],
-                    "tabsPosition": "top"
+                    "tabsPosition": "top",
+                    "onTouch": ""
                   },
                   {
                     "type": "panel",
@@ -8084,7 +8121,8 @@
                     "onCreate": "",
                     "lock": false,
                     "borderRadius": "auto",
-                    "tabsPosition": "top"
+                    "tabsPosition": "top",
+                    "onTouch": ""
                   },
                   {
                     "type": "panel",
@@ -8217,7 +8255,8 @@
                             "variables": "@{parent.variables}"
                           }
                         ],
-                        "tabs": []
+                        "tabs": [],
+                        "onTouch": ""
                       },
                       {
                         "type": "clone",
@@ -8367,7 +8406,8 @@
                             "variables": "@{parent.variables}"
                           }
                         ],
-                        "tabs": []
+                        "tabs": [],
+                        "onTouch": ""
                       },
                       {
                         "type": "panel",
@@ -8505,7 +8545,8 @@
                             "wrap": false,
                             "align": "center",
                             "borderRadius": "auto",
-                            "bypass": false
+                            "bypass": false,
+                            "interaction": false
                           },
                           {
                             "type": "variable",
@@ -8526,7 +8567,8 @@
                             "onValue": ""
                           }
                         ],
-                        "tabs": []
+                        "tabs": [],
+                        "onTouch": ""
                       },
                       {
                         "type": "fader",
@@ -8623,7 +8665,8 @@
                         "lock": false,
                         "align": "center",
                         "borderRadius": "auto",
-                        "bypass": false
+                        "bypass": false,
+                        "interaction": false
                       },
                       {
                         "type": "panel",
@@ -8669,7 +8712,7 @@
                             "type": "fader",
                             "top": "0%",
                             "left": "0%",
-                            "id": "mute@{parent.variables.n}",
+                            "id": "mute@{parent.variables}",
                             "visible": true,
                             "interaction": true,
                             "width": "100%",
@@ -8726,7 +8769,7 @@
                             "type": "button",
                             "top": "0%",
                             "left": "0%",
-                            "id": "mute@{parent.variables.n}",
+                            "id": "mute@{parent.variables}",
                             "visible": true,
                             "interaction": true,
                             "width": "100%",
@@ -8776,10 +8819,12 @@
                         "lock": false,
                         "borderRadius": "auto",
                         "html": "",
-                        "tabsPosition": "top"
+                        "tabsPosition": "top",
+                        "onTouch": ""
                       }
                     ],
-                    "tabs": []
+                    "tabs": [],
+                    "onTouch": ""
                   },
                   {
                     "type": "panel",
@@ -9717,7 +9762,8 @@
                                     "onValue": "",
                                     "onCreate": "",
                                     "lock": false,
-                                    "borderRadius": "auto"
+                                    "borderRadius": "auto",
+                                    "onTouch": ""
                                   },
                                   {
                                     "type": "input",
@@ -9984,7 +10030,8 @@
                                 "onCreate": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "tabsPosition": "top"
+                                "tabsPosition": "top",
+                                "onTouch": ""
                               },
                               {
                                 "type": "clone",
@@ -10046,7 +10093,8 @@
                             "onValue": "",
                             "onCreate": "",
                             "lock": false,
-                            "borderRadius": "auto"
+                            "borderRadius": "auto",
+                            "onTouch": ""
                           },
                           {
                             "type": "modal",
@@ -10161,7 +10209,8 @@
                             "onValue": "",
                             "onCreate": "",
                             "lock": false,
-                            "borderRadius": "auto"
+                            "borderRadius": "auto",
+                            "onTouch": ""
                           },
                           {
                             "type": "modal",
@@ -10276,7 +10325,8 @@
                             "onValue": "",
                             "onCreate": "",
                             "lock": false,
-                            "borderRadius": "auto"
+                            "borderRadius": "auto",
+                            "onTouch": ""
                           }
                         ],
                         "tabs": [],
@@ -10285,7 +10335,8 @@
                         "onCreate": "",
                         "lock": false,
                         "borderRadius": 5,
-                        "tabsPosition": "top"
+                        "tabsPosition": "top",
+                        "onTouch": ""
                       },
                       {
                         "type": "panel",
@@ -10440,7 +10491,8 @@
                             "html": "",
                             "vertical": false,
                             "wrap": false,
-                            "align": "center"
+                            "align": "center",
+                            "interaction": false
                           },
                           {
                             "type": "button",
@@ -10536,7 +10588,8 @@
                           }
                         ],
                         "tabs": [],
-                        "tabsPosition": "top"
+                        "tabsPosition": "top",
+                        "onTouch": ""
                       },
                       {
                         "type": "panel",
@@ -10914,7 +10967,8 @@
                                     "onCreate": "",
                                     "onValue": "",
                                     "borderRadius": "auto",
-                                    "bypass": false
+                                    "bypass": false,
+                                    "interaction": false
                                   },
                                   {
                                     "type": "button",
@@ -10964,13 +11018,15 @@
                                   }
                                 ],
                                 "tabs": [],
-                                "tabsPosition": "top"
+                                "tabsPosition": "top",
+                                "onTouch": ""
                               }
                             ],
                             "tabs": [],
                             "onValue": "",
                             "onCreate": "",
-                            "borderRadius": "auto"
+                            "borderRadius": "auto",
+                            "onTouch": ""
                           },
                           {
                             "type": "modal",
@@ -11085,7 +11141,8 @@
                             "tabs": [],
                             "onValue": "",
                             "onCreate": "",
-                            "borderRadius": "auto"
+                            "borderRadius": "auto",
+                            "onTouch": ""
                           },
                           {
                             "type": "modal",
@@ -11200,7 +11257,8 @@
                             "tabs": [],
                             "onValue": "",
                             "onCreate": "",
-                            "borderRadius": "auto"
+                            "borderRadius": "auto",
+                            "onTouch": ""
                           }
                         ],
                         "tabs": [],
@@ -11209,7 +11267,8 @@
                         "onCreate": "",
                         "lock": false,
                         "borderRadius": "auto",
-                        "tabsPosition": "top"
+                        "tabsPosition": "top",
+                        "onTouch": ""
                       },
                       {
                         "type": "panel",
@@ -11387,7 +11446,8 @@
                         ],
                         "tabs": [],
                         "html": "",
-                        "tabsPosition": "top"
+                        "tabsPosition": "top",
+                        "onTouch": ""
                       },
                       {
                         "type": "panel",
@@ -11555,7 +11615,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": "auto",
-                            "bypass": false
+                            "bypass": false,
+                            "interaction": false
                           },
                           {
                             "type": "clone",
@@ -11628,7 +11689,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": "auto",
-                            "bypass": false
+                            "bypass": false,
+                            "interaction": false
                           },
                           {
                             "type": "clone",
@@ -11701,7 +11763,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": "auto",
-                            "bypass": false
+                            "bypass": false,
+                            "interaction": false
                           },
                           {
                             "type": "text",
@@ -11738,7 +11801,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": "auto",
-                            "bypass": false
+                            "bypass": false,
+                            "interaction": false
                           }
                         ],
                         "tabs": [],
@@ -11747,7 +11811,8 @@
                         "onCreate": "",
                         "lock": false,
                         "borderRadius": 5,
-                        "tabsPosition": "top"
+                        "tabsPosition": "top",
+                        "onTouch": ""
                       },
                       {
                         "type": "modal",
@@ -12711,7 +12776,8 @@
                                         "onValue": "",
                                         "onCreate": "",
                                         "lock": false,
-                                        "borderRadius": "auto"
+                                        "borderRadius": "auto",
+                                        "onTouch": ""
                                       },
                                       {
                                         "type": "input",
@@ -12978,7 +13044,8 @@
                                     "onCreate": "",
                                     "lock": false,
                                     "borderRadius": "auto",
-                                    "tabsPosition": "top"
+                                    "tabsPosition": "top",
+                                    "onTouch": ""
                                   },
                                   {
                                     "type": "clone",
@@ -13040,7 +13107,8 @@
                                 "onValue": "",
                                 "onCreate": "",
                                 "lock": false,
-                                "borderRadius": "auto"
+                                "borderRadius": "auto",
+                                "onTouch": ""
                               },
                               {
                                 "type": "modal",
@@ -13155,7 +13223,8 @@
                                 "onValue": "",
                                 "onCreate": "",
                                 "lock": false,
-                                "borderRadius": "auto"
+                                "borderRadius": "auto",
+                                "onTouch": ""
                               },
                               {
                                 "type": "modal",
@@ -13270,7 +13339,8 @@
                                 "onValue": "",
                                 "onCreate": "",
                                 "lock": false,
-                                "borderRadius": "auto"
+                                "borderRadius": "auto",
+                                "onTouch": ""
                               }
                             ],
                             "tabs": [],
@@ -13279,7 +13349,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": 5,
-                            "tabsPosition": "top"
+                            "tabsPosition": "top",
+                            "onTouch": ""
                           },
                           {
                             "type": "panel",
@@ -13447,7 +13518,8 @@
                                 "onCreate": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "bypass": false
+                                "bypass": false,
+                                "interaction": false
                               },
                               {
                                 "type": "clone",
@@ -13520,7 +13592,8 @@
                                 "onCreate": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "bypass": false
+                                "bypass": false,
+                                "interaction": false
                               },
                               {
                                 "type": "clone",
@@ -13593,7 +13666,8 @@
                                 "onCreate": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "bypass": false
+                                "bypass": false,
+                                "interaction": false
                               },
                               {
                                 "type": "text",
@@ -13630,7 +13704,8 @@
                                 "onCreate": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "bypass": false
+                                "bypass": false,
+                                "interaction": false
                               }
                             ],
                             "tabs": [],
@@ -13639,7 +13714,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": 5,
-                            "tabsPosition": "top"
+                            "tabsPosition": "top",
+                            "onTouch": ""
                           },
                           {
                             "type": "panel",
@@ -13817,7 +13893,8 @@
                             "onCreate": "",
                             "lock": false,
                             "borderRadius": 5,
-                            "tabsPosition": "top"
+                            "tabsPosition": "top",
+                            "onTouch": ""
                           },
                           {
                             "type": "panel",
@@ -13974,7 +14051,8 @@
                                 "tabs": [],
                                 "onValue": "",
                                 "onCreate": "",
-                                "borderRadius": "auto"
+                                "borderRadius": "auto",
+                                "onTouch": ""
                               },
                               {
                                 "type": "panel",
@@ -19912,7 +19990,8 @@
                                     "decoupled": false
                                   }
                                 ],
-                                "tabs": []
+                                "tabs": [],
+                                "onTouch": ""
                               },
                               {
                                 "type": "switch",
@@ -20121,14 +20200,16 @@
                                 "onCreate": "",
                                 "lock": false,
                                 "borderRadius": "auto",
-                                "bypass": false
+                                "bypass": false,
+                                "interaction": false
                               }
                             ],
                             "tabs": [],
                             "onValue": "",
                             "onCreate": "",
                             "borderRadius": 5,
-                            "tabsPosition": "top"
+                            "tabsPosition": "top",
+                            "onTouch": ""
                           },
                           {
                             "type": "clone",
@@ -20268,10 +20349,12 @@
                             ],
                             "tabs": [],
                             "html": "",
-                            "tabsPosition": "top"
+                            "tabsPosition": "top",
+                            "onTouch": ""
                           }
                         ],
-                        "tabs": []
+                        "tabs": [],
+                        "onTouch": ""
                       },
                       {
                         "type": "button",
@@ -20338,7 +20421,8 @@
                         "variables": "@{parent.variables}"
                       }
                     ],
-                    "tabs": []
+                    "tabs": [],
+                    "onTouch": ""
                   }
                 ],
                 "tabs": [],
@@ -20347,10 +20431,12 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": "auto",
-                "tabsPosition": "top"
+                "tabsPosition": "top",
+                "onTouch": ""
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onTouch": ""
           }
         ],
         "tabs": [],
@@ -20359,7 +20445,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -20421,7 +20508,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -20483,7 +20571,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -20545,7 +20634,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -20607,7 +20697,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -20669,7 +20760,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -20731,7 +20823,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -21797,7 +21890,8 @@
                 "onValue": ""
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -22905,10 +22999,12 @@
                 "onValue": ""
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onTouch": ""
           }
         ],
-        "tabs": []
+        "tabs": [],
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -23312,7 +23408,8 @@
                 "decoupled": false
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onTouch": ""
           },
           {
             "type": "button",
@@ -23367,7 +23464,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       },
       {
         "type": "tab",
@@ -23821,7 +23919,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -23878,7 +23978,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -23935,7 +24037,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -23992,7 +24096,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "matrix",
@@ -24045,7 +24151,8 @@
                   "label": "false"
                 },
                 "widgets": [],
-                "tabs": []
+                "tabs": [],
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -24148,7 +24255,8 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0
+                "borderRadius": 0,
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -24258,7 +24366,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "button",
@@ -24341,7 +24451,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": 0,
-                "align": "center"
+                "align": "center",
+                "interaction": false
               },
               {
                 "type": "variable",
@@ -24368,7 +24479,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -24788,7 +24900,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -24845,7 +24959,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -24902,7 +25018,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -24959,7 +25077,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "matrix",
@@ -25012,7 +25132,8 @@
                   "label": "false"
                 },
                 "widgets": [],
-                "tabs": []
+                "tabs": [],
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -25115,7 +25236,8 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0
+                "borderRadius": 0,
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -25225,7 +25347,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "button",
@@ -25308,7 +25432,8 @@
                 "onCreate": "",
                 "lock": false,
                 "borderRadius": 0,
-                "align": "center"
+                "align": "center",
+                "interaction": false
               },
               {
                 "type": "variable",
@@ -25335,7 +25460,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -25755,7 +25881,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -25812,7 +25940,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -25869,7 +25999,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -25926,7 +26058,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "matrix",
@@ -25979,7 +26113,8 @@
                   "label": "false"
                 },
                 "widgets": [],
-                "tabs": []
+                "tabs": [],
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -26082,7 +26217,8 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0
+                "borderRadius": 0,
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -26192,7 +26328,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "button",
@@ -26247,7 +26385,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -26630,7 +26769,9 @@
                 ],
                 "borderRadius": "auto",
                 "axisLock": "",
-                "pointsAttr": []
+                "pointsAttr": [],
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -26687,7 +26828,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -26744,7 +26887,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "xy",
@@ -26801,7 +26946,9 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "axisLock": "",
-                "label": ""
+                "label": "",
+                "stepsX": false,
+                "stepsY": false
               },
               {
                 "type": "button",
@@ -26856,7 +27003,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -27503,7 +27651,8 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0
+                "borderRadius": 0,
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -27665,7 +27814,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -28315,7 +28465,8 @@
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
-                "borderRadius": 0
+                "borderRadius": 0,
+                "onTouch": ""
               },
               {
                 "type": "switch",
@@ -28477,7 +28628,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -29079,7 +29231,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -29671,7 +29824,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -29943,7 +30097,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -30680,7 +30835,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           },
           {
             "type": "text",
@@ -30717,7 +30873,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "bypass": false
+            "bypass": false,
+            "interaction": false
           },
           {
             "type": "panel",
@@ -33711,7 +33868,8 @@
                 "decoupled": false
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -39649,7 +39807,8 @@
                 "decoupled": false
               }
             ],
-            "tabs": []
+            "tabs": [],
+            "onTouch": ""
           },
           {
             "type": "panel",
@@ -40248,7 +40407,8 @@
             "onCreate": "",
             "lock": false,
             "borderRadius": "auto",
-            "tabsPosition": "top"
+            "tabsPosition": "top",
+            "onTouch": ""
           }
         ],
         "tabs": [],
@@ -40257,7 +40417,8 @@
         "onCreate": "",
         "lock": false,
         "borderRadius": "auto",
-        "tabsPosition": "top"
+        "tabsPosition": "top",
+        "onTouch": ""
       }
     ],
     "html": "",
@@ -40268,6 +40429,7 @@
     "lock": false,
     "borderRadius": "auto",
     "tabsPosition": "left",
-    "onPreload": ""
+    "onPreload": "",
+    "onTouch": ""
   }
 }
