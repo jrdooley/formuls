@@ -1,8 +1,8 @@
-#N canvas 40 492 211 209 10;
+#N canvas 35 496 211 209 10;
 #X declare -path controlabstractions;
 #X declare -path externals;
 #X declare -path audioabstractions;
-#N canvas 258 473 268 182 CONTROL_TRIPES_ 0;
+#N canvas 260 496 268 182 CONTROL_TRIPES_ 0;
 #N canvas 693 424 529 426 OPEN_STAGE_CONTROL_RECEIVE_ 0;
 #X obj 36 86 oscparse;
 #X obj 36 109 list trim;

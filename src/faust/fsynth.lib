@@ -9,12 +9,13 @@ fo = library("fosc.lib");
 //----------------------------------------------------------------------------------------//
 //-------------------------------------SYNTH----------------------------------------------//
 //----------------------------------------------------------------------------------------//
-polyphony = 20;
+
+POLYPHONY = 20;
 
 //------FORMULS------//
 /* main synth function */
 // One audio signal in: receives from another synth and controls FM modulation
-synth(inmod) = inmod : *(extmod) <: (par(i,polyphony,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
+synth(inmod) = inmod : *(extmod) <: (par(i,POLYPHONY,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -30,7 +31,7 @@ with{
   tadsr = t *(adsron);
 
   //Counter to select voice
-  counterMod = polyphony;
+  counterMod = POLYPHONY;
   tx(i,x,y) = int((i==x) | (i!=y)); // oscillator trigger
   c = ba.counter(tadsr) : %(counterMod) : int; // Incremental counter for voice select.
   c2 = c +(1) : %(counterMod) : int; // Used to turn off next voice in preparation for triggering.
@@ -71,7 +72,7 @@ with{
   /* ADSR controls */
   attack = hslider("attack",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(20); // 10 second maximum duration
   decay = hslider("decay",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(20);
-  sustain = hslider("sustain",0,0,1,0.01);
+  sustain = hslider("sustain",1,0,1,0.01);
   release = hslider("release",0,0,1,0.0001) : *(0.9999) : +(0.0001) : *(20);
 
   /* voice velocity/amplitude control. If 'c2', then voice is quietened to prepare for next trigger */
