@@ -312,6 +312,8 @@
 #X msg 614 134 16;
 #X obj 378 182 s to-o-s-c-interface;
 #X obj 378 159 oscformat globalmonophonic\$1;
+#X obj 458 466 oscformat sequencer\$1;
+#X obj 458 487 s to-o-s-c-interface;
 #X connect 2 0 1 0;
 #X connect 4 0 3 0;
 #X connect 6 0 5 0;
@@ -340,6 +342,7 @@
 #X connect 26 0 6 0;
 #X connect 26 0 49 0;
 #X connect 26 0 54 0;
+#X connect 26 0 55 0;
 #X connect 27 0 14 0;
 #X connect 27 0 10 0;
 #X connect 28 0 24 0;
@@ -367,6 +370,7 @@
 #X connect 51 0 15 0;
 #X connect 52 0 19 0;
 #X connect 54 0 53 0;
+#X connect 55 0 56 0;
 #X restore 33 105 pd SEQUENCER_;
 #N canvas 608 355 904 554 FX________ 0;
 #X obj 134 17 inlet;

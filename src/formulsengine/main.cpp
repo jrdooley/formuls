@@ -8,7 +8,7 @@
  * See https://github.com/libpd/libpd for documentation
  *
  */
-#include <iostream>
+#include <iostream> 
 #include <unistd.h>
 #include <stdlib.h>
 
@@ -20,21 +20,22 @@ RtAudio audio;
 pd::PdBase lpd;
 PdObject pdObject;
 
-int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames, double streamTime, RtAudioStreamStatus status, void *userData){
+int audioCallback(void *outputBuffer, void *inputBuffer, unsigned int nBufferFrames,
+   double streamTime, RtAudioStreamStatus status, void *userData) {
 
    // pass audio samples to/from libpd
-   int ticks = nBufferFrames / 64; // JD: don't change the "64" value
-   lpd.processFloat(ticks, (float *)inputBuffer, (float*)outputBuffer);
+   int ticks = nBufferFrames / libpd_blocksize();
+   lpd.processFloat(ticks, (float *)inputBuffer, (float *)outputBuffer);
 
    return 0;
 }
 
 void init(int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes the argument that sets the audio device
    unsigned int sampleRate = 48000;
-   unsigned int bufferFrames = 512; // JD: this value can be changed. 512 is the lowest value though
+   unsigned int bufferFrames = 512;
 
    // init pd
-   if(!lpd.init(0, channelsOut, sampleRate)) {
+   if(!lpd.init(0, channelsOut, sampleRate, true)) {
       std::cerr << "Could not init pd" << std::endl;
       exit(1);
    }
@@ -50,17 +51,9 @@ void init(int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes t
    pd::Patch patch = lpd.openPatch("_main.pd", "./pd");
    std::cout << patch << std::endl;
 
-   // if (thepatch == 0) {
-   //   pd::Patch patch = lpd.openPatch("_main-control.pd", "./pd");
-   //   std::cout << patch << std::endl;
-   // } else {
-   //   pd::Patch patch = lpd.openPatch("_main-audio.pd", "./pd");
-   //   std::cout << patch << std::endl;
-   // }
-
    // use the RtAudio API to connect to the default audio device
-   if(audio.getDeviceCount()==0){
-      std::cout << "There are no available sound devices." << std::endl;
+   if(audio.getDeviceCount() == 0) {
+      std::cout << "There are no available sound devices" << std::endl;
       exit(1);
    }
 
@@ -75,10 +68,11 @@ void init(int deviceSelect, int channelsOut){  // JD: "int deviveSelect" takes t
       options.flags |= RTAUDIO_MINIMIZE_LATENCY; // CoreAudio doesn't seem to like this
    }
    try {
-      audio.openStream( &parameters, NULL, RTAUDIO_FLOAT32, sampleRate, &bufferFrames, &audioCallback, NULL, &options );
+      audio.openStream( &parameters, NULL, RTAUDIO_FLOAT32, sampleRate,
+         &bufferFrames, &audioCallback, NULL, &options );
       audio.startStream();
    }
-   catch(RtAudioError& e) {
+   catch(RtAudioError &e) {
       std::cerr << e.getMessage() << std::endl;
       exit(1);
    }
@@ -104,7 +98,7 @@ int main (int argc, char *argv[]) {
    // pdPatch = 0;
  }
 //   init(pdPatch, audioDevice, channelOut);
-init(audioDevice, channelOut);
+   init(audioDevice, channelOut);
 
    // keep the program alive until it's killed with Ctrl+C
    while(1){

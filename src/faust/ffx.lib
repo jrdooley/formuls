@@ -9,7 +9,7 @@ fo = library("fosc.lib");
 
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
-fx = _ <: _,(am : pitchshift : saturation : bitcrush : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
+fx = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
@@ -74,6 +74,23 @@ with {
   depthReduction(x) = rint(x * bits) / bits;
   dryWet(m, a, b) = a * m + b * (1 - m);
   main(a) = dryWet(mix, (depthReduction(ds(a))), a);
+};
+
+//------------BITCRUSH2-------------//
+bitcrush2 = _ : bitcrush
+with {
+  // 0 = least crushed (full ~16-bit depth), 1 = most crushed
+crush   = hslider("bitcrush", 0, 0, 1, 0.001);
+
+// Mirrors: m = 1 + (1 << ((int)((1-v)*15)))
+bits_m = 1 + int(2 ^ int((1 - crush) * 15)); // --- bit-depth calculation
+
+// --- crushing
+// Mirrors: tmp = (long int)(in * m) / (float)m
+// int() in Faust truncates toward zero, same as the C++ (long int) cast.
+truncate(x) = float(int(x * bits_m)) / float(bits_m);
+
+bitcrush(x) = truncate(x) ;
 };
 
 //------------PITCHSHIFT------------//
@@ -165,6 +182,24 @@ with{
 //----------------------------------------//
 //-------------MASTER BUS FX--------------//
 //----------------------------------------//
+
+//-------------WIDENER------------//
+widener =  crossover : (_,_,width : widener), _, _ :> _,_
+with {
+    width = hslider("width", 1, 0, 2, 0.01) : si.smoo;
+    cutoff = hslider("cutoff",1,0,1,0.01) : *(149) : +(1) : si.smoo;
+    widener(l, r, w) = 
+        l + side_effect(l, r, w),
+        r - side_effect(l, r, w)
+    with {
+        side_effect(l, r, w) = (
+            (l - r) * (w - 1) +                  // Stereo difference
+            (l@(ma.SR/100) - r) * max(0, w - 1)  // Hass in mono
+        ) * 0.5;
+    };
+    crossover = _,_: (fi.crossover2LR4(cutoff) : ro.cross(2)), (fi.crossover2LR4(cutoff) : ro.cross(2)) : _, ro.cross(2), _;
+
+};
 
 //-------------REVERB-------------//
 //lush stereo reverb

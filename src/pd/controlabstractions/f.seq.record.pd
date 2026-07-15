@@ -45,7 +45,7 @@
 #X obj 233 496 outlet;
 #X text 39 569 \$1 = \$0 \; \$2 = array size \; record (0/1) = activates sequencer recording \; value = value to be stored to sequencer array \; tempo (0.001+) = controls sequencer array read speed \; reverse (0/1) = reverses the sequencer array read direction \; note-trigger-on (0/1) = activates "note triggering" of sequencer array \; trigger (bang) = triggers one pass through the sequencer array \; float (0/1) = controls master on/off of sequencer;
 #X text 216 26 \$3 = automate/seq mode (0/1);
-#N canvas 400 38 427 833 AUTOMATER_PLAYBACK_MODULE_____ 0;
+#N canvas 400 38 427 833 AUTOMATER_PLAYBACK_MODULE_____ 1;
 #X obj 49 176 i 0;
 #X obj 76 175 + 1;
 #X msg 76 285 0;
@@ -171,7 +171,6 @@
 #X obj 75 71 r \$0-seq-play;
 #X obj 42 273 tabread \$0-this-2;
 #X obj 42 125 f.util.switch;
-#X connect 1 0 15 0;
 #X connect 2 0 15 1;
 #X connect 3 0 4 1;
 #X connect 4 0 6 0;
@@ -265,6 +264,7 @@
 #X obj 452 172 r \$1-reset;
 #X obj 37 53 route record value tempo reverse trigger seqrecord seqstep beat mode seqplay seqtranstime seqreset seqvalue active paramthrottle;
 #X obj 363 98 s \$0-param-throttle;
+#X text 286 409 Currently deactivated;
 #X connect 0 0 32 0;
 #X connect 6 0 2 0;
 #X connect 9 0 32 0;

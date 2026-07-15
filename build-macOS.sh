@@ -11,7 +11,7 @@ cp src/python/pyinstaller.py build/pyinstaller.py
 
 # build faust pd externals
 cd src/faust
-faust2puredata -vec -lv 0 -vs 4 -clang f_digitaliser.dsp f_limiter.dsp f_repeater.dsp f_reverb.dsp formuls.dsp
+faust2puredata -vec -lv 0 -vs 4 -clang f_widener.dsp f_limiter.dsp f_repeater.dsp f_reverb.dsp formuls.dsp
 
 mv *.pd_darwin ../../build/pd/externals
 
