@@ -293,17 +293,17 @@ with {
     // UI (mirrors the Xfer plugin: Depth, Time, In/Out Gain, Upwd, Dnwd, band levels)
     //------------------------------------------------------------------
     main(x) = hgroup("[0]OTT", x);
-    depth   = main(hslider("[0]Depth [unit:%] [style:knob]",    100, 0, 100, 0.1)) * 0.01 : si.smoo;
-    timeK   = main(hslider("[1]Time [unit:%] [style:knob]",     100, 1, 200, 0.1)) * 0.01 : si.smoo;
+    depth   = main(hslider("[0]ottdepth",    0, 0, 1, 0.001)) : si.smoo;
+    timeK   = main(hslider("[1]otttime",     0.5, 0.001, 1, 0.001)) : *(2) : si.smoo;
     inGain  = main(hslider("[2]In Gain [unit:dB] [style:knob]",   0, -24, 24, 0.1)) : ba.db2linear : si.smoo;
     outGain = main(hslider("[3]Out Gain [unit:dB] [style:knob]",  0, -24, 24, 0.1)) : ba.db2linear : si.smoo;
     upwdAmt = main(hslider("[4]Upwd [unit:%] [style:knob]",     100, 0, 200, 0.1)) * 0.01 : si.smoo;
     dnwdAmt = main(hslider("[5]Dnwd [unit:%] [style:knob]",     100, 0, 200, 0.1)) * 0.01 : si.smoo;
 
     bands(x)  = vgroup("[1]Bands", x);
-    levLowDB  = bands(vslider("[2]L [unit:dB]", 0, -24, 24, 0.1)) : si.smoo;
-    levMidDB  = bands(vslider("[1]M [unit:dB]", 0, -24, 24, 0.1)) : si.smoo;
-    levHighDB = bands(vslider("[0]H [unit:dB]", 0, -24, 24, 0.1)) : si.smoo;
+    levLowDB  = bands(vslider("[2]ottlow", 0.5, 0, 1, 0.01)) : *(48) : -(24) : si.smoo;
+    levMidDB  = bands(vslider("[1]ottmid", 0.5, 0, 1, 0.01)) : *(48) : -(24) : si.smoo;
+    levHighDB = bands(vslider("[0]otthigh", 0.5, 0, 1, 0.01)) : *(48) : -(24) : si.smoo;
 
     adv(x)  = vgroup("[2]Internals", x);
     kneeDB  = adv(hslider("[0]Knee [unit:dB]", 6, 0.1, 18, 0.1));
