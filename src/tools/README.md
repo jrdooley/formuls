@@ -38,6 +38,23 @@ codesign --force --deep -s - /path/to/formuls.app
 ```
 
 
+## FORMULS_TRACE (built into the a la carte app)
+
+Set `FORMULS_TRACE` to a comma-separated list of Pd send symbols and the app
+subscribes to them, timestamping everything they carry:
+
+```bash
+FORMULS_TRACE=bpmglobal,link ./formuls-alacarte-0.3.0-beta.app/Contents/MacOS/formuls-alacarte
+```
+
+```
+trace     5547 ms  bpmglobal                110.000000
+```
+
+A value being fought over between the patch and the GUI shows up as an
+obvious alternation between two numbers; a value that is simply not
+arriving shows up as silence.
+
 ## bpm-probe
 
 Loads the real `pd/_main.pd` under libpd, drives BPM over genuine OSC to
@@ -65,6 +82,26 @@ Run it against an assembled app's patch folder (it needs the faust and
 It renders in real time deliberately: `abl_link~` derives its beat from the
 host clock, so running flat out makes the beat appear frozen and produces
 completely misleading results.
+
+### IMPORTANT: the app runs a *copy* of the patch
+
+`build-macOS.sh` copies `src/pd` into `formuls.app/Contents/Resources/pd`.
+Editing `src/pd/_main.pd` therefore has **no effect on an already-built
+app** until you re-run the build script (or copy the patch in by hand).
+Check with:
+
+```bash
+diff src/pd/_main.pd /path/to/formuls.app/Contents/Resources/pd/_main.pd
+```
+
+Run bpm-probe against the source patch (plus a built app's externals, which
+are not in the repo) to test patch edits without rebuilding:
+
+```bash
+mkdir -p /tmp/pd-test && cp -R src/pd/* /tmp/pd-test/
+cp -R /path/to/formuls.app/Contents/Resources/pd/externals /tmp/pd-test/externals
+./bpm-probe /tmp/pd-test
+```
 
 ### What it has established so far
 

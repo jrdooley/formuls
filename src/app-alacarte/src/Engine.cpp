@@ -5,6 +5,8 @@
 #include "Engine.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <sstream>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -97,6 +99,27 @@ std::string Engine::start (unsigned int rtDeviceIndex,
 
     pd.setReceiver (this);
     pd.subscribe (quitReceiverName);   // lets the patch quit the app
+
+    // Diagnostics: FORMULS_TRACE=sym1,sym2 subscribes to those Pd send
+    // symbols and timestamps everything they carry, so a value that is
+    // being fought over between the patch and the GUI shows up as an
+    // obvious alternation in the log. See src/tools/README.md.
+    traceStart = std::chrono::steady_clock::now();
+    if (const char* trace = std::getenv ("FORMULS_TRACE"))
+    {
+        std::string list (trace), sym;
+        std::istringstream stream (list);
+
+        while (std::getline (stream, sym, ','))
+        {
+            if (sym.empty())
+                continue;
+
+            pd.subscribe (sym);
+            tracedSymbols.insert (sym);
+            std::fprintf (stderr, "trace: watching \"%s\"\n", sym.c_str());
+        }
+    }
     pd.computeAudio (true);
 
     patch = pd.openPatch ("_main.pd", patchDir.string());
@@ -237,6 +260,17 @@ void Engine::render (float* output, unsigned int numFrames)
 }
 
 //==============================================================================
+void Engine::logTrace (const std::string& dest, const std::string& value)
+{
+    if (tracedSymbols.count (dest) == 0)
+        return;
+
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (
+                        std::chrono::steady_clock::now() - traceStart).count();
+    std::fprintf (stderr, "trace %8lld ms  %-24s %s\n",
+                  (long long) ms, dest.c_str(), value.c_str());
+}
+
 void Engine::handleQuitRequest()
 {
     std::fprintf (stderr, "quit requested by the Pd patch\n");
@@ -256,8 +290,10 @@ void Engine::receiveBang (const std::string& dest)
         handleQuitRequest();
 }
 
-void Engine::receiveFloat (const std::string& dest, float)
+void Engine::receiveFloat (const std::string& dest, float value)
 {
+    logTrace (dest, std::to_string (value));
+
     if (dest == quitReceiverName)
         handleQuitRequest();
 }
@@ -268,15 +304,19 @@ void Engine::receiveSymbol (const std::string& dest, const std::string&)
         handleQuitRequest();
 }
 
-void Engine::receiveList (const std::string& dest, const pd::List&)
+void Engine::receiveList (const std::string& dest, const pd::List& list)
 {
+    logTrace (dest, list.toString());
+
     if (dest == quitReceiverName)
         handleQuitRequest();
 }
 
-void Engine::receiveMessage (const std::string& dest, const std::string&,
-                             const pd::List&)
+void Engine::receiveMessage (const std::string& dest, const std::string& msg,
+                             const pd::List& list)
 {
+    logTrace (dest, msg + " " + list.toString());
+
     if (dest == quitReceiverName)
         handleQuitRequest();
 }

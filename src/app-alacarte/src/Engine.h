@@ -30,7 +30,9 @@
 #include "PerformanceMeter.h"
 #include "RtAudio.h"
 
+#include <chrono>
 #include <filesystem>
+#include <set>
 #include <functional>
 #include <string>
 #include <vector>
@@ -106,6 +108,7 @@ private:
                          const pd::List& list) override;
 
     void handleQuitRequest();
+    void logTrace (const std::string& dest, const std::string& value);
 
     pd::PdBase pd;
     pd::Patch patch;
@@ -117,6 +120,10 @@ private:
     std::vector<float> pdOutputBuffer;   // one Pd tick, interleaved
     unsigned int samplesLeftInTick = 0;
     PerformanceMeter meter;
+
+    // FORMULS_TRACE diagnostics (see Engine.cpp)
+    std::set<std::string> tracedSymbols;
+    std::chrono::steady_clock::time_point traceStart;
 
     bool running = false;
 };
