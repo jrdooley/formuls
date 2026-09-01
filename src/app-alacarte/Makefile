@@ -7,7 +7,15 @@
 # then:
 #   make            -> build/formuls-alacarte
 #   make run        -> build and launch it
+#   make bundle     -> build/formuls-alacarte.app, a double-clickable bundle
 #   make clean
+#
+# "make bundle" needs the runtime resources (the pd patch + externals, and
+# gui/node + gui/open-stage-control, which are downloaded by the top-level
+# build script rather than kept in the repo). Point RESOURCES_FROM at any
+# assembled formuls app's Resources folder to copy them from there:
+#   make bundle RESOURCES_FROM=/path/to/formuls-0.3.0-beta.app/Contents/Resources
+# Without RESOURCES_FROM only src/pd is bundled (engine runs; no GUI server).
 #
 # No cmake, no framework, no code generation: clang++, this file, done.
 
@@ -45,9 +53,32 @@ OBJS = $(BUILD_DIR)/main.o \
        $(BUILD_DIR)/ResourceLocator.o \
        $(BUILD_DIR)/RtAudio.o
 
-.PHONY: all run clean
+BUNDLE = $(BUILD_DIR)/formuls-alacarte.app
+RESOURCES_FROM ?=
+
+.PHONY: all run bundle clean
 
 all: $(TARGET)
+
+bundle: $(TARGET)
+	rm -rf "$(BUNDLE)"
+	mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Frameworks" \
+	         "$(BUNDLE)/Contents/Resources"
+	cp $(TARGET) "$(BUNDLE)/Contents/MacOS/"
+	cp Info.plist "$(BUNDLE)/Contents/"
+	cp $(LIBPD_DIR)/libs/libpd.dylib "$(BUNDLE)/Contents/Frameworks/"
+	@if [ -n "$(RESOURCES_FROM)" ]; then \
+	    cp -R "$(RESOURCES_FROM)/pd" "$(BUNDLE)/Contents/Resources/pd"; \
+	    cp -R "$(RESOURCES_FROM)/gui" "$(BUNDLE)/Contents/Resources/gui"; \
+	    if [ -f "$(RESOURCES_FROM)/Icon.icns" ]; then \
+	        cp "$(RESOURCES_FROM)/Icon.icns" "$(BUNDLE)/Contents/Resources/"; fi; \
+	else \
+	    cp -R ../pd "$(BUNDLE)/Contents/Resources/pd"; \
+	    echo "NOTE: no RESOURCES_FROM given; bundled src/pd only" \
+	         "(no faust externals, no gui/node -> no control GUI)"; \
+	fi
+	codesign --force --deep -s - "$(BUNDLE)"
+	@echo "Done: $(BUNDLE)"
 
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
