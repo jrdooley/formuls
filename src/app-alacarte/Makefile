@@ -55,30 +55,64 @@ OBJS = $(BUILD_DIR)/main.o \
 
 BUNDLE = $(BUILD_DIR)/formuls-alacarte.app
 RESOURCES_FROM ?=
+# make does not expand "~", and a literal tilde silently becomes a path that
+# does not exist, so expand it here rather than shipping an empty bundle.
+RESOURCES_ROOT = $(subst ~,$(HOME),$(RESOURCES_FROM))
 
-.PHONY: all run bundle clean
+.PHONY: all run bundle verify-bundle clean
 
 all: $(TARGET)
 
 bundle: $(TARGET)
-	rm -rf "$(BUNDLE)"
+	@set -e; \
+	if [ -n "$(RESOURCES_ROOT)" ] && [ ! -d "$(RESOURCES_ROOT)" ]; then \
+	    echo "ERROR: RESOURCES_FROM does not exist:"; \
+	    echo "       $(RESOURCES_ROOT)"; \
+	    echo "       Point it at an assembled formuls app's Resources folder."; \
+	    exit 1; \
+	fi; \
+	rm -rf "$(BUNDLE)"; \
 	mkdir -p "$(BUNDLE)/Contents/MacOS" "$(BUNDLE)/Contents/Frameworks" \
-	         "$(BUNDLE)/Contents/Resources"
-	cp $(TARGET) "$(BUNDLE)/Contents/MacOS/"
-	cp Info.plist "$(BUNDLE)/Contents/"
-	cp $(LIBPD_DIR)/libs/libpd.dylib "$(BUNDLE)/Contents/Frameworks/"
-	@if [ -n "$(RESOURCES_FROM)" ]; then \
-	    cp -R "$(RESOURCES_FROM)/pd" "$(BUNDLE)/Contents/Resources/pd"; \
-	    cp -R "$(RESOURCES_FROM)/gui" "$(BUNDLE)/Contents/Resources/gui"; \
-	    if [ -f "$(RESOURCES_FROM)/Icon.icns" ]; then \
-	        cp "$(RESOURCES_FROM)/Icon.icns" "$(BUNDLE)/Contents/Resources/"; fi; \
+	         "$(BUNDLE)/Contents/Resources"; \
+	cp $(TARGET) "$(BUNDLE)/Contents/MacOS/"; \
+	cp Info.plist "$(BUNDLE)/Contents/"; \
+	cp $(LIBPD_DIR)/libs/libpd.dylib "$(BUNDLE)/Contents/Frameworks/"; \
+	if [ -n "$(RESOURCES_ROOT)" ]; then \
+	    cp -R "$(RESOURCES_ROOT)/pd" "$(BUNDLE)/Contents/Resources/pd"; \
+	    cp -R "$(RESOURCES_ROOT)/gui" "$(BUNDLE)/Contents/Resources/gui"; \
+	    if [ -f "$(RESOURCES_ROOT)/Icon.icns" ]; then \
+	        cp "$(RESOURCES_ROOT)/Icon.icns" "$(BUNDLE)/Contents/Resources/"; \
+	    fi; \
 	else \
 	    cp -R ../pd "$(BUNDLE)/Contents/Resources/pd"; \
-	    echo "NOTE: no RESOURCES_FROM given; bundled src/pd only" \
-	         "(no faust externals, no gui/node -> no control GUI)"; \
-	fi
-	codesign --force --deep -s - "$(BUNDLE)"
+	    echo "NOTE: no RESOURCES_FROM given; bundled src/pd only"; \
+	    echo "      (no faust externals, no gui/node -> no control GUI)"; \
+	fi; \
+	codesign --force --deep -s - "$(BUNDLE)"; \
+	$(MAKE) --no-print-directory verify-bundle
 	@echo "Done: $(BUNDLE)"
+
+# Checks the assembled bundle really contains what it needs to run, so a
+# failed copy can never masquerade as a working app again.
+verify-bundle:
+	@set -e; \
+	missing=""; \
+	for f in Contents/MacOS/formuls-alacarte Contents/Info.plist \
+	         Contents/Frameworks/libpd.dylib Contents/Resources/pd/_main.pd; do \
+	    [ -e "$(BUNDLE)/$$f" ] || missing="$$missing $$f"; \
+	done; \
+	if [ -n "$(RESOURCES_ROOT)" ]; then \
+	    for f in Contents/Resources/gui/node Contents/Resources/gui/_main.json \
+	             Contents/Resources/gui/open-stage-control; do \
+	        [ -e "$(BUNDLE)/$$f" ] || missing="$$missing $$f"; \
+	    done; \
+	fi; \
+	if [ -n "$$missing" ]; then \
+	    echo "ERROR: bundle is incomplete, missing:"; \
+	    for f in $$missing; do echo "       $$f"; done; \
+	    exit 1; \
+	fi; \
+	echo "bundle verified: $$(ls $(BUNDLE)/Contents/Resources/pd/externals 2>/dev/null | wc -l | tr -d ' ') externals, gui $$([ -e "$(BUNDLE)/Contents/Resources/gui/node" ] && echo present || echo absent)"
 
 $(TARGET): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)

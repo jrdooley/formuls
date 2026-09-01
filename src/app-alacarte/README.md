@@ -61,9 +61,21 @@ like the JUCE app. To run against a fully assembled bundle's resources
 FORMULS_RESOURCE_ROOT=/path/to/formuls.app/Contents/Resources ./build/formuls-alacarte
 ```
 
+`make bundle` fails loudly if `RESOURCES_FROM` points somewhere that does
+not exist, and a `verify-bundle` step checks the assembled `.app` really
+contains the binary, libpd, the patch and (when resources were requested)
+`gui/node` + `open-stage-control`. An earlier version copied resources on a
+best-effort basis and would happily sign and report success on a bundle with
+an empty `Resources` folder -- which produced exactly one runtime symptom,
+"node.js binary not found". Note that `make` does not expand `~`, so the
+Makefile expands it before use.
+
 Test hooks (runtime env vars, no special build): `FORMULS_AUTOSTART=1`
 presses Start after 1 s, `FORMULS_TEST_SAMPLERATE=44100` picks that rate,
 `FORMULS_SNAPSHOT_PATH=/tmp/w.png` writes a window screenshot after 4 s.
+Be careful with `FORMULS_RESOURCE_ROOT` when testing a bundle: it overrides
+the bundle's own `Resources`, so a run that passes with it set proves
+nothing about the shipped `.app`.
 
 ## Styling
 
