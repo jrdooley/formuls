@@ -25,6 +25,9 @@
  *   Change the window size       -> edit style::windowWidth / windowHeight
  *   Make the window resizable    -> set style::windowResizable to true
  *   Change the background colour -> edit style::background
+ *   Restyle the perf readout     -> edit style::meterColour / meterFontHeight
+ *                                   (the DSP load / CPU line above the
+ *                                   status line)
  *   Restyle the address panel    -> edit style::addressFill / addressText /
  *                                   addressFontHeight (the read-only box
  *                                   listing the control GUI's web addresses)
@@ -62,7 +65,7 @@ namespace style
     // ------------------------------------------------------------------ window
     static const juce::String windowTitle   { "formuls" };
     constexpr int  windowWidth      = 450;
-    constexpr int  windowHeight     = 446;
+    constexpr int  windowHeight     = 470;
     constexpr bool windowResizable  = false;
 
     // ------------------------------------------------------------------ colours
@@ -73,6 +76,7 @@ namespace style
     static const juce::Colour widgetOutline { 0xff003d19 };   // widget borders
     static const juce::Colour textColour    { 0xfff2f2f2 };   // all text
     static const juce::Colour statusColour  { 0xffdcf0dc };   // status line text
+    static const juce::Colour meterColour   { 0xffb8e6c0 };   // performance readout text
     static const juce::Colour addressFill   { 0xff00491e };   // GUI address panel background
     static const juce::Colour addressText   { 0xffeafbea };   // GUI address panel text
 
@@ -88,6 +92,7 @@ namespace style
     constexpr float labelFontHeight   = 15.0f;
     constexpr float buttonFontHeight  = 16.0f;
     constexpr float addressFontHeight = 13.0f;   // GUI address panel
+    constexpr float meterFontHeight   = 12.0f;   // performance readout
 } // namespace style
 
 /**

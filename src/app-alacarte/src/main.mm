@@ -11,7 +11,9 @@
  *
  * Window layout (top to bottom): audio output device pop-up, channel-count
  * pop-up, sample-rate pop-up, Start/Stop button, read-only address panel,
- * status line. Same behaviour as the JUCE app:
+ * performance readout, status line. The readout uses the same measurement
+ * code as the JUCE build (src/shared/PerformanceMeter.h) so the two apps'
+ * numbers are directly comparable. Same behaviour as the JUCE app:
  *
  *   - Start boots libpd + Open Stage Control; Stop shuts both down while
  *     the window stays open.
@@ -41,7 +43,7 @@
 
 // ---------------------------------------------------------------- styling
 static const CGFloat kWindowWidth  = 450;
-static const CGFloat kWindowHeight = 446;
+static const CGFloat kWindowHeight = 470;
 
 #define GREEN(r, g, b) [NSColor colorWithCalibratedRed:(r) / 255.0 \
                                 green:(g) / 255.0 blue:(b) / 255.0 alpha:1.0]
@@ -50,6 +52,7 @@ static NSColor* backgroundColour() { return GREEN (0x00, 0x7a, 0x33); }  // wind
 static NSColor* panelColour()      { return GREEN (0x00, 0x49, 0x1e); }  // address panel
 static NSColor* panelTextColour()  { return GREEN (0xea, 0xfb, 0xea); }  // its text
 static NSColor* statusColour()     { return GREEN (0xdc, 0xf0, 0xdc); }  // status line
+static NSColor* meterColour()      { return GREEN (0xb8, 0xe6, 0xc0); }  // perf readout
 
 // Menu choices, matching the JUCE app.
 static const int kChannelChoices[]    = { 2, 14 };
@@ -68,8 +71,10 @@ static const int kDefaultSampleRate   = 48000;
     NSPopUpButton* sampleRatePopup;
     NSButton* startStopButton;
     NSTextView* addressPanel;
+    NSTextField* meterLabel;
     NSTextField* statusLabel;
     NSTimer* messagePump;
+    NSTimer* meterTimer;
 
     formuls::Engine engine;
     formuls::OpenStageControl openStageControl;
@@ -89,6 +94,13 @@ static const int kDefaultSampleRate   = 48000;
                                                   repeats:YES
                                                     block:^(NSTimer*) {
         self->engine.receiveMessages();
+    }];
+
+    // Refresh the performance readout twice a second.
+    meterTimer = [NSTimer scheduledTimerWithTimeInterval:0.5
+                                                 repeats:YES
+                                                   block:^(NSTimer*) {
+        [self updateMeterLabel];
     }];
 
     [self installTestHooks];
@@ -168,8 +180,23 @@ static const int kDefaultSampleRate   = 48000;
     statusLabel.font = [NSFont systemFontOfSize:13];
     [content addSubview:statusLabel];
 
+    // performance readout, directly above the status line
+    meterLabel = [NSTextField labelWithString:@""];
+    meterLabel.frame = NSMakeRect (margin, margin + 16,
+                                   kWindowWidth - 2 * margin, 18);
+    meterLabel.textColor = meterColour();
+    meterLabel.font = [NSFont monospacedSystemFontOfSize:11
+                                                  weight:NSFontWeightRegular];
+    // Clicking the readout clears its peak / missed counters, so you can
+    // reset, play hard for a minute, and look again.
+    NSClickGestureRecognizer* resetClick = [[NSClickGestureRecognizer alloc]
+        initWithTarget:self action:@selector (meterClicked:)];
+    [meterLabel addGestureRecognizer:resetClick];
+    [content addSubview:meterLabel];
+    [self updateMeterLabel];
+
     const CGFloat panelTop = y - spacing;
-    const CGFloat panelBottom = margin + 24;
+    const CGFloat panelBottom = margin + 44;   // clears status + meter lines
     NSScrollView* scroll = [[NSScrollView alloc]
         initWithFrame:NSMakeRect (margin, panelBottom,
                                   kWindowWidth - 2 * margin,
@@ -276,6 +303,34 @@ static const int kDefaultSampleRate   = 48000;
     statusLabel.stringValue = message;
 }
 
+- (void)meterClicked:(NSGestureRecognizer*)sender
+{
+    engine.getMeter().resetPeak();
+    [self updateMeterLabel];
+}
+
+- (void)updateMeterLabel
+{
+    if (! engine.isRunning())
+    {
+        meterLabel.stringValue = @"DSP --   CPU --";
+        return;
+    }
+
+    // "DSP" is the audio callback measured against its own deadline -- the
+    // number that predicts dropouts. "CPU" is the whole process as a share
+    // of one core, i.e. the Activity Monitor number. See PerformanceMeter.h.
+    auto& meter = engine.getMeter();
+    NSString* text = [NSString stringWithFormat:
+                      @"DSP %.1f%%  peak %.1f%%   CPU %.1f%%",
+                      meter.dspLoad(), meter.dspPeak(), meter.processCpu()];
+
+    if (const auto missed = meter.overloadCount(); missed > 0)
+        text = [text stringByAppendingFormat:@"   missed %ld", missed];
+
+    meterLabel.stringValue = text;
+}
+
 - (void)updateAddressPanel:(bool)guiIsRunning
 {
     if (! guiIsRunning)
@@ -313,6 +368,7 @@ static const int kDefaultSampleRate   = 48000;
 - (void)applicationWillTerminate:(NSNotification*)note
 {
     [messagePump invalidate];
+    [meterTimer invalidate];
     openStageControl.stop();
     engine.stop();
 }

@@ -127,6 +127,7 @@ void FormulsEngine::stop()
     }
 
     actualSampleRate = 0;
+    meter.reset();
 
     juce::Logger::writeToLog ("formuls engine stopped");
 }
@@ -147,6 +148,7 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
                                                       int numSamples,
                                                       const juce::AudioIODeviceCallbackContext&)
 {
+    const auto renderStarted = meter.beginRender();
     const auto blockSize = libpd_blocksize();
 
     // libpd renders in fixed 64-frame "ticks" of interleaved audio, while the
@@ -190,6 +192,8 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
         samplesLeftInTick -= numToCopy;
         sampleIndex += numToCopy;
     }
+
+    meter.endRender (renderStarted, numSamples, actualSampleRate);
 }
 
 void FormulsEngine::audioDeviceStopped()

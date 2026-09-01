@@ -26,7 +26,7 @@ TARGET = $(BUILD_DIR)/formuls-alacarte
 CXX = clang++
 CXXFLAGS = -std=c++17 -O2 -Wall \
            -D__MACOSX_CORE__ \
-           -Isrc -Ivendor \
+           -Isrc -Ivendor -I../shared \
            -I$(LIBPD_DIR)/cpp \
            -I$(LIBPD_DIR)/libpd_wrapper \
            -I$(LIBPD_DIR)/libpd_wrapper/util \
@@ -84,10 +84,10 @@ $(TARGET): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 	codesign --force -s - $@
 
-$(BUILD_DIR)/main.o: src/main.mm src/Engine.h src/OpenStageControl.h src/ResourceLocator.h | $(BUILD_DIR)
+$(BUILD_DIR)/main.o: src/main.mm src/Engine.h src/OpenStageControl.h src/ResourceLocator.h ../shared/PerformanceMeter.h | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -ObjC++ -fobjc-arc -c $< -o $@
 
-$(BUILD_DIR)/Engine.o: src/Engine.cpp src/Engine.h | $(BUILD_DIR)
+$(BUILD_DIR)/Engine.o: src/Engine.cpp src/Engine.h ../shared/PerformanceMeter.h | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/OpenStageControl.o: src/OpenStageControl.cpp src/OpenStageControl.h src/ChildProcess.h | $(BUILD_DIR)

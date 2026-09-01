@@ -67,6 +67,15 @@ MainComponent::MainComponent()
     addAndMakeVisible (addressPanel);
     updateAddressPanel (false);
 
+    // -------------------------------------------------- performance readout
+    meterLabel.setFont (juce::FontOptions (juce::Font::getDefaultMonospacedFontName(),
+                                           style::meterFontHeight,
+                                           juce::Font::plain));
+    meterLabel.setColour (juce::Label::textColourId, style::meterColour);
+    meterLabel.setJustificationType (juce::Justification::centredLeft);
+    addAndMakeVisible (meterLabel);
+    updateMeterLabel();
+
     // --------------------------------------------------------------- status line
     statusLabel.setFont (juce::FontOptions (style::labelFontHeight));
     statusLabel.setColour (juce::Label::textColourId, style::statusColour);
@@ -165,8 +174,10 @@ void MainComponent::resized()
                                    .withWidth (style::buttonWidth));
     area.removeFromTop (style::controlSpacing);
 
-    // status line sits at the bottom; the address panel fills what is left
+    // status line and the performance readout sit at the bottom;
+    // the address panel fills whatever is left
     statusLabel.setBounds (area.removeFromBottom (style::controlHeight));
+    meterLabel.setBounds (area.removeFromBottom (style::controlHeight - 8));
     addressPanel.setBounds (area.withTrimmedBottom (style::controlSpacing));
 }
 
@@ -239,6 +250,7 @@ void MainComponent::startEverything()
     sampleRateBox.setEnabled (false);
 
     updateAddressPanel (oscResult.wasOk());
+    startTimerHz (2);           // refresh the performance readout
 
     // If the device couldn't do the requested rate, say what it's really at.
     const auto actualRate = (int) engine.getActualSampleRate();
@@ -259,6 +271,9 @@ void MainComponent::stopEverything()
     openStageControl.stop();
     engine.stop();
 
+    stopTimer();
+    updateMeterLabel();
+
     startStopButton.setButtonText (kStartText);
     audioDeviceBox.setEnabled (true);
     channelsBox.setEnabled (true);
@@ -270,6 +285,44 @@ void MainComponent::stopEverything()
 void MainComponent::setStatus (const juce::String& message)
 {
     statusLabel.setText (message, juce::dontSendNotification);
+}
+
+void MainComponent::mouseDown (const juce::MouseEvent& event)
+{
+    if (meterLabel.getBounds().contains (event.getPosition()))
+    {
+        engine.getMeter().resetPeak();
+        updateMeterLabel();
+    }
+}
+
+void MainComponent::timerCallback()
+{
+    updateMeterLabel();
+}
+
+void MainComponent::updateMeterLabel()
+{
+    if (! engine.isRunning())
+    {
+        meterLabel.setText ("DSP --   CPU --", juce::dontSendNotification);
+        return;
+    }
+
+    auto& meter = engine.getMeter();
+
+    // "DSP" is the audio callback measured against its own deadline -- the
+    // number that predicts dropouts. "CPU" is the whole process as a share
+    // of one core, i.e. the Activity Monitor number. See PerformanceMeter.h.
+    juce::String text;
+    text << "DSP " << juce::String (meter.dspLoad(), 1) << "%"
+         << "  peak " << juce::String (meter.dspPeak(), 1) << "%"
+         << "   CPU " << juce::String (meter.processCpu(), 1) << "%";
+
+    if (auto missed = meter.overloadCount(); missed > 0)
+        text << "   missed " << juce::String (missed);
+
+    meterLabel.setText (text, juce::dontSendNotification);
 }
 
 void MainComponent::updateAddressPanel (bool guiIsRunning)

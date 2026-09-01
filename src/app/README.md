@@ -66,6 +66,45 @@ both for the server's `--port` argument and for these URLs, so changing that
 constant changes both. `patchOscPort` (9000) is the matching constant for the
 UDP port the Pd patch listens on.
 
+## The performance readout
+
+Above the status line both apps show a live readout:
+
+```
+DSP 32.6%  peak 69.0%   CPU 34.1%   missed 0
+```
+
+* **DSP** -- how much of its deadline the audio callback used, smoothed. A
+  512-frame buffer at 48 kHz must be filled in 10.67 ms; if rendering takes
+  3.5 ms that is 33%. **This is the number that predicts dropouts**, and it
+  does not care how many cores the machine has.
+* **peak** -- the worst single callback since the last reset. Audio glitches
+  come from individual late buffers, not from the average, so a healthy
+  average with a peak near 100% is worth knowing about.
+* **CPU** -- the whole process (all threads) as a share of one core. This is
+  the figure comparable to Activity Monitor.
+* **missed** -- callbacks that went over their deadline. Shown only when
+  non-zero.
+
+**Click the readout to reset the peak and missed counters** -- reset, play
+hard for a minute, then look again.
+
+DSP and CPU answer different questions, and the gap between them is the
+interesting part: if CPU climbs while DSP stays flat, the extra work is in
+message handling, the GUI or OSC traffic rather than in the audio graph.
+That is exactly the distinction to look at when comparing these two builds
+under heavy modulation with a tablet connected.
+
+The measurement code is shared verbatim by both apps
+(`src/shared/PerformanceMeter.h`) precisely so the two readouts mean the
+same thing and can be compared directly. Measured side by side on the same
+machine, patch and device, the two builds agree closely -- which matches
+what independent external measurement showed.
+
+The first few callbacks after the stream opens are excluded from peak and
+missed: they pay cold caches and thread promotion, and would otherwise
+report a phantom dropout on every run.
+
 ## Changing the styling of the main window
 
 Open **`Source/FormulsLookAndFeel.h`** — it is the single place for all of it,

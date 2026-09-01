@@ -27,6 +27,7 @@
 #pragma once
 
 #include "PdBase.hpp"
+#include "PerformanceMeter.h"
 #include "RtAudio.h"
 
 #include <filesystem>
@@ -77,6 +78,11 @@ public:
         from the rate passed to start() if the device can't provide it. */
     int actualSampleRate() const noexcept { return streamSampleRate; }
 
+    /** Live performance figures. The meter is shared, identical code with
+        the JUCE build (src/shared/PerformanceMeter.h) so the two apps'
+        numbers can be compared directly. */
+    PerformanceMeter& getMeter() noexcept { return meter; }
+
     /** Drains queued patch->app messages; call regularly on the main
         thread (main.mm uses a 30 ms NSTimer). A no-op while stopped: libpd's
         queued ring buffer only exists between start() and stop(), and
@@ -110,6 +116,7 @@ private:
     std::vector<float> pdInputBuffer;    // dummy (0 input channels)
     std::vector<float> pdOutputBuffer;   // one Pd tick, interleaved
     unsigned int samplesLeftInTick = 0;
+    PerformanceMeter meter;
 
     bool running = false;
 };

@@ -35,6 +35,7 @@
 
 #include <JuceHeader.h>
 #include "PdBase.hpp"
+#include "PerformanceMeter.h"
 
 namespace formuls
 {
@@ -84,6 +85,11 @@ public:
 
     bool isRunning() const noexcept   { return running; }
 
+    /** Live performance figures for this engine. The meter is shared,
+        identical code with the à la carte build (src/shared/PerformanceMeter.h)
+        so the two apps' numbers can be compared directly. */
+    PerformanceMeter& getMeter() noexcept   { return meter; }
+
 private:
     // juce::AudioIODeviceCallback
     void audioDeviceAboutToStart (juce::AudioIODevice* device) override;
@@ -118,6 +124,7 @@ private:
     std::vector<float> pdInputBuffer;       // dummy interleaved input (0 channels)
     std::vector<float> pdOutputBuffer;      // one Pd tick of interleaved output
     int samplesLeftInTick = 0;              // unconsumed frames in pdOutputBuffer
+    PerformanceMeter meter;
 
     bool running = false;
 

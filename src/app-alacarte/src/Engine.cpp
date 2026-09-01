@@ -173,16 +173,28 @@ void Engine::stop()
 
     pd.clear();   // stops DSP, detaches hooks, unsubscribes all receivers
     streamSampleRate = 0;
+    meter.reset();
 
     std::fprintf (stderr, "formuls engine stopped\n");
 }
 
 //==============================================================================
 int Engine::audioCallback (void* outputBuffer, void*, unsigned int numFrames,
-                           double, RtAudioStreamStatus, void* userData)
+                           double, RtAudioStreamStatus status, void* userData)
 {
-    static_cast<Engine*> (userData)->render (static_cast<float*> (outputBuffer),
-                                             numFrames);
+    auto* self = static_cast<Engine*> (userData);
+
+    // RtAudio tells us when the device actually ran dry. The UI's "missed"
+    // counter deliberately uses the same self-timed definition as the JUCE
+    // build so the two apps' readouts mean the same thing, so report the
+    // hardware's own view on the console instead of mixing it in.
+    if ((status & RTAUDIO_OUTPUT_UNDERFLOW) != 0)
+        fprintf (stderr, "audio: output underflow (device ran dry)\n");
+
+    const auto renderStarted = self->meter.beginRender();
+    self->render (static_cast<float*> (outputBuffer), numFrames);
+    self->meter.endRender (renderStarted, (int) numFrames,
+                           (double) self->streamSampleRate);
     return 0;
 }
 

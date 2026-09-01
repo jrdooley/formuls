@@ -19,6 +19,10 @@
  *     this machine, plus this machine's address on each network it is
  *     attached to, for a tablet or phone on the same network. The text can
  *     be selected and copied, but not edited.
+ *   - a performance readout (DSP load, peak, whole-process CPU, and any
+ *     missed audio deadlines), so this build can be compared like for like
+ *     against the à la carte build -- both use the same measurement code
+ *     from src/shared/PerformanceMeter.h.
  *   - a status line reporting what is going on.
  *
  * Stopping keeps the app (and this window) alive so a different device or
@@ -36,7 +40,8 @@
 namespace formuls
 {
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component,
+                      private juce::Timer
 {
 public:
     MainComponent();
@@ -44,6 +49,9 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
+
+    /** Clicking the performance readout clears its peak / missed counters. */
+    void mouseDown (const juce::MouseEvent& event) override;
 
 private:
     void populateDeviceList();
@@ -56,6 +64,10 @@ private:
         running, or a short hint when it is not. */
     void updateAddressPanel (bool guiIsRunning);
 
+    /** juce::Timer -- refreshes the performance readout twice a second. */
+    void timerCallback() override;
+    void updateMeterLabel();
+
     juce::AudioDeviceManager deviceManager;
     FormulsEngine engine;
     OpenStageControlProcess openStageControl;
@@ -65,6 +77,7 @@ private:
     juce::ComboBox sampleRateBox;
     juce::TextButton startStopButton;
     juce::TextEditor addressPanel;
+    juce::Label meterLabel;
     juce::Label statusLabel;
 
     juce::StringArray outputDeviceNames;
