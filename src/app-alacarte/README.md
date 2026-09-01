@@ -18,7 +18,7 @@ be compared side by side. It does everything the JUCE app (`src/app`) does:
 | Audio device I/O | `juce::AudioDeviceManager` | **RtAudio 5.1** (`vendor/`, restored from this repo's git history — the original formulsengine used it) | MIT-style |
 | DSP | libpd (unchanged) | libpd (unchanged) | BSD |
 | Launcher window | `juce_gui_basics` + LookAndFeel | **plain Cocoa** (`src/main.mm`) | system |
-| node child process | `juce::ChildProcess` | `src/ChildProcess.*` — ~70 lines of `posix_spawn` | ours |
+| node child process | `juce::ChildProcess` | `../shared/ChildProcess.*` — `posix_spawn` plus a pipe watchdog, now shared with the JUCE app | ours |
 | GUI web addresses | `juce::IPAddress` | ~40 lines of `getifaddrs` in `src/OpenStageControl.cpp` | ours |
 | Resource lookup | `juce::File` | `std::filesystem` | system |
 | Build system | Projucer → Xcode project | one 60-line **Makefile** | — |
@@ -128,6 +128,31 @@ In this build RtAudio also reports genuine device underruns; those are
 printed to the console (`audio: output underflow`) rather than folded into
 `missed`, so that the on-screen counter keeps exactly the same meaning as
 the JUCE build's. JUCE exposes no equivalent signal.
+
+## The control GUI never outlives the app
+
+The launcher starts a node.js server that holds ports 9000 and 9001. If it
+were left running after the app went away, the *next* launch's GUI would
+silently fail to bind those ports -- so both apps guarantee the server dies
+with them, however they die.
+
+Signals cannot provide that guarantee on their own: SIGKILL (Force Quit)
+is uncatchable and a hard crash may never reach a handler. So instead of
+reacting to our own death, the kernel announces it. `ChildProcess::start()`
+opens a pipe and spawns a one-line `/bin/sh` watchdog whose stdin is the
+read end; the app holds the write end open for as long as it lives. When
+the app dies for any reason, the kernel closes its descriptors, the pipe
+hits EOF, and the watchdog kills the server. On a clean stop the app first
+writes a byte, so the watchdog's read *succeeds* and it exits quietly while
+the app terminates the server itself.
+
+Both pipe ends are close-on-exec, so the server never inherits the write
+end -- if it did, the pipe would never reach EOF and the mechanism would be
+silently dead.
+
+Verified by force-killing (`kill -9`) both apps mid-session: the server
+process dies with them and port 9001 is released. Exactly one watchdog runs
+while the server is up, and none is left behind afterwards.
 
 ## Honest limitations
 

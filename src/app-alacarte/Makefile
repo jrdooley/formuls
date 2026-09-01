@@ -124,10 +124,10 @@ $(BUILD_DIR)/main.o: src/main.mm src/Engine.h src/OpenStageControl.h src/Resourc
 $(BUILD_DIR)/Engine.o: src/Engine.cpp src/Engine.h ../shared/PerformanceMeter.h | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/OpenStageControl.o: src/OpenStageControl.cpp src/OpenStageControl.h src/ChildProcess.h | $(BUILD_DIR)
+$(BUILD_DIR)/OpenStageControl.o: src/OpenStageControl.cpp src/OpenStageControl.h ../shared/ChildProcess.h | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/ChildProcess.o: src/ChildProcess.cpp src/ChildProcess.h | $(BUILD_DIR)
+$(BUILD_DIR)/ChildProcess.o: ../shared/ChildProcess.cpp ../shared/ChildProcess.h | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/ResourceLocator.o: src/ResourceLocator.cpp src/ResourceLocator.h | $(BUILD_DIR)

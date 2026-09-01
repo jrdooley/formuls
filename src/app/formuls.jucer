@@ -23,6 +23,9 @@
             file="Source/ResourceLocator.h"/>
       <FILE id="srcPM0" name="PerformanceMeter.h" compile="0" resource="0"
             file="../shared/PerformanceMeter.h"/>
+      <FILE id="srcCP0" name="ChildProcess.h" compile="0" resource="0" file="../shared/ChildProcess.h"/>
+      <FILE id="srcCP1" name="ChildProcess.cpp" compile="1" resource="0"
+            file="../shared/ChildProcess.cpp"/>
     </GROUP>
     <GROUP id="frmAst" name="Assets">
       <FILE id="astIc0" name="formuls-app-icon.png" compile="0" resource="1"

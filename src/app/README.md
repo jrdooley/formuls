@@ -25,7 +25,7 @@ It is one app that:
 | `Source/Main.cpp` | App entry point; creates the main window, installs the look and feel, handles quitting. |
 | `Source/MainComponent.h/.cpp` | The window contents: device/channel combo boxes, Start/Stop button, status line. |
 | `Source/FormulsEngine.h/.cpp` | libpd embedded behind a `juce::AudioIODeviceCallback`; loads `_main.pd`, renders audio, receives patch messages. |
-| `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server with `juce::ChildProcess`; also works out the GUI's web addresses. |
+| `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server (via the shared `formuls::ChildProcess`); also works out the GUI's web addresses. |
 | `Source/FormulsLookAndFeel.h` | **All styling** — window title/size, colours, fonts, layout metrics. |
 | `Source/ResourceLocator.h` | Finds the `pd/` and `gui/` resources both in the packaged app and in development builds. |
 | `formuls.jucer` | Projucer project. Generates `Builds/MacOSX` (Xcode) and `Builds/LinuxMakefile`. |
@@ -128,6 +128,31 @@ and its header comment is a how-to. In short:
   `FormulsLookAndFeel`.
 * **Custom drawing** — override `juce::LookAndFeel_V4` methods such as
   `drawButtonBackground()` or `drawComboBox()` in `FormulsLookAndFeel`.
+
+## The control GUI never outlives the app
+
+The launcher starts a node.js server that holds ports 9000 and 9001. If it
+were left running after the app went away, the *next* launch's GUI would
+silently fail to bind those ports -- so both apps guarantee the server dies
+with them, however they die.
+
+Signals cannot provide that guarantee on their own: SIGKILL (Force Quit)
+is uncatchable and a hard crash may never reach a handler. So instead of
+reacting to our own death, the kernel announces it. `ChildProcess::start()`
+opens a pipe and spawns a one-line `/bin/sh` watchdog whose stdin is the
+read end; the app holds the write end open for as long as it lives. When
+the app dies for any reason, the kernel closes its descriptors, the pipe
+hits EOF, and the watchdog kills the server. On a clean stop the app first
+writes a byte, so the watchdog's read *succeeds* and it exits quietly while
+the app terminates the server itself.
+
+Both pipe ends are close-on-exec, so the server never inherits the write
+end -- if it did, the pipe would never reach EOF and the mechanism would be
+silently dead.
+
+Verified by force-killing (`kill -9`) both apps mid-session: the server
+process dies with them and port 9001 is released. Exactly one watchdog runs
+while the server is up, and none is left behind afterwards.
 
 ## Quitting the app from the Pd patch
 

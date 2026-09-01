@@ -34,14 +34,15 @@ juce::Result OpenStageControlProcess::start (const juce::File& resourceRoot)
     // Same command line the Python front end used:
     //   node open-stage-control/ --send 127.0.0.1:9000 --port 9001
     //        --load _main.json --client-options framerate=25 hdpi=0
-    juce::StringArray args { node.getFullPathName(),
-                             oscDir.getFullPathName(),
-                             // OSC out -> the Pd patch
-                             "--send", "127.0.0.1:" + juce::String (patchOscPort),
-                             // GUI served on this port
-                             "--port", juce::String (guiPort),
-                             "--load", layout.getFullPathName(),
-                             "--client-options", "framerate=25", "hdpi=0" };
+    const std::vector<std::string> args {
+        node.getFullPathName().toStdString(),
+        oscDir.getFullPathName().toStdString(),
+        // OSC out -> the Pd patch
+        "--send", "127.0.0.1:" + std::to_string (patchOscPort),
+        // GUI served on this port
+        "--port", std::to_string (guiPort),
+        "--load", layout.getFullPathName().toStdString(),
+        "--client-options", "framerate=25", "hdpi=0" };
 
     if (! process.start (args))
         return juce::Result::fail ("Could not start Open Stage Control ("

@@ -17,14 +17,20 @@
  * pd/_main.pd). To change ports or o-s-c options, edit the argument list in
  * OpenStageControlProcess.cpp.
  *
- * Because the process is started with juce::ChildProcess, stopping it (or
- * quitting the app) kills exactly the process this app started -- unlike the
- * old "killall node", which would take down any node process on the machine.
+ * The process is started with the shared formuls::ChildProcess rather than
+ * juce::ChildProcess, so stopping it (or quitting the app) kills exactly the
+ * process this app started -- unlike the old "killall node", which would take
+ * down any node process on the machine -- and, crucially, the server is also
+ * killed if this app is force-quit or crashes. juce::ChildProcess handles the
+ * clean-quit case but exposes no PID to hang a watchdog on, and an orphaned
+ * node keeps ports 9000/9001 so the *next* launch's GUI fails to bind.
+ * See src/shared/ChildProcess.h.
  */
 
 #pragma once
 
 #include <JuceHeader.h>
+#include "ChildProcess.h"
 
 namespace formuls
 {
@@ -69,7 +75,7 @@ public:
     static juce::StringArray getBrowserAddresses();
 
 private:
-    juce::ChildProcess process;
+    ChildProcess process;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OpenStageControlProcess)
 };
