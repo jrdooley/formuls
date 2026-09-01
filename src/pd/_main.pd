@@ -7,7 +7,7 @@
 #X obj 36 86 oscparse;
 #X obj 36 109 list trim;
 #X obj 36 18 loadbang;
-#X msg 36 338 \; pd quit;
+#X msg 36 338 \; formuls-quit bang;
 #X obj 36 315 del 500;
 #X msg 49 273 pd quit;
 #X obj 49 294 s to-faust;
@@ -174,7 +174,7 @@
 #X obj 33 162 netsend -u -b;
 #X obj 277 149 s \$0-formuls;
 #X obj 224 121 route pd;
-#X msg 224 174 \; pd quit;
+#X msg 224 174 \; formuls-quit bang;
 #X obj 51 230 oscparse;
 #X obj 51 251 print;
 #X obj 144 247 spigot;

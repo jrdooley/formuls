@@ -5,7 +5,7 @@
 
 *formuls* makes sound synthesis easy for the beginner, while opening up a plethora of creative sonic possibilities to the seasoned sound designer. Using an intuitive, novel touchscreen-based interface, *formuls* can sculpt primary sounds into kaleidoscopic meshes of finely tuned timbres and pulsating rhythms. Harnessing the power of simple gestural interactions typically used to operate smartphones and tablets, complex sound synthesis techniques are easy to access, control and explore, reducing the required instrumental technique to finger taps, drags and swipes.
 
-This software uses [libpd](https://github.com/libpd/libpd), [Faust](https://faust.grame.fr/), [Open Stage Control](https://openstagecontrol.ammd.net/) and [Python](https://www.python.org/).
+This software uses [JUCE](https://juce.com/), [libpd](https://github.com/libpd/libpd), [Faust](https://faust.grame.fr/) and [Open Stage Control](https://openstagecontrol.ammd.net/).
 
 ***
 ### Instrument features
@@ -25,10 +25,11 @@ Currently, there are only Apple Silicon builds for *formuls* and this has only b
 
 To run formuls:
 - Launch the formuls app.
-- Select your audio output and the number of output channels (2 is default, though you can isolate each individual synth channel as well as master bus effects).
-- Click "Start formuls".
-- To access the control GUI on the computer ruunning the formuls app, you can launch a web browser and navigate to the following address: 127.0.0.1:9001.
-- To access the control GUI on an iPad or Android tablet, make sure your touchscreen device is connected to the same network, determine the IP address of the computer running the formuls app (e.g. 192.168.0.1), open a browser tab on your device and navigate to the computer's IP address with the port address of 9001. For example, 192.168.0.1:9001. Note: the interface is designed with large screens in mind, ideally 12" (or bigger).
+- Select your audio output, the number of output channels (2 is default, though you can isolate each individual synth channel as well as master bus effects), and the sample rate (48 kHz is default; if your audio interface cannot run at the chosen rate, formuls uses the nearest rate it can and tells you).
+- Click "Start formuls". The app then lists every web address the control GUI can be opened at — you no longer need to look up your computer's IP address yourself.
+- To access the control GUI on the computer running the formuls app, launch a web browser and go to the address listed under "On this machine" (127.0.0.1:9001).
+- To access the control GUI on an iPad or Android tablet, make sure your touchscreen device is connected to the same network as the computer, then open a browser tab on your device and go to one of the addresses listed under "On a tablet or phone on the same network" (for example, 192.168.0.1:9001). If more than one is listed, try them in order — a computer connected to several networks has an address on each. Note: the interface is designed with large screens in mind, ideally 12" (or bigger).
+- Click "Stop formuls" to shut the sound engine and control GUI down without quitting the app; closing the window quits formuls entirely.
 
 ***
 ### Demos

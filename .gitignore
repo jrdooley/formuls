@@ -1,6 +1,10 @@
 # ignore all files in build folder. This notably includes binaries
 /build/
 
+# app bundles / folders produced by the build scripts
+/formuls-*.app/
+/formuls-*-linux/
+
 #OS files
 src/libs/.DS_Store
 Thumbs.db

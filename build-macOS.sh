@@ -1,64 +1,83 @@
 #!/bin/zsh
-# macOS ARM64 build script
+# macOS build script for the formuls JUCE app.
+# Builds for the native architecture (Apple Silicon or Intel).
+#
+# Requirements: Xcode (command line tools), JUCE (with Projucer.app) at
+# ~/JUCE (or set the PROJUCER env var), faust, wget.
+# Run from the repository root:  ./build-macOS.sh
 
-# make build directories and copy assets across
-mkdir build
+set -e
+
+VERSION="0.3.0-beta"
+ROOT="$(pwd)"
+PROJUCER="${PROJUCER:-$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer}"
+
+if [[ ! -x "$PROJUCER" ]]; then
+    echo "Projucer not found at: $PROJUCER"
+    echo "Install JUCE at ~/JUCE, or set PROJUCER to your Projucer binary."
+    exit 1
+fi
+
+# make staging directories and copy assets across
+mkdir -p build
 cp -r src/gui build/gui
 cp -r src/pd build/pd
-mkdir build/pd/externals
-cp src/python/formuls-0.2.8-beta.py build/formuls-0.2.8-beta.py
-cp src/python/pyinstaller.py build/pyinstaller.py
+mkdir -p build/pd/externals
 
 # build faust pd externals
-cd src/faust
+cd "$ROOT/src/faust"
 faust2puredata -vec -lv 0 -vs 4 -clang f_ott.dsp f_digitaliser.dsp f_widener.dsp f_limiter.dsp f_repeater.dsp f_reverb.dsp formuls.dsp
-
 mv *.pd_darwin ../../build/pd/externals
 
-# build ableton link (abl_link~_) pd external
-cd ../libs/abl_link/external
+# build ableton link (abl_link~) pd external
+cd "$ROOT/src/libs/abl_link/external"
 make
-mv abl_link~.pd_darwin ../../../../build/pd/externals
+mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
 
-# download open stage control and nodejs
-cd ../../../gui
+# download open stage control and nodejs (native arch)
+cd "$ROOT/src/gui"
 wget https://openstagecontrol.ammd.net/packages/open-stage-control_1.31.0_node.zip
 unzip open-stage-control_1.31.0_node.zip
-cp -r open-stage-control_1.31.0_node ../../build/gui/open-stage-control
+cp -r open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
 rm -rf open-stage-control_1.31.0_node*
 
-wget https://nodejs.org/dist/v22.17.0/node-v22.17.0-darwin-x64.tar.gz
-tar -xf node-v22.17.0-darwin-x64.tar.gz
-cp node-v22.17.0-darwin-x64/bin/node ../../build/gui/node
-rm -rf node-v22.17.0-darwin-x64*
+NODE_ARCH=$(uname -m | sed 's/x86_64/x64/')
+wget "https://nodejs.org/dist/v22.17.0/node-v22.17.0-darwin-$NODE_ARCH.tar.gz"
+tar -xf "node-v22.17.0-darwin-$NODE_ARCH.tar.gz"
+cp "node-v22.17.0-darwin-$NODE_ARCH/bin/node" "$ROOT/build/gui/node"
+rm -rf node-v22.17.0-darwin-$NODE_ARCH*
 
-# build libpd and formulsengine
-cd ../
-make
+# build libpd (the dylib the JUCE app links against) and give it an
+# @rpath install name so the app finds it inside Contents/Frameworks
+cd "$ROOT/src/libs/libpd"
+make UTIL=true EXTRA=true
+install_name_tool -id @rpath/libpd.dylib libs/libpd.dylib
+codesign --force -s - libs/libpd.dylib
 
-# run pyinstaller and build app bundle
-cd ../build
-python3 pyinstaller.py
+# generate the Xcode project from formuls.jucer and build the JUCE app
+cd "$ROOT"
+"$PROJUCER" --resave src/app/formuls.jucer
+xcodebuild -project src/app/Builds/MacOSX/formuls.xcodeproj -configuration Release ARCHS=$(uname -m) ONLY_ACTIVE_ARCH=YES
 
-cp -r icons dist/formuls-0.2.8-beta/_internal/icons
-cp -r pd dist/formuls-0.2.8-beta/_internal/pd
-cp -r gui dist/formuls-0.2.8-beta/_internal/gui
-cp -r libs dist/formuls-0.2.8-beta/_internal/libs
-
-cp -r dist/formuls-0.2.8-beta ../formuls-0.2.8-beta.app
+# assemble the final self-contained app bundle
+rm -rf "formuls-$VERSION.app"
+cp -R src/app/Builds/MacOSX/build/Release/formuls.app "formuls-$VERSION.app"
+cp -r build/pd "formuls-$VERSION.app/Contents/Resources/pd"
+cp -r build/gui "formuls-$VERSION.app/Contents/Resources/gui"
+mkdir -p "formuls-$VERSION.app/Contents/Frameworks"
+cp src/libs/libpd/libs/libpd.dylib "formuls-$VERSION.app/Contents/Frameworks/"
+codesign --force --deep -s - "formuls-$VERSION.app"
 
 # clean up build files
-cd ../
+cd "$ROOT"
 rm -rf build/
 
-cd src/formulsengine
-rm -rf *.o
-
-cd ../libs/libpd
+cd "$ROOT/src/libs/libpd"
 make clean
-rm libs/libpd.dylib
+rm -f libs/libpd.dylib
 
-cd ../abl_link/external
+cd "$ROOT/src/libs/abl_link/external"
 make clean
 
+echo "Done: $ROOT/formuls-$VERSION.app"
 exit 0
