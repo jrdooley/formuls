@@ -1,0 +1,33 @@
+diff --git a/external/abl_link_instance.cpp b/external/abl_link_instance.cpp
+index c0f199a..1bf3a15 100644
+--- a/external/abl_link_instance.cpp
++++ b/external/abl_link_instance.cpp
+@@ -57,9 +57,26 @@ ableton::Link::SessionState& AblLinkWrapper::acquireAudioSessionState(
+ }
+ 
+ void AblLinkWrapper::releaseAudioSessionState() {
+-  if (invocation_count >= shared_instance.use_count()) {
++  // Balanced against acquireAudioSessionState(): the first acquire of a DSP
++  // block captures the session state, the last matching release commits it.
++  //
++  // This used to read "if (invocation_count >= shared_instance.use_count())",
++  // i.e. it guessed how many acquires to expect from how many shared_ptrs to
++  // this wrapper existed. That assumes every living abl_link~ object ticks
++  // exactly once per block. When that does not hold -- one instance's DSP
++  // switched off, an object alive but not in the DSP graph, an extra
++  // reference held anywhere -- the count never reaches the target and
++  // commitAudioSessionState() is simply never called.
++  //
++  // The failure is silent and very confusing, because setTempo() still
++  // applies to the *captured* state, so session_state.tempo() reports the new
++  // value and the tempo outlet emits it: any GUI watching that outlet updates
++  // correctly while the actual Link timeline -- and therefore the audible
++  // tempo -- never changes.
++  //
++  // Counting acquires and releases against each other needs no such guess.
++  if (invocation_count > 0 && --invocation_count == 0) {
+     link.commitAudioSessionState(session_state);
+-    invocation_count = 0;
+   }
+ }
+ 
