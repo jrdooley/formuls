@@ -1,4 +1,42 @@
-# Diagnostic tools
+# Build and diagnostic tools
+
+## brand-osc.sh
+
+Replaces the Open Stage Control client's greeting header
+
+```
+Open Stage Control <span class="version">v1.31.0</span>
+```
+
+with formuls' own name and version
+
+```
+formuls <span class="version">0.3.0-beta</span>
+```
+
+Both build scripts call it straight after unpacking the downloaded Open
+Stage Control package, so the shipped GUI never carries the toolkit's
+branding:
+
+```bash
+./brand-osc.sh <open-stage-control-dir> <version>
+```
+
+It matches on the header text rather than on a line number (the header is
+at line 40 in 1.31.0, but that moves whenever Open Stage Control is
+updated), and **fails the build** if the markup no longer matches, rather
+than silently shipping unbranded. Re-running it on an already-branded tree
+is a no-op, so rebuilds are safe. Written in POSIX sh without `sed -i`, so
+it behaves identically on macOS and Linux.
+
+To rebrand an already-built app in place, point it at the bundle and
+re-sign:
+
+```bash
+./brand-osc.sh /path/to/formuls.app/Contents/Resources/gui/open-stage-control 0.3.0-beta
+codesign --force --deep -s - /path/to/formuls.app
+```
+
 
 ## bpm-probe
 

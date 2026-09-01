@@ -40,6 +40,11 @@ unzip open-stage-control_1.31.0_node.zip
 cp -r open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
 rm -rf open-stage-control_1.31.0_node*
 
+# Put formuls' own name and version in the GUI's greeting header,
+# in place of Open Stage Control's. Fails the build if the markup has
+# changed, rather than silently shipping the toolkit's branding.
+"$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION"
+
 wget https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz
 tar -xf node-v22.17.0-linux-x64.tar.xz
 cp node-v22.17.0-linux-x64/bin/node "$ROOT/build/gui/node"
