@@ -7,6 +7,9 @@
 app/Builds/
 app/JuceLibraryCode/
 
+# build output of the à la carte prototype
+app-alacarte/build/
+
 #OS files
 .DS_Store
 Thumbs.db
