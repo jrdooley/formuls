@@ -1,8 +1,38 @@
 diff --git a/external/abl_link_instance.cpp b/external/abl_link_instance.cpp
-index c0f199a..1bf3a15 100644
+index c0f199a..a66b165 100644
 --- a/external/abl_link_instance.cpp
 +++ b/external/abl_link_instance.cpp
-@@ -57,9 +57,26 @@ ableton::Link::SessionState& AblLinkWrapper::acquireAudioSessionState(
+@@ -49,17 +49,54 @@ ableton::Link::SessionState& AblLinkWrapper::acquireAudioSessionState(
+       num_peers = n;
+     }
+     session_state = link.captureAudioSessionState();
+-    sample_time += DEFDACBLKSIZE;
+-    curr_time = time_filter.sampleTimeToHostTime(sample_time) + latency_offset;
++
++    // Ask the host clock what time it is, rather than inferring it from a
++    // free-running sample counter.
++    //
++    // This used to be:
++    //     sample_time += DEFDACBLKSIZE;
++    //     curr_time = time_filter.sampleTimeToHostTime(sample_time) + ...;
++    // i.e. a linear regression mapping "how many samples have we rendered"
++    // onto host time. That is the textbook approach *provided the audio
++    // clock never skips*, because it smooths callback jitter. But sample_time
++    // is free-running and is never resynchronised, so any discontinuity --
++    // an xrun, a device dropout, the app being descheduled under load --
++    // permanently skews the mapping. curr_time then drifts away from the real
++    // clock, and since every tempo change is stamped
++    // setTempo(bpm, curr_time), Link starts placing (or rejecting) those
++    // changes at the wrong time. The audible result is a tempo that reports
++    // correctly but stops actually changing, and never recovers until the
++    // patch is reloaded.
++    //
++    // Link's own clock cannot drift from itself, so this trades a little
++    // jitter smoothing for not breaking after the first dropout.
++    curr_time = link.clock().micros() + latency_offset;
+   }
+   *current_time = curr_time;
+   return session_state;
  }
  
  void AblLinkWrapper::releaseAudioSessionState() {
