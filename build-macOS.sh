@@ -34,16 +34,18 @@ mv *.pd_darwin ../../build/pd/externals
 # binary applies exactly 16 tempo changes and then silently ignores every
 # later one, because Link's worker threads never run. See
 # src/prebuilt/README.md for the full diagnosis. Ship the known-good build.
-if [ -f "$ROOT/src/prebuilt/abl_link~.pd_darwin" ]; then
-    cp "$ROOT/src/prebuilt/abl_link~.pd_darwin" "$ROOT/build/pd/externals/"
+# NB: the cd stays outside the conditional; the rest of this script
+# navigates by paths relative to src/libs/abl_link/external.
+cd ../libs/abl_link/external
+if [ -f "../../../prebuilt/abl_link~.pd_darwin" ]; then
+    cp "../../../prebuilt/abl_link~.pd_darwin" ../../../../build/pd/externals/
     echo "using pre-built abl_link~ (see src/prebuilt/README.md)"
 else
     echo "WARNING: src/prebuilt/abl_link~.pd_darwin missing; building from"
     echo "         source, which on current Xcode freezes the tempo after 16"
     echo "         changes. Verify with src/tools/abl-link-repro."
-    cd "$ROOT/src/libs/abl_link/external"
     make
-    mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
+    mv abl_link~.pd_darwin ../../../../build/pd/externals
 fi
 
 # download open stage control and nodejs (native arch)
