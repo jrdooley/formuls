@@ -107,7 +107,7 @@ chorus(x) = x+level*de.fdelay(1<<16, t, x)
 with {
   depth	= hslider("chorus",0,0,1,0.01) : si.smoo;
 
-  level	= 1;
+  level	= depth +(1) : ma.log2;
   freq	= os.osc(1) : *(0.5) : +(0.25);
   dtime	= 0.02;
 
