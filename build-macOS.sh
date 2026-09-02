@@ -29,10 +29,22 @@ cd "$ROOT/src/faust"
 faust2puredata -vec -lv 0 -vs 4 -clang f_ott.dsp f_digitaliser.dsp f_widener.dsp f_limiter.dsp f_repeater.dsp f_reverb.dsp formuls.dsp
 mv *.pd_darwin ../../build/pd/externals
 
-# build ableton link (abl_link~) pd external
-cd "$ROOT/src/libs/abl_link/external"
-make
-mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
+# ableton link (abl_link~) pd external
+# Do NOT build this from source on macOS with a current Xcode: the resulting
+# binary applies exactly 16 tempo changes and then silently ignores every
+# later one, because Link's worker threads never run. See
+# src/prebuilt/README.md for the full diagnosis. Ship the known-good build.
+if [ -f "$ROOT/src/prebuilt/abl_link~.pd_darwin" ]; then
+    cp "$ROOT/src/prebuilt/abl_link~.pd_darwin" "$ROOT/build/pd/externals/"
+    echo "using pre-built abl_link~ (see src/prebuilt/README.md)"
+else
+    echo "WARNING: src/prebuilt/abl_link~.pd_darwin missing; building from"
+    echo "         source, which on current Xcode freezes the tempo after 16"
+    echo "         changes. Verify with src/tools/abl-link-repro."
+    cd "$ROOT/src/libs/abl_link/external"
+    make
+    mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
+fi
 
 # download open stage control and nodejs (native arch)
 cd "$ROOT/src/gui"
