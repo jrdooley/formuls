@@ -267,6 +267,7 @@
 #X obj 87 124 r \$0-bpm-half-time;
 #X obj 223 134 tgl 15 0 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 0 1;
 #X msg 223 155 connect \$1;
+#X obj 241 334 s \$0-bpm-link-gui;
 #X connect 1 0 2 0;
 #X connect 2 0 9 0;
 #X connect 2 1 13 0;
@@ -293,6 +294,7 @@
 #X connect 23 0 19 1;
 #X connect 24 0 25 0;
 #X connect 25 0 5 0;
+#X connect 5 3 26 0;
 #X restore 81 32 pd SEQUENCER_TIMING;
 #X connect 1 0 0 0;
 #X restore 28 82 pd TIMING_____________________;
@@ -1440,7 +1442,7 @@
 #X restore 20 41 pd GLOBAL_MESSAGES_RECEIVE___;
 #N canvas 288 234 1248 550 GLOBAL_MESSAGES__SEND_____ 0;
 #X obj 40 12 inlet;
-#X obj 40 61 r \$0-bpm;
+#X obj 40 61 r \$0-bpm-link-gui;
 #X obj 40 106 s to-o-s-c-interface;
 #X obj 43 283 oscformat repeaterlevel;
 #X obj 43 261 r \$0-repeater-level-gui;
@@ -1470,7 +1472,7 @@
 #X obj 493 134 s to-o-s-c-interface;
 #X obj 493 112 oscformat pitchroot;
 #X obj 493 90 r \$0-scale-root-note;
-#X obj 40 83 oscformat bpmgui;
+#X obj 40 83 oscformat bpmguilinkreceive;
 #X obj 485 245 s to-o-s-c-interface;
 #X obj 485 201 r \$0-digitaliser-level-gui;
 #X obj 485 223 oscformat digitaliserlevel;
