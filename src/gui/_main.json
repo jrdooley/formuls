@@ -2116,7 +2116,7 @@
                 "value": "",
                 "default": 110,
                 "linkId": "",
-                "address": "/@{this.id}",
+                "address": "/bpmguilinkreceive",
                 "preArgs": "",
                 "decimals": 2,
                 "target": "",
