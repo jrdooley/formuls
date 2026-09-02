@@ -1,6 +1,73 @@
-# ignore all files in build folder. This notably includes binaries
-/build/
+# ---------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------
+# "build" at any depth: the top-level dir used by build-macOS.sh /
+# build-linux.sh, and nested ones such as src/app-alacarte/build/.
+build/
 
-#OS files
-src/libs/.DS_Store
+# Packaged applications produced by the build scripts
+/formuls-*.app/
+/formuls-*-linux/
+*.app/
+
+# JUCE: Projucer regenerates both of these from src/app/formuls.jucer
+src/app/Builds/
+src/app/JuceLibraryCode/
+
+# ---------------------------------------------------------------
+# Dependencies downloaded by the build scripts
+# ---------------------------------------------------------------
+src/gui/open-stage-control*
+src/gui/node-v*
+node_modules/
+
+# ---------------------------------------------------------------
+# Compiled binaries, Pd externals and Faust-generated sources
+# ---------------------------------------------------------------
+# NOTE: deliberately no "*.lib" rule here -- the Faust sources
+# (ffx.lib, fsynth.lib, fosc.lib) use that extension and must stay
+# tracked. Windows import libraries are covered by build/ instead.
+*.pd_darwin
+*.pd_linux
+*.pd_freebsd
+*.pd_nt
+*.pd_win
+*.dll
+*.so
+*.so.*
+*.dylib
+*.a
+*.o
+*.obj
+*.exe
+*.bundle
+
+# Exception: this prebuilt Ableton Link external is shipped on purpose
+!src/prebuilt/abl_link~.pd_darwin
+
+# ---------------------------------------------------------------
+# OS cruft
+# ---------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.Trashes
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------
+# Editor / IDE
+# ---------------------------------------------------------------
+*~
+*.swp
+.vscode/
+.idea/
+xcuserdata/
+*.xcuserdatad/
