@@ -42,6 +42,43 @@ This looks like a fixed-capacity realtime buffer on Link's audio-thread
 commit path that is never drained in this embedding, so it fills after 16
 entries and discards everything afterwards.
 
+## Root cause, traced into Ableton Link
+
+`include/ableton/link/Controller.hpp`:
+
+```cpp
+// Assuming a wake up time of one ms for the threads owned by the CallbackDispatcher
+// and the ioService, buffering 16 client states allows to set eight client states
+// per ms.
+static const std::size_t kBufferSize = 16;
+CircularFifo<IncomingClientState, kBufferSize> mClientStateFifo;
+```
+
+`setClientStateRtSafe()` pushes into that fifo and **silently discards the
+value if it is full** ("we expect the setter to be called again soon").
+Sixteen is exactly the number of tempo changes that get through, so the fifo
+fills once and is never emptied again.
+
+Draining it needs this chain, and instrumenting each link shows where it
+breaks on macOS:
+
+| step | what should happen | what actually happens |
+| --- | --- | --- |
+| `tryPush` | pushes, calls `mCallbackDispatcher.invoke()` | ok, until the fifo is full |
+| `LockFreeCallbackDispatcher` thread | wakes on notify or every 500 ms and runs its callback | **thread starts, but `mCondition.wait_for()` never returns — the callback never runs** |
+| callback | `mIo->async(processPendingClientStates)` | never reached |
+| io context thread | `service.run()` serves posted handlers | **`run()` returns immediately despite a live work guard and `stopped()==0`, so the thread exits** |
+| `processPendingClientStates` | drains the fifo | **never executes, not even once** |
+
+So *both* threads that Link relies on are broken in this embedding, and the
+fifo can only ever accept its initial 16 entries.
+
+Asio itself is fine here: a standalone program using the bundled asio with
+the same flags creates `io_service` + `work` + thread, and `run()` blocks and
+executes posted handlers correctly. The same abl_link~ and Link versions are
+reported working on Linux, and both platforms select the same
+`platforms::asio::Context`, so this is specific to macOS.
+
 ## Things tried that did NOT fix it
 
 * balancing acquire/release so the commit is not gated on a `shared_ptr`
@@ -53,7 +90,16 @@ entries and discards everything afterwards.
 * routing tempo through `captureAppSessionState()` / `commitAppSessionState()`
   — this made it worse (stuck at the very first value),
 * periodically calling `captureAppSessionState()` to try to pump Link's
-  controller.
+  controller,
+* making the io context thread restart `service.run()` instead of exiting
+  when it returns early (the thread then stays alive, but the drain still
+  never runs, because the dispatcher above it never posts anything),
+* replacing the dispatcher's `condition_variable` wait with a 1 ms sleep
+  (the thread then polls, but the chain still does not complete).
+
+The last two are real improvements to the threading and may be needed as
+part of a full fix, but neither is sufficient on its own, so neither is
+carried in `src/patches/`.
 
 ## Building and running
 
