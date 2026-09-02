@@ -29,20 +29,22 @@ cd "$ROOT/src/faust"
 faust2puredata -vec -lv 0 -vs 4 -clang f_ott.dsp f_digitaliser.dsp f_widener.dsp f_limiter.dsp f_repeater.dsp f_reverb.dsp formuls.dsp
 mv *.pd_darwin ../../build/pd/externals
 
-# build ableton link (abl_link~) pd external
-# abl_link~ only commits a changed tempo back to Link when its acquire /
-# release counts happen to line up with a shared_ptr use_count; when they
-# do not, setTempo is visible on the tempo outlet but never reaches Link,
-# so the GUI updates while the audible tempo never changes. Patch it to
-# balance acquire against release instead. Harmless if already applied.
-cd "$ROOT/src/libs/abl_link"
-git apply --check "$ROOT/src/patches/abl_link-commit-session-state.patch" 2>/dev/null \
-    && git apply "$ROOT/src/patches/abl_link-commit-session-state.patch" \
-    && echo "applied abl_link~ session-state commit fix" \
-    || echo "abl_link~ commit fix already applied (or not applicable)"
-cd "$ROOT/src/libs/abl_link/external"
-make
-mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
+# ableton link (abl_link~) pd external
+# Do NOT build this from source on macOS with a current Xcode: the resulting
+# binary applies exactly 16 tempo changes and then silently ignores every
+# later one, because Link's worker threads never run. See
+# src/prebuilt/README.md for the full diagnosis. Ship the known-good build.
+if [ -f "$ROOT/src/prebuilt/abl_link~.pd_darwin" ]; then
+    cp "$ROOT/src/prebuilt/abl_link~.pd_darwin" "$ROOT/build/pd/externals/"
+    echo "using pre-built abl_link~ (see src/prebuilt/README.md)"
+else
+    echo "WARNING: src/prebuilt/abl_link~.pd_darwin missing; building from"
+    echo "         source, which on current Xcode freezes the tempo after 16"
+    echo "         changes. Verify with src/tools/abl-link-repro."
+    cd "$ROOT/src/libs/abl_link/external"
+    make
+    mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
+fi
 
 # download open stage control and nodejs (native arch)
 cd "$ROOT/src/gui"
