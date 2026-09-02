@@ -82,10 +82,9 @@ reported working on Linux, and both platforms select the same
 ## Things tried that did NOT fix it
 
 * balancing acquire/release so the commit is not gated on a `shared_ptr`
-  use count (kept: a genuine latent bug, but not this one),
+  use count,
 * taking the timestamp from `link.clock()` instead of a free-running sample
-  counter through a `HostTimeFilter` (kept: measurably more robust across an
-  audio dropout, but not this one),
+  counter through a `HostTimeFilter`,
 * committing only a state that was actually modified,
 * routing tempo through `captureAppSessionState()` / `commitAppSessionState()`
   — this made it worse (stuck at the very first value),
@@ -97,9 +96,9 @@ reported working on Linux, and both platforms select the same
 * replacing the dispatcher's `condition_variable` wait with a 1 ms sleep
   (the thread then polls, but the chain still does not complete).
 
-The last two are real improvements to the threading and may be needed as
-part of a full fix, but neither is sufficient on its own, so neither is
-carried in `src/patches/`.
+None of these fixed it, and none is carried: the submodule is pristine
+upstream. The actual cause turned out to be the local build itself -- see
+`src/prebuilt/README.md`.
 
 ## Building and running
 

@@ -120,33 +120,3 @@ cp -R /path/to/formuls.app/Contents/Resources/pd/externals /tmp/pd-test/external
 The first measurement after a change often reads negative -- the patch
 sends `reset` to `abl_link~`, so the beat counter jumps backwards once.
 That is an artefact of the probe, not a fault.
-
-## The abl_link~ session-state commit fix
-
-`src/patches/abl_link-commit-session-state.patch` (applied automatically by
-both build scripts) changes one function in the `abl_link` submodule.
-
-The external shares one Ableton Link instance between all `abl_link~`
-objects. Each object's tick captures the session state, modifies it, and
-releases it; the wrapper decides when to commit by comparing an acquire
-counter against `shared_instance.use_count()` -- i.e. it guesses how many
-acquires to expect from how many `shared_ptr`s exist. That assumes **every
-living `abl_link~` ticks exactly once per DSP block**. When it does not --
-DSP switched off for the subpatch holding it, an object alive but outside
-the DSP graph, any extra reference -- the counter never reaches the target
-and `commitAudioSessionState()` is never called.
-
-The failure is silent and badly misleading:
-
-* `setTempo()` still applies to the **captured** state, so
-  `session_state.tempo()` returns the new value and the tempo outlet emits
-  it -- **a GUI watching that outlet updates correctly**;
-* but the Link timeline never receives it, so the beat outlet keeps its old
-  rate and **the audible tempo never changes**.
-
-The patch counts acquires against releases instead: the first acquire of a
-block captures, the last release commits. No guess about instance counts,
-correct for one object or many.
-
-Verified with `abltest` (see bpm-probe): tempo changes are followed exactly
-both when sent once per change and when re-sent continuously.
