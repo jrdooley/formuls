@@ -18,7 +18,7 @@
 
   const ST = window.__ST = {
     frames: 0, bytes: 0, opens: 0, closes: 0,
-    handlerMs: 0, maxHandlerMs: 0, sockets: [], t0: Date.now()
+    handlerMs: 0, maxHandlerMs: 0, hist: [], sockets: [], t0: Date.now()
   };
 
   const Wrapped = function (url, proto) {
@@ -38,6 +38,7 @@
             const r = orig.call(this, ev);
             const d = performance.now() - t;
             ST.handlerMs += d;
+            ST.hist.push(d);
             if (d > ST.maxHandlerMs) ST.maxHandlerMs = d;
             return r;
           };

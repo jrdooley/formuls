@@ -4,14 +4,30 @@
 //   window.__read(35616)   report against a known number of OSC messages sent,
 //                          which is what gives msgsPerFrame and us-per-OSC-message
 //                          when the server is batching several into one frame
+//   window.__hist()        distribution of handler durations. Read this, not
+//                          maxHandlerMs: a reconnect burst produces one huge
+//                          outlier that says nothing about steady state
 //   window.__reset()       zero the counters; call before every run
 
 (() => {
   window.__reset = () => {
     const S = window.__ST;
     S.frames = 0; S.bytes = 0; S.closes = 0; S.opens = 0;
-    S.handlerMs = 0; S.maxHandlerMs = 0; S.t0 = Date.now();
+    S.handlerMs = 0; S.maxHandlerMs = 0; S.hist = []; S.t0 = Date.now();
     return 'reset';
+  };
+
+  window.__hist = () => {
+    const h = [...window.__ST.hist].sort((a, b) => a - b);
+    if (!h.length) return {n: 0};
+    const q = p => +h[Math.min(h.length - 1, Math.floor(p * h.length))].toFixed(1);
+    return {
+      n: h.length, p50: q(.5), p90: q(.9), p99: q(.99),
+      max: +h[h.length - 1].toFixed(1),
+      over16ms: h.filter(x => x > 16).length,
+      over50ms: h.filter(x => x > 50).length,
+      totalMs: +h.reduce((a, b) => a + b, 0).toFixed(0)
+    };
   };
 
   window.__read = (oscSent) => {

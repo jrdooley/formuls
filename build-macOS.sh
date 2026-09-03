@@ -3,7 +3,7 @@
 # Builds for the native architecture (Apple Silicon or Intel).
 #
 # Requirements: Xcode (command line tools), JUCE (with Projucer.app) at
-# ~/JUCE (or set the PROJUCER env var), faust, wget.
+# ~/JUCE (or set the PROJUCER env var), faust, wget, python3.
 # Run from the repository root:  ./build-macOS.sh
 
 set -e
@@ -52,6 +52,12 @@ wget https://openstagecontrol.ammd.net/packages/open-stage-control_1.31.0_node.z
 unzip open-stage-control_1.31.0_node.zip
 cp -r open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
 rm -rf open-stage-control_1.31.0_node*
+
+# Serialise each broadcast once instead of once per connected tablet.
+# Add --batch-ms 20 to also coalesce value updates into one WebSocket
+# frame; that is off by default because it costs the tablet more work
+# than it saves. Both measured in docs/gui/README.md.
+python3 "$ROOT/src/tools/patch-osc-perf.py" "$ROOT/build/gui/open-stage-control"
 
 NODE_ARCH=$(uname -m | sed 's/x86_64/x64/')
 wget "https://nodejs.org/dist/v22.17.0/node-v22.17.0-darwin-$NODE_ARCH.tar.gz"

@@ -37,6 +37,47 @@ re-sign:
 codesign --force --deep -s - /path/to/formuls.app
 ```
 
+Note: neither build script currently calls this, despite the comment in the
+script saying they do. Branding is applied by hand, or not at all.
+
+
+## patch-osc-perf.py
+
+Performance surgery on the same downloaded Open Stage Control package. Both
+build scripts run it straight after unpacking:
+
+```bash
+python3 src/tools/patch-osc-perf.py build/gui/open-stage-control
+```
+
+**Applied always.** `IpcServer.send` ships serialising its payload once per
+connected client:
+
+```js
+for (var s in i) ... i[s].send(e, t)      // JSON.stringify per client
+```
+
+so one parameter move costs N `JSON.stringify` calls for N tablets. The patch
+serialises once and hands every client the same string. Worth −4.5% of server
+CPU with four clients connected, nothing with one, and no behavioural change.
+
+**Opt-in: `--batch-ms N`.** Also coalesces broadcast value updates into one
+WebSocket frame per N ms, using the `bundle` event the client has always
+handled but that no server release sends. At four clients that is −64% server
+CPU and 83× fewer frames — but it makes the *client* do 32% more work, in
+12 ms slabs instead of 0.1 ms slivers. Since a saturated tablet main thread is
+what drops the connection in the first place, it is off by default. Turn it on
+when the server or the access point is the bottleneck rather than the tablet.
+
+Measurements, and the rig that produced them, are in `docs/gui/`.
+
+Same contract as `brand-osc.sh`: matched on the code rather than line numbers
+or byte offsets (it is a webpack bundle, so both move on every upgrade), a
+hard failure if an anchor is missing, and a no-op on an already-patched tree.
+Python rather than sh because the anchors are long minified strings full of
+characters `sed` would need escaping for, and BSD and GNU `sed` disagree about
+several of them.
+
 
 ## FORMULS_TRACE (built into the a la carte app)
 

@@ -86,58 +86,96 @@ At 84 parameters × 25 Hz = 1,781 msg/s: 100% delivered, 112 KiB/s, and
   `inter-act-overide` toggle opens the gate for all six and takes it to
   ~10,700 msg/s, but it is a Pd-side toggle the interface cannot reach.
 - `GET_INTERFACE` at `_main.pd:148` sends `/GET 127.0.0.1:9000 root` **25
-  times a second, forever**. Each one costs a WebSocket frame to every client
-  and a 24-byte reply parsed back through Pd's `oscparse`/`route` chain. It
-  polls a widget whose value is always 0.
+  times a second, forever**, and each one costs a WebSocket frame to every
+  client plus a 24-byte reply parsed back through Pd. It looks like pure
+  waste. **It is not: it is load-bearing, and it must not be deleted.**
+
+  `route pd GET oscmonitor testtone` in `OPEN_STAGE_CONTROL_RECEIVE_` sends
+  its `GET` outlet into `INTERFACE_ACTIVE_MESSAGE_SEND`, whose `route root`
+  writes the reply into the two-slot `interface-active` array that becomes
+  `inter-act`. So this poll is the *only* thing telling Pd which tab is
+  selected, and therefore the only thing driving the gate above.
+
+  Verified that nothing else can do the job: with a sink on the server's
+  `--send` target and no Pd running, switching tabs in the client produces
+  **no OSC at all**. The root widget does not push its value; it can only be
+  polled. Two consequences worth knowing — `inter-act` updates at half the
+  poll rate (the `mod 2`/`sel 1` pair reads the array every other reply, so
+  12.5 Hz), and if every tablet disconnects the gate freezes on whichever
+  two tabs were last selected.
+
+  Lowering the poll rate is possible — tab selection is a human action and
+  10 Hz would be imperceptible — but it is worth well under 1% of the load
+  and means editing a patch Pd will re-save. Not worth it on its own.
 
 ## Sending them as blobs: measured, and it is not the fix
 
-`tools/batch-frames.py` rewrites `Client.send` in a copy of the bundle to
-coalesce into one frame per 20 ms. No client change was needed: the client has
-handled a `bundle` event since forever (`client/callbacks.js`:
-`bundle: n => { for (let o in n) e.receive(n[o]) }`) but no server release
-ever sends one. Same load, same client:
+`src/tools/patch-osc-perf.py --batch-ms 20` rewrites `IpcServer.send` to
+coalesce broadcasts into one frame per 20 ms. The receiving half needed no
+invention: the client has handled a `bundle` event since forever
+(`client/callbacks.js`), it is simply that no server release ever sends one.
+Same load, same session, one browser client:
 
-| | stock | batched |
+| | stock | `--batch-ms 20` |
 |---|---|---|
-| WebSocket frames for 36k messages | 35,618 | **438** (83 msgs/frame) |
-| bytes | 111.7 KiB/s | 91.3 KiB/s (**−18%**) |
-| server CPU | 0.82 s | **0.63 s (−23%)** |
-| client JS per message | 115 µs | **133 µs (worse)** |
-| longest uninterrupted handler | 15.3 ms | 23.7 ms |
+| WebSocket frames for 38k messages | 38,310 | **464** (83 msgs/frame) |
+| bytes | 124.5 KiB/s | 107.4 KiB/s (**−14%**) |
+| server CPU | 0.99 s | **0.59 s (−40%)** |
+| client main-thread JS over the run | 4,164 ms | **5,513 ms (+32%)** |
+| handler p50 / p99 | 0.1 / 0.6 ms | 12.2 / 15.9 ms |
+| handler calls over 16 ms | 0 | 3 of 464 |
 
-The client gets *slower*: `for...in` over an array is slow, and batching also
-removes the natural yielding between messages, which is why the longest
-uninterrupted run of JS grows by half. The 6 µs transport figure predicts this
-exactly — there is only 5% there to win.
+The 6 µs transport figure predicted this: there was only 5% to win on the
+client, and batching does not collect it. What it does instead is make the
+client do **32% more total work**, delivered in 12 ms slabs rather than 0.1 ms
+slivers. Rewriting the shipped `for...in` bundle loop as an indexed loop —
+which the patch does whenever batching is on — does not recover the
+difference, so the loop was never the cause.
 
-Batching is still worth something for the **link**: 81× fewer frames and 18%
-fewer bytes means a far shorter head-of-line queue on a marginal Wi-Fi hop.
-But the client's main thread is where the 3-second deadline lives, and
-batching does not move it.
+The one number that first looked alarming was a 67.7 ms handler call. That is
+a reconnect artefact, not steady state: over a 20 s run the worst steady-state
+call is 19.5 ms and only three exceed 16 ms. Worth recording because a max
+alone would have condemned the change for the wrong reason.
 
-**Conclusion: packing the messages differently cannot help. Sending fewer of
-them can, linearly.**
+The server side of the trade grows with tablet count. Three paired rounds at
+84 params × 25 Hz with **four** clients connected, median of three:
 
-## Two changes worth shipping on their own
+| | µs of server CPU per message | vs stock |
+|---|---|---|
+| stock | 51.1 | — |
+| serialise once | 48.8 | −4.5% |
+| `--batch-ms 20` | **18.6** | **−64%** |
 
-Both are small, and neither is the real fix.
+So batching is a real win for the server and the link, and a real loss for the
+tablet. Since a saturated tablet main thread is exactly what drops the
+connection, **batching ships off by default** and is one flag away.
 
-- **Delete the `/GET` poll.** 25 frames/s per client and 25 Hz of `oscparse`
-  work in Pd, for a value that is always 0.
-- **Hoist the `JSON.stringify` out of `IpcServer.send`'s per-client loop.**
-  It currently re-serialises the same payload once per connected tablet.
+**Conclusion: packing the messages differently cannot help the client. Sending
+fewer of them can, linearly.**
 
-The batching patch is worth shipping *if* the client half is rewritten at the
-same time — a `for...of` loop, and a flush that yields between chunks so one
-frame cannot monopolise the main thread for 24 ms. As it stands it trades
-client responsiveness for server CPU, which is the wrong direction.
+## What shipped
+
+`src/tools/patch-osc-perf.py`, applied to the vendored package by both build
+scripts straight after it is unpacked. It follows `brand-osc.sh`'s contract:
+matched on the code rather than line numbers, idempotent, and a hard failure
+if an anchor is missing, because a patch that silently does nothing is worse
+than one that stops the build.
+
+- **Applied always:** `IpcServer.send` serialises the payload once and hands
+  every client the same string, instead of `JSON.stringify` per client. Worth
+  −4.5% of server CPU at four clients and nothing at one; no behavioural
+  change whatsoever.
+- **Opt-in, `--batch-ms N`:** the coalescing above. Turn it on when the server
+  or the access point is the bottleneck rather than the tablet.
+
+The `/GET` poll was in the original plan for this step and was **not** removed:
+it turned out to be load-bearing. See the note above.
 
 ## What does fix it, in order
 
 | | work | expected |
 |---|---|---|
-| **1** Delete the `/GET` poll; hoist the `stringify`; ship the batching patch *with* a rewritten client handler, applied to the vendored o-s-c in `build-macOS.sh` | 1–2 days | −23% server CPU, 81× fewer frames, better behaviour on marginal Wi-Fi. Does not fix client saturation |
+| **1** ~~Delete the `/GET` poll~~; hoist the `stringify`; make batching available — **done**, see "What shipped" | 1–2 days | −4.5% server CPU at four tablets by default; −64% and 83× fewer frames with `--batch-ms 20`. Does not fix client saturation, and the `/GET` half of this was a wrong call |
 | **2** Gate updates on the **visible tab**, not just the instance. `inter-act` already proves the pattern; o-s-c can tell Pd which tab is active | ~1 week, all in the patch | Biggest win per unit of effort; plausibly 3–10× fewer steady-state messages |
 | **3** The blob idea in the place it pays: one packed frame per tick into an o-s-c `canvas` widget with an `onDraw` script, replacing ~72 individual widget updates with one | 1–2 weeks | Attacks the 95% directly. This is the version of "send it as a blob" that works |
 | **4** Merge xy pads into `multixy` + mode buttons — `filter` already does this with HiPass/LowPass points | 2–4 weeks | Real, but touches the 1.7 MB `_main.json` (907 authored widgets, 67 clones) and the string-concatenated addresses in `f.util.oscformatxy` / `f.util.oscinparse` |

@@ -11,7 +11,7 @@ and `gui/open-stage-control` package are reused rather than downloaded again.
 | `osc-load.py` | Drives those addresses into an o-s-c server, either `throttled` (N addresses at 25 Hz, the realistic instrument load) or `steady` (one message every GAP seconds, for pricing a single widget update). |
 | `ws-probe.js` | Pasted into the client's console: wraps `WebSocket` to count frames and time the app's own message handler. |
 | `ws-probe-read.js` | Defines `__reset()` and `__read(sent)` to read those counters back. |
-| `batch-frames.py` | Rewrites `Client.send` in a **copy** of the o-s-c bundle to coalesce `receiveOsc` into one `bundle` frame per 20 ms. Reproduces the batching A/B. |
+| `ws-client.js` | A headless extra "tablet" -- connects, counts frames, answers pings, renders nothing. For measuring how server cost scales with client count. |
 
 ## Running the whole thing
 
@@ -66,8 +66,22 @@ the wrapper. Confirm with
 
 Server CPU comes from `ps -o time= -p <node pid>` either side of a run.
 
-**4. The batching A/B.** Patch a copy, run it in place of the stock server,
-and repeat step 3's first command:
+Read `__hist()` as well as `__read()`. The max alone is misleading: a
+reconnect burst produces one outlier several times the steady-state worst.
 
-    cp -R "$APP/gui/open-stage-control" /tmp/osc-batched
-    python3 docs/gui/tools/batch-frames.py /tmp/osc-batched
+**4. The server A/B.** The patch that ships is `src/tools/patch-osc-perf.py`.
+Apply each variant to its own copy and run each in place of the stock server:
+
+    cp -R "$APP/gui/open-stage-control" /tmp/osc-hoist
+    cp -R "$APP/gui/open-stage-control" /tmp/osc-batch
+    python3 src/tools/patch-osc-perf.py /tmp/osc-hoist
+    python3 src/tools/patch-osc-perf.py /tmp/osc-batch --batch-ms 20
+
+Serialising once only pays with more than one client, so add headless ones
+before the run and stop them with SIGINT after:
+
+    "$APP/gui/node" docs/gui/tools/ws-client.js probe1 &
+    "$APP/gui/node" docs/gui/tools/ws-client.js probe2 &
+
+Alternate the variants across at least three rounds and take medians -- a
+single pair sits well inside the run-to-run spread.
