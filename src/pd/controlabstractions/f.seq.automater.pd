@@ -217,7 +217,7 @@
 #X connect 36 0 37 0;
 #X connect 37 0 8 0;
 #X restore 41 281 pd CHAOS___;
-#N canvas 1015 230 412 483 LFO_____ 0;
+#N canvas 1015 230 701 483 LFO_____ 0;
 #X obj 57 17 inlet;
 #X obj 57 373 f;
 #X obj 57 450 outlet;
@@ -232,7 +232,7 @@
 #X obj 57 395 + 0;
 #X msg 74 269 0;
 #X obj 74 204 t f f;
-#X msg 254 100 0.25;
+#X msg 254 255 0.25;
 #X obj 177 53 pow 5;
 #X obj 177 95 + 0.01;
 #X obj 74 183 pow 1.7;
@@ -244,18 +244,15 @@
 #X obj 227 191 > 0.02;
 #X obj 194 167 t b;
 #X obj 194 146 r master-param-update-throttle;
-#X text 30 30 The LFO is only ever read on a parameter-throttle tick
-\, i.e. at 100 Hz \, so it is accumulated at control rate rather than
-run as an audio-rate [osc~] into a [snapshot~]. That removed two signal
-objects from each of the 427 automater instances.;
-#X obj 194 264 f 0.25;
-#X obj 194 288 + 0;
-#X obj 194 310 moses 1;
-#X obj 253 332 - 1;
-#X obj 194 356 t f f;
-#X obj 194 380 * 6.2831853;
-#X obj 194 402 cos;
-#X obj 300 118 * 0.01;
+#X text 281 35 The LFO is only ever read on a parameter-throttle tick \, i.e. at 100 Hz \, so it is accumulated at control rate rather than run as an audio-rate [osc~] into a [snapshot~]. That removed two signal objects from each of the 427 automater instances.;
+#X obj 194 284 f 0.25;
+#X obj 194 308 + 0;
+#X obj 194 330 moses 1;
+#X obj 233 352 - 1;
+#X obj 194 376 t f f;
+#X obj 194 400 * 6.28319;
+#X obj 194 422 cos;
+#X obj 177 118 * 0.01;
 #X connect 0 0 1 0;
 #X connect 1 0 11 0;
 #X connect 3 0 1 0;
@@ -295,8 +292,8 @@ objects from each of the 427 automater instances.;
 #X connect 33 0 7 0;
 #X connect 34 0 28 1;
 #X restore 41 302 pd LFO_____;
-#N canvas 121 146 328 300 EXT_MOD_ 0;
-#X obj 43 37 inlet;
+#N canvas 311 512 509 300 EXT_MOD_ 0;
+#X obj 43 27 inlet;
 #X obj 43 246 outlet;
 #X obj 43 182 +;
 #X obj 58 56 r \$0-ext-mod;
@@ -305,7 +302,7 @@ objects from each of the 427 automater instances.;
 #X obj 58 103 change;
 #X obj 58 77 t f f;
 #X msg 58 124 bang;
-#X text 175 100 Removed a second [f]->[+] branch fed by an object written "-r (dollar)0-ext-mod". The leading hyphen meant Pd could not create it \, so it logged "couldn t create" once per automater - 427 times per session - and the branch it fed reached no outlet.;
+#X text 123 112 Removed a second [f]->[+] branch fed by an object written "-r (dollar)0-ext-mod". The leading hyphen meant Pd could not create it \, so it logged "couldn t create" once per automater - 427 times per session - and the branch it fed reached no outlet.;
 #X connect 0 0 5 0;
 #X connect 2 0 4 0;
 #X connect 3 0 7 0;
