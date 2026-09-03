@@ -1,7 +1,7 @@
-diff --git src/faust/fsynth.lib src/faust/fsynth.lib
+diff --git a/src/faust/fsynth.lib b/src/faust/fsynth.lib
 index 8f29394..406aedf 100644
---- src/faust/fsynth.lib
-+++ src/faust/fsynth.lib
+--- a/src/faust/fsynth.lib
++++ b/src/faust/fsynth.lib
 @@ -10,7 +10,7 @@ fo = library("fosc.lib");
  //-------------------------------------SYNTH----------------------------------------------//
  //----------------------------------------------------------------------------------------//

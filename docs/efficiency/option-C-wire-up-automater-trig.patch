@@ -1,7 +1,7 @@
-diff --git src/pd/controlabstractions/f.seq.automater.pd src/pd/controlabstractions/f.seq.automater.pd
+diff --git a/src/pd/controlabstractions/f.seq.automater.pd b/src/pd/controlabstractions/f.seq.automater.pd
 index fe4ba6d..1b20d0b 100755
---- src/pd/controlabstractions/f.seq.automater.pd
-+++ src/pd/controlabstractions/f.seq.automater.pd
+--- a/src/pd/controlabstractions/f.seq.automater.pd
++++ b/src/pd/controlabstractions/f.seq.automater.pd
 @@ -566,7 +566,7 @@ objects from each of the 427 automater instances.;
  #X connect 26 0 25 1;
  #X connect 27 0 17 0;

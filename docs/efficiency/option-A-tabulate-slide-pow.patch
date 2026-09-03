@@ -1,7 +1,7 @@
-diff --git src/faust/fsynth.lib src/faust/fsynth.lib
+diff --git a/src/faust/fsynth.lib b/src/faust/fsynth.lib
 index 8f29394..8d9c62c 100644
---- src/faust/fsynth.lib
-+++ src/faust/fsynth.lib
+--- a/src/faust/fsynth.lib
++++ b/src/faust/fsynth.lib
 @@ -104,7 +104,7 @@ fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta,adsron) = freqset : fmosc
      o1sr1 = 2 : pow(o1sr) : ba.sAndH(ta : ba.impulsify);
      o1st1 = o1st : ba.sAndH(ta : ba.impulsify);
