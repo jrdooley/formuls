@@ -13,7 +13,7 @@ This software uses [JUCE](https://juce.com/), [libpd](https://github.com/libpd/l
 - Touchscreen interface accessed via a web browser on an iPad/Android device.
 - Record and automate gestural interactions with parameters.
 - Modulate parameters with LFOs, 'chaos', and audio signals from other synth instances.
-- Master bus effects including reverb, rolling spectral freezer, repeater, digitaliser, and 'bus smashing' limiter.
+- Master bus effects including reverb, rolling spectral freezer and repeater effect.
 - Microtonal scale tuning.
 - Ableton Link integration.
 
@@ -42,4 +42,4 @@ Listen to music made with formuls (the instrument) by formuls (the artist who ma
 https://formuls.bandcamp.com/
 
 ***
-This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/), James Dooley aka formuls 2014-24.
+This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/), James Dooley aka formuls 2014-26.
