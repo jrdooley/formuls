@@ -79,23 +79,6 @@ characters `sed` would need escaping for, and BSD and GNU `sed` disagree about
 several of them.
 
 
-## FORMULS_TRACE (built into the a la carte app)
-
-Set `FORMULS_TRACE` to a comma-separated list of Pd send symbols and the app
-subscribes to them, timestamping everything they carry:
-
-```bash
-FORMULS_TRACE=bpmglobal,link ./formuls-alacarte-0.3.0-beta.app/Contents/MacOS/formuls-alacarte
-```
-
-```
-trace     5547 ms  bpmglobal                110.000000
-```
-
-A value being fought over between the patch and the GUI shows up as an
-obvious alternation between two numbers; a value that is simply not
-arriving shows up as silence.
-
 ## bpm-probe
 
 Loads the real `pd/_main.pd` under libpd, drives BPM over genuine OSC to
@@ -104,7 +87,7 @@ rate `abl_link~` actually produces after each change. It needs no audio
 device and no tablet, so BPM behaviour can be tested in isolation from the
 GUI.
 
-Build (libpd must already be built -- see `src/app-alacarte/README.md`):
+Build (libpd must already be built -- see `src/app/README.md`):
 
 ```bash
 LP=../libs/libpd

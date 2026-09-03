@@ -2,7 +2,7 @@
 # Build output
 # ---------------------------------------------------------------
 # "build" at any depth: the top-level dir used by build-macOS.sh /
-# build-linux.sh, and nested ones such as src/app-alacarte/build/.
+# build-linux.sh, and any nested ones.
 build/
 
 # Packaged applications produced by the build scripts
