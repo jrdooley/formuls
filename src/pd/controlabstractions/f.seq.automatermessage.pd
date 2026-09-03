@@ -49,10 +49,6 @@
 #X msg 238 580 chaostrig \$1;
 #X obj 125 394 spigot;
 #X msg 111 328 0;
-#X obj 100 263 r master-param-update-throttle;
-#X msg 100 284 paramthrottle bang;
-#X msg 185 217 guithrottle bang;
-#X obj 185 196 r master-gui-update-throttle;
 #X connect 1 0 5 0;
 #X connect 2 0 48 0;
 #X connect 3 0 4 0;
@@ -101,7 +97,3 @@
 #X connect 46 0 5 0;
 #X connect 47 0 25 0;
 #X connect 48 0 1 0;
-#X connect 49 0 50 0;
-#X connect 50 0 5 0;
-#X connect 51 0 5 0;
-#X connect 52 0 51 0;

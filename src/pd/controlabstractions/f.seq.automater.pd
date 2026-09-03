@@ -25,7 +25,7 @@
 #X obj 76 114 change;
 #X obj 121 93 r \$0-record;
 #X obj 76 251 outlet;
-#X obj 76 67 r \$0-gui-throttle;
+#X obj 76 67 r master-gui-update-throttle;
 #X obj 91 29 inlet;
 #X obj 158 31 inlet reset;
 #X connect 0 0 1 1;
@@ -245,7 +245,7 @@
 #X obj 74 248 moses 0.02;
 #X obj 227 191 > 0.02;
 #X obj 194 167 t b;
-#X obj 194 146 r \$0-param-throttle;
+#X obj 194 146 r master-param-update-throttle;
 #X connect 0 0 1 0;
 #X connect 1 0 13 0;
 #X connect 3 0 1 0;
@@ -526,7 +526,7 @@
 #X obj 169 446 spigot 0;
 #X obj 214 423 == 2;
 #X obj 112 512 spigot;
-#X obj 115 305 r \$0-param-throttle;
+#X obj 115 305 r master-param-update-throttle;
 #X msg 115 326 paramthrottle bang;
 #X connect 1 0 6 0;
 #X connect 2 0 21 0;
