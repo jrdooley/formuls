@@ -26,7 +26,7 @@ mkdir -p build/pd/externals
 
 # build faust pd externals
 cd "$ROOT/src/faust"
-faust2puredata -vec -lv 0 -vs 4 -clang f_ott.dsp f_digitaliser.dsp f_widener.dsp f_limiter.dsp f_repeater.dsp f_reverb.dsp formuls.dsp
+faust2puredata -vec -lv 0 -vs 4 -clang f_repeater.dsp f_reverb.dsp formuls.dsp
 mv *.pd_darwin ../../build/pd/externals
 
 # ableton link (abl_link~) pd external
