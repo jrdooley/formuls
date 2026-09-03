@@ -12,10 +12,18 @@ fo = library("fosc.lib");
 
 POLYPHONY = 20;
 
-/* x^2.7 over [0,1], pre-computed into a 1024-point interpolated table.
-   The ADSR curve below runs this on every voice on every sample; the direct
-   pow() form cost one powf() per voice per sample. Max interpolation error is
-   ~5.5e-7, i.e. a few ULP of a float. */
+/* x^2.7 over [0,1], pre-computed into a 1024-point interpolated table. Both
+   callers - the ADSR amplitude curve and the pitch-slide envelope in fmosc -
+   run this on every voice on every sample; the direct pow() form cost one
+   powf() each, per voice, per sample.
+
+   The table is built by evaluating x^2.7 at the range ends, so entry 0 is
+   exactly 0 and entry 1023 is exactly 1, and at x=0 and x=1 the interpolation
+   fraction is exactly 0. Both endpoints are therefore bit-exact, which is what
+   matters for the slide: it still starts at exactly the carrier frequency and
+   still tops out at exactly o1f*(1+2^oscsliderange). Only the path between them
+   moves, by at most 7.2e-7 of full scale - 0.02 cents at the widest slide
+   range. */
 pow27(x) = ba.tabulate(1, ^(2.7), 1024, 0, 1, x).lin;
 
 //------FORMULS------//
@@ -104,7 +112,7 @@ fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta,adsron) = freqset : fmosc
     o1sr1 = 2 : pow(o1sr) : ba.sAndH(ta : ba.impulsify);
     o1st1 = o1st : ba.sAndH(ta : ba.impulsify);
     ta1 = ta;
-    cf = o1f : +(o1f : *(en.ar(0,o1st1,ta1) : pow(2.7) : *(o1sr1))) : min(22050); //calculate op1 freq during freq slide
+    cf = o1f : +(o1f : *(en.ar(0,o1st1,ta1) : pow27 : *(o1sr1))) : min(22050); //calculate op1 freq during freq slide
     freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
     freqset = _ : *(freqcontrol) : +(freqcontrol);
     clip(x) = x : min(1,_) : max(0,_);

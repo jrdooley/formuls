@@ -11,6 +11,7 @@ Helpers used to produce the numbers in `../README.md`. They assume Pd 0.56 at
 | `pdbench.sh` | Loads the patch tree headless for N seconds with DSP on or off and reports process CPU. **Only trust the `dsp=0` numbers** - see the caveat in the main README. |
 | `faust_ab_arch.cpp` | Faust architecture file: sets parameters from argv (`name=value`, or `@sample:name=value` to schedule a change), renders N samples, writes raw floats to stdout. |
 | `faust_ab_compare.py` | Sample-by-sample difference between two such renders. |
+| `pow27_endpoints.dsp` + `pow27_endpoints_driver.cpp` | Renders the tabulated `x^2.7` against the exact one over a ramp, and reports the endpoint difference, the worst deviation, and what that is worth in cents at each slide range. This is the test the commit-6 decision rested on. |
 | `faust_ab_spectrum.py` | RMS-envelope and average-spectrum agreement between two renders - use this rather than the sample-by-sample figure whenever an oscillator's phase can drift. |
 
 Build an A/B binary with:
@@ -21,3 +22,8 @@ Build an A/B binary with:
 Throughput comparisons use Faust's own harness, with the flags `build-macOS.sh` ships:
 
     faust2bench -vec -lv 0 -vs 4 formuls.dsp && ./formuls
+
+Endpoint check:
+
+    faust -a pow27_endpoints_driver.cpp pow27_endpoints.dsp -o /tmp/e.cpp
+    clang++ -O2 -std=c++17 -I/opt/homebrew/include /tmp/e.cpp -o /tmp/e && /tmp/e

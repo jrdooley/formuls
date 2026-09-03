@@ -1,6 +1,6 @@
 # efficiency-dev: what changed, what it bought, and what is left on the table
 
-Branch: `efficiency-dev`, cut from `juce-port`. Five commits, each independently
+Branch: `efficiency-dev`, cut from `juce-port`. Six code commits, each independently
 verified. Nothing here changes what the instrument does — the two changes that
 alter any number at all are quantified below.
 
@@ -23,7 +23,8 @@ the two master throttles fanning out to 427 automater instances.
 
 **1. `faust:` per-voice `powf`/`sinf`/`tanhf` removed.**
 Each of the 20 voices ran three `powf()`, one `sinf()` and one `tanhf()` on every
-sample. Now: `x^2.7` for the ADSR curve is a 1024-point interpolated table;
+sample. Now: `x^2.7` is a 1024-point interpolated table, used by the ADSR curve
+here and by the pitch-slide envelope in commit 6;
 `pow(2, oscsliderange)` moved to before its sample-and-hold so Faust hoists it to
 control rate (bit-exact); `sin(pi*x)` and `tanh(100*sin(pi*x))` are tables in
 `fosc.lib`. Per-sample calls: `pow` 66→28, `sin` 24→5, `tanh` 22→2.
@@ -48,20 +49,26 @@ The last big relay: every automater built a `paramthrottle bang`, `f.seq.record`
 matched it *last* of 15 route selectors, and it ended at a spigot that is shut
 unless automation is playing back.
 
+**6. `faust:` the pitch-slide curve uses the same table.**
+Was option A below, applied after confirming the endpoints do not move. See
+"The pitch slide" under the verification section.
+
 ## Results
 
 **Synth throughput** (`faust2bench -vec -lv 0 -vs 4`, the flags `build-macOS.sh`
 ships, median of 5):
 
-| | MB/s | vs before |
+| | MB/s | vs original |
 |---|---|---|
-| before | 57.6 | — |
-| after | 72.7 | **+26%** |
+| original | 58.9 | — |
+| commits 1-5 | 69.8 | +18% |
+| with commit 6 | **74.9** | **+27%** |
 
 **Synth cost inside the running app** (3 paired 20 s profiles, rebuilt external):
 share of non-idle work 50.4% → 45.7%, i.e. the synth itself got **17% cheaper**.
 libm calls attributable to it: `sinf` 200→**0**, `tanhf` 218→19, `exp2f` 191→20,
-`powf` 558→296; **−71% overall**.
+`powf` 558→296; **−71% overall**. Commit 6 removes 20 of the remaining 28
+per-sample `pow` calls on top of that.
 
 **Idle control-rate CPU** (25 s headless, DSP off, startup subtracted):
 
@@ -85,6 +92,20 @@ FM + pitch slide, noise, full FX chain, AM sweep) rendered from both versions an
 compared: worst case **−74 dB** error relative to signal, RMS envelope agreement
 −71 dB or better. Below any plausible audibility threshold.
 
+*The pitch slide.* The one place where the trajectory could have moved. The table
+is built by evaluating `x^2.7` at the range ends, so entry 0 is exactly 0 and
+entry 1023 is exactly 1, and at those inputs the interpolation fraction is exactly
+0. Measured with `tools/pow27_endpoints.dsp`: **`diff=0` at both endpoints**. The
+slide therefore still starts at exactly the carrier frequency and still tops out
+at exactly `o1f*(1+2^oscsliderange)`. The path between them deviates by at most
+7.2e-7 of full scale, which is **0.02 cents** at the widest slide range and 0.0007
+cents at the narrowest — some 300x below the just-noticeable difference.
+
+Scenario 4 of the seven below is the only one this changes, and what it changes is
+oscillator *phase*, not pitch or level: −28.4 dB sample-domain but −59.1 dB RMS
+envelope. The phase offset accumulates during the slide and persists after it,
+which is why the sample-domain figure looks large while the sound does not move.
+
 *LFO.* Old and new LFO canvases extracted into standalone patches and driven
 identically inside the real `_main.pd` for 5 s: output range identical
 (`[0.2273, 0.7726]`), rate identical (4.0 cycles in 5.0 s), and at one tick of lag
@@ -98,16 +119,21 @@ counters for 399 ticks: captured sequences **byte-identical**.
 
 Ready to `git apply` from the repo root.
 
-### A — `option-A-tabulate-slide-pow.patch`
-Tabulates the *second* `pow(2.7)`, the one shaping the pitch-slide envelope.
-Worth roughly another **+7%** synth throughput (72.7 → ~77 MB/s).
+### ~~A — tabulate the pitch-slide pow~~ — applied, commit 6
+Held back at first because the sample-domain difference looked large. It turned
+out to be phase, not pitch: the endpoints are bit-exact and the trajectory moves
+by 0.02 cents. Since the 2.7 exponent was chosen by ear rather than derived, that
+is far inside the tuning resolution. Worth **+7%** on top of commits 1-5.
 
-Not applied because it is the one change that is not transparent. It is exact
-while the pitch is static, but during a slide a ~1e-7 error in the slide
-multiplier accumulates as oscillator phase. Amplitude is unaffected (RMS envelope
-agrees to −59 dB) but the average spectrum deviates by up to −15 dB in that mode,
-against −66 dB for everything shipped. Probably inaudible; not demonstrably so,
-which is why it is your call rather than mine.
+Two sqrt-only alternatives were measured and rejected. Exponents built from
+halvings need no table at all and also keep the endpoints exact, but they bend the
+curve enough to be re-tuning the slide by ear afterwards, for about 3% more:
+
+| | MB/s | worst pitch offset, widest slide range |
+|---|---|---|
+| `x^2.7` tabulated (shipped) | 75.3 | 0.02 cents |
+| `x^2.6875`, 4 sqrt | 77.4 | 22.6 cents |
+| `x^2.75`, 2 sqrt | 77.5 | 85.1 cents |
 
 ### B — `option-B-polyphony-12.patch`
 `POLYPHONY` is 20. Every voice is computed on every sample and then multiplied by
