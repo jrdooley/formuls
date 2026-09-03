@@ -58,13 +58,22 @@ the wrapper. Confirm with
     python3 docs/gui/tools/osc-load.py throttled 19001 /tmp/addrs-unmatched.txt \
         --n 84 --secs 20 --hz 25
 
-    # price one widget type (note --arity)
+    # price one widget type (note --arity, and --no-filter for /seqpos)
     python3 docs/gui/tools/osc-load.py steady 19001 /tmp/addrs-fader.txt \
         --count 6000 --gap 0.001 --arity 1
     python3 docs/gui/tools/osc-load.py steady 19001 /tmp/addrs-xy.txt \
         --count 6000 --gap 0.001 --arity 2
 
+    python3 docs/gui/tools/osc-load.py steady 19001 /tmp/addrs-seqpos.txt \
+        --count 2000 --gap 0.003 --arity 1 --no-filter
+
 Server CPU comes from `ps -o time= -p <node pid>` either side of a run.
+
+Stop Pd before pricing a single widget type. Its ~70 msg/s of background
+traffic is dominated by `/seqpos`, which costs ten times a slider, and it will
+swamp the average you are trying to read. And open the tab the widget lives on
+first: o-s-c builds only the visible tab, so an address whose panel has never
+been shown matches nothing and prices at 2 µs.
 
 Read `__hist()` as well as `__read()`. The max alone is misleading: a
 reconnect burst produces one outlier several times the steady-state worst.

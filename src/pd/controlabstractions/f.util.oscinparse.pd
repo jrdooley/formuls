@@ -2316,7 +2316,7 @@
 #X connect 12 0 3 0;
 #X restore 119 266 pd CHORDSIZE___;
 #N canvas 0 34 346 233 SEQPOS_LED___ 0;
-#X obj 70 150 s to-o-s-c-interface;
+#X obj 70 150 s \$1-message-collect;
 #X obj 70 44 inlet;
 #X obj 70 119 oscformat seqpos\$1;
 #X obj 70 93 + 1;

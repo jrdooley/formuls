@@ -78,13 +78,19 @@ At 84 parameters × 25 Hz = 1,781 msg/s: 100% delivered, 112 KiB/s, and
 - 427 `f.seq.automater` instances (`docs/efficiency/tools/census.py`), each
   GUI-throttled to 25 Hz. 151 `f.util.oscformat` and 66 `f.util.oscformatxy`
   instances actually address the GUI.
-- `MESSAGE_THROTTLE` in `f.formuls.pd:5` already gates updates to the **two
-  most recently selected synth instances** — `inter-act` is a two-slot array
-  written by `INTERFACE_ACTIVE_MESSAGE_SEND`, and both slots are compared. So
-  the practical ceiling is roughly 2 × 36 GUI senders × 25 Hz ≈ **1,800
-  msg/s**, which is why the load above was chosen at that level. The
-  `inter-act-overide` toggle opens the gate for all six and takes it to
-  ~10,700 msg/s, but it is a Pd-side toggle the interface cannot reach.
+- `MESSAGE_THROTTLE` in `f.formuls.pd:5` already gates parameter updates to
+  the **selected synth instance**. `inter-act` is a two-slot array written by
+  `INTERFACE_ACTIVE_MESSAGE_SEND` and both slots are compared, which reads
+  like "the last two tabs" — but the `i`/`mod 2` pair alternates the write
+  index on every poll reply, and the poll repeats the same tab 25 times a
+  second, so both slots converge on the current tab within 80 ms. The second
+  slot is a 40 ms grace window across a switch, not a second live instance.
+  The practical ceiling is therefore about 36 GUI senders × 25 Hz ≈ **900
+  msg/s**, so the 1,781 msg/s load used above is roughly double a realistic
+  worst case — pessimistic, which is the safe direction for a cost figure but
+  worth knowing. The `inter-act-overide` toggle opens the gate for all six and
+  takes it to ~10,700 msg/s, but it is a Pd-side toggle the interface cannot
+  reach.
 - `GET_INTERFACE` at `_main.pd:148` sends `/GET 127.0.0.1:9000 root` **25
   times a second, forever**, and each one costs a WebSocket frame to every
   client plus a 24-byte reply parsed back through Pd. It looks like pure
@@ -171,12 +177,84 @@ than one that stops the build.
 The `/GET` poll was in the original plan for this step and was **not** removed:
 it turned out to be load-bearing. See the note above.
 
+## Gating what escaped the gate
+
+The plan for this step was "gate updates on the visible tab rather than the
+instance". Two things turned out to be wrong with that.
+
+**The panel has no tabs to gate on.** The whole synth page is one surface:
+almost every widget under `maincontainer` is `visible: true` at once. The only
+hidden pages are modals.
+
+**And the instance gate is tighter than it looked.** `inter-act` is a two-slot
+array written by `INTERFACE_ACTIVE_MESSAGE_SEND`, and the `i`/`mod 2` pair
+alternates the write index on every poll reply. Because the poll repeats the
+*same* tab 25 times a second, both slots converge on the current tab within
+80 ms. It is not "the last two tabs kept open forever" — it is one instance,
+with a 40 ms grace window across a switch. The earlier estimate of a
+~1,800 msg/s ceiling assumed two instances and was about double the truth.
+
+So the parameter traffic was already gated. What was not:
+
+`SEQPOS_LED___` in `f.util.oscinparse.pd` sent straight to
+`to-o-s-c-interface`, bypassing `f.formuls.pd`'s `MESSAGE_THROTTLE`
+altogether — so **all six instances streamed their sequencer position at all
+times**, regardless of which tab was open. Worse, `seqposN` lives inside the
+`sequencerN` *modal*: it is not even on screen unless the performer has that
+popup open.
+
+It is also the most expensive message in the instrument. Priced on its own
+against a slider on the same panel:
+
+| | client JS per update |
+|---|---|
+| a slider (`/attack1`) | 76 µs |
+| a sequencer position (`/seqpos1`) | **710 µs** |
+
+(Both measured with Pd stopped and only the priced address in flight, which is
+why the slider comes out below the 105 µs in the table further up — that one
+was taken with the patch running and its background traffic in the average.
+The ratio is the point, and it is not close.)
+
+The fix is one object: send to `$1-message-collect` instead, which is the bus
+`f.formuls.pd` already reads and gates. Verified headless — with instance 1
+selected only `/seqpos1` flows, with instance 4 only `/seqpos4`, with no tab
+selected none at all — and then end to end through Pd, o-s-c and a browser,
+one synth tab open, instrument idle:
+
+| | before | after |
+|---|---|---|
+| messages/s to the client | 81 | **46 (−43%)** |
+| bytes | 7.0 KiB/s | 4.3 KiB/s (−39%) |
+| client main thread | 10.6% | **6.3% (−41%)** |
+| handler p50 | 1.2 ms | **0.2 ms** |
+
+After it, the only ungated steady traffic left is the `/GET` poll itself.
+
+### Why gating in Pd is the only lever
+
+It would be reasonable to hope the client already skips work for a panel that
+is not showing. It does not, and this is what makes suppression worth its full
+face value. o-s-c builds a tab's widgets when you open it and tears them down
+when you leave — but the cost of an update does not follow. Measured
+back to back with Pd stopped, on the mixer tab, with the synth-1 panel torn
+down and `attack1` confirmed absent from the DOM:
+
+| | client JS per update |
+|---|---|
+| `/attack1` — known to the session, panel torn down | **69 µs** |
+| `/nosuchwidget1` — not in the session at all | **2.3 µs** |
+
+A 30× gap. Any address the session defines costs the full update whether or
+not its panel exists. There is no discount for hiding something; the only
+saving is not sending it.
+
 ## What does fix it, in order
 
 | | work | expected |
 |---|---|---|
 | **1** ~~Delete the `/GET` poll~~; hoist the `stringify`; make batching available — **done**, see "What shipped" | 1–2 days | −4.5% server CPU at four tablets by default; −64% and 83× fewer frames with `--batch-ms 20`. Does not fix client saturation, and the `/GET` half of this was a wrong call |
-| **2** Gate updates on the **visible tab**, not just the instance. `inter-act` already proves the pattern; o-s-c can tell Pd which tab is active | ~1 week, all in the patch | Biggest win per unit of effort; plausibly 3–10× fewer steady-state messages |
+| **2** Gate the traffic that escapes `inter-act` — **done**, see "Gating what escaped the gate" | one object changed | **−43% of idle messages and −41% of idle client CPU** |
 | **3** The blob idea in the place it pays: one packed frame per tick into an o-s-c `canvas` widget with an `onDraw` script, replacing ~72 individual widget updates with one | 1–2 weeks | Attacks the 95% directly. This is the version of "send it as a blob" that works |
 | **4** Merge xy pads into `multixy` + mode buttons — `filter` already does this with HiPass/LowPass points | 2–4 weeks | Real, but touches the 1.7 MB `_main.json` (907 authored widgets, 67 clones) and the string-concatenated addresses in `f.util.oscformatxy` / `f.util.oscinparse` |
 
@@ -238,3 +316,15 @@ downstream of it does not. Every per-message figure here is therefore a floor.
 **Send the right arity.** One float into an xy pad is silently ignored by the
 client and prices at 2 µs. It looks like a spectacular optimisation and is a
 measurement of nothing.
+
+**Background traffic swamps a per-message figure.** Pricing one widget type
+against a running Pd mixes ~70 msg/s of `/GET` and `/seqpos` into the average,
+and `/seqpos` is ten times the cost of a slider. A visible-versus-hidden
+comparison done that way came out identical for the wrong reason and nearly
+buried the finding. Stop Pd, then drive only the addresses being priced.
+
+**o-s-c only builds the open tab.** Widgets are created when a tab is opened
+and destroyed when it is left, so an address whose panel has never been shown
+matches nothing and prices at 2 µs. Open the tab you intend to measure, and
+check with `document.querySelectorAll('[data-widget]')` that the widget is
+really there — otherwise the number is a measurement of the miss path.

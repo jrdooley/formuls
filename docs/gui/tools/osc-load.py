@@ -37,13 +37,18 @@ ap.add_argument("--hz", type=float, default=25.0, help="throttled: update rate p
 ap.add_argument("--count", type=int, default=6000, help="steady: messages to send")
 ap.add_argument("--gap", type=float, default=0.001, help="steady: seconds between messages")
 ap.add_argument("--arity", type=int, default=1, help="floats per message (1 fader, 2 xy)")
+ap.add_argument("--no-filter", action="store_true",
+                help="keep /GET and /seqpos*, which are skipped by default as "
+                     "housekeeping. Needed to price them on their own -- they "
+                     "are not widget values in the ordinary sense, but they are "
+                     "real traffic and /seqpos is not gated by inter-act")
 a = ap.parse_args()
 
 addrs = []
 for line in open(a.addrfile):
     parts = line.rstrip("\n").split("\t")
     addr = parts[-1]
-    if addr == "/GET" or addr.startswith("/seqpos"):
+    if not a.no_filter and (addr == "/GET" or addr.startswith("/seqpos")):
         continue          # server/patch housekeeping, not widget values
     addrs.append(addr)
 if not addrs:
