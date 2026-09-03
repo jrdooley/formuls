@@ -12,10 +12,16 @@ fo = library("fosc.lib");
 
 POLYPHONY = 20;
 
+/* x^2.7 over [0,1], pre-computed into a 1024-point interpolated table.
+   The ADSR curve below runs this on every voice on every sample; the direct
+   pow() form cost one powf() per voice per sample. Max interpolation error is
+   ~5.5e-7, i.e. a few ULP of a float. */
+pow27(x) = ba.tabulate(1, ^(2.7), 1024, 0, 1, x).lin;
+
 //------FORMULS------//
 /* main synth function */
 // One audio signal in: receives from another synth and controls FM modulation
-synth(inmod) = inmod : *(extmod) <: (par(i,POLYPHONY,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c,t),o2dx(i,c,t),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
+synth(inmod) = inmod : *(extmod) <: (par(i,POLYPHONY,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c),o2dx(i,c),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -26,7 +32,11 @@ with{
   polyphonic = checkbox("polyphonic") : *(adsron);
   poly(i,x) = polyphonic +(i==x) : min(1) : max(0);
 
-  trigx = button("triggerx") <: _,@(2) : _ !=(_) : ba.impulsify; // I need some comments explaining this!
+  // Edge detector on the trigger button: compare the button against itself delayed by 2
+  // samples, so any change (0->1 or 1->0) reads as non-zero for 2 samples, then impulsify
+  // narrows that to a single-sample impulse. Retriggering therefore works whether the host
+  // sends a 0/1 pair or holds the button, and a 1-sample glitch cannot be missed.
+  trigx = button("triggerx") <: _,@(2) : _ !=(_) : ba.impulsify;
   t = trigx : int; // triggers synth voice
   tadsr = t *(adsron);
 
@@ -59,10 +69,10 @@ with{
   otx = op1slidetime;
 
   op2freq = hslider("fmfreq",0,0,1,0.001) : *(2) : max(0.001); // mod freq is relative to op1 freq
-  o2fx(i,x,y) = op2freq : ba.sAndH((i==x));
+  o2fx(i,x) = op2freq : ba.sAndH((i==x));
 
   op2depth = hslider("fmdepth",0,0,1,0.001) : *(2); // mod depth is relative to op1 freq
-  o2dx(i,x,y) = op2depth : ba.sAndH((i==x));
+  o2dx(i,x) = op2depth : ba.sAndH((i==x));
 
   noise = hslider("noise",0,0,1,0.001) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nx = noise;
@@ -88,22 +98,25 @@ with{
 // o1f = op1 freq, o1sr = op1 slide range, o1st = op1 slide time,o2f = op2 freq, o2d = op2 depth, na = noise, wa = waveshape, ta = trigger
 fmosc(o1f,o1sr,o1st,o2f,o2d,na,wa,ta,adsron) = freqset : fmosc
   with{
-    o1sr1 = o1sr : ba.sAndH(ta : ba.impulsify);
+    // pow() applied before the sample-and-hold rather than after: the argument is then
+    // a slider-only expression, so Faust evaluates it once per block instead of per sample.
+    // sAndH(pow(2,x)) == pow(2,sAndH(x)), so this is bit-identical.
+    o1sr1 = 2 : pow(o1sr) : ba.sAndH(ta : ba.impulsify);
     o1st1 = o1st : ba.sAndH(ta : ba.impulsify);
     ta1 = ta;
-    cf = o1f : +(o1f : *(en.ar(0,o1st1,ta1) : pow(2.7) : *(2 : pow(o1sr1)))) : min(22050); //calculate op1 freq during freq slide
+    cf = o1f : +(o1f : *(en.ar(0,o1st1,ta1) : pow(2.7) : *(o1sr1))) : min(22050); //calculate op1 freq during freq slide
     freqcontrol =  cf : +(na) : +(os.oscsin(cf*o2f) : *(cf) : *(o2d)); //where the freq modulation happens
     freqset = _ : *(freqcontrol) : +(freqcontrol);
     clip(x) = x : min(1,_) : max(0,_);
     oscphase = ta1 == (0) : ba.impulsify : ba.sAndH((ta1 *(adsron)));
     wa1 = wa : si.smoo;
     // fmosc = _ : os.lf_sawpos_reset(_,oscphase) *(2) : -(1) <: (*(ma.PI) : sin <:_,(*(20) : ma.tanh : min(1)) : si.interpolate(clip(wa1))),_ : si.interpolate(clip(wa1-(1)));
-    fmosc = _ : fo.multiwave4(_,wa1,oscphase);
+    fmosc = _ : fo.multiwave4(wa1,oscphase);
   };
 
 //---------ADSR----------//
 /* Fixed duration ADSR envelope for FMSynth module */
-adsr(a,d,s,r,t) = _ : *(en.dx7envelope(a1,d1,r1,1,1,s1,0,0,t1) : pow(2.7))
+adsr(a,d,s,r,t) = _ : *(en.dx7envelope(a1,d1,r1,1,1,s1,0,0,t1) : pow27)
 with {
   a1 = a : ba.sAndH(t : ba.impulsify);
   d1 = d : ba.sAndH(t : ba.impulsify);
