@@ -1,0 +1,13 @@
+diff --git src/faust/fsynth.lib src/faust/fsynth.lib
+index 8f29394..406aedf 100644
+--- src/faust/fsynth.lib
++++ src/faust/fsynth.lib
+@@ -10,7 +10,7 @@ fo = library("fosc.lib");
+ //-------------------------------------SYNTH----------------------------------------------//
+ //----------------------------------------------------------------------------------------//
+ 
+-POLYPHONY = 20;
++POLYPHONY = 12;
+ 
+ /* x^2.7 over [0,1], pre-computed into a 1024-point interpolated table.
+    The ADSR curve below runs this on every voice on every sample; the direct
