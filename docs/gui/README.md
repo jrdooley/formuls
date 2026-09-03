@@ -65,8 +65,11 @@ are floors.** A tablet repainting its canvases will be well above them.
 | an xy pad (two floats) | **127 µs** |
 
 Transport — the frame, the `JSON.parse`, the event dispatch — is about **5%**
-of the cost. The widget update is the other **95%**. That single ratio decides
-which fixes can work.
+of the cost. The other **95%** is *not* the widget update, though it looked
+that way at first: see "Where the 76 µs actually goes". It is a global
+`value-changed` broadcast fired once per message. Either way the ratio holds,
+and it is what decides which fixes can work: the only lever is sending fewer
+messages.
 
 At 84 parameters × 25 Hz = 1,781 msg/s: 100% delivered, 112 KiB/s, and
 **13.2% of an M5 main thread with rendering switched off.**
@@ -249,13 +252,106 @@ A 30× gap. Any address the session defines costs the full update whether or
 not its panel exists. There is no discount for hiding something; the only
 saving is not sending it.
 
+## Where the 76 µs actually goes
+
+The earlier reading of the fader/xy numbers was that "transport is 5%, the
+widget update is 95%". The second half of that is wrong, and it matters,
+because it points at a different fix.
+
+Timed directly on a formuls fader in the real session:
+
+| | |
+|---|---|
+| `setValue(v)` | 2.9 µs |
+| `draw()` | 0.5 µs |
+| `setValue(v, {send:false, sync:false, fromExternal:true})` | **0.2 µs** |
+| `setValue(v, {send:false, sync:true,  fromExternal:true})` | **52.6 µs** |
+
+The widget itself is a rounding error. The whole cost is `sync: true`, which
+is what `receive()` always passes, and which lands in:
+
+```js
+changed(a){ this.trigger("value-changed", {widget:this, options:a, id:..., linkId:...}) }
+```
+
+A **global broadcast**, delivered to every widget that registered a
+linked-props binding. Formuls' layout is built almost entirely out of clones
+whose properties reference `@{parent.variables...}`, and anything matching
+`/(OSC|@|VAR|IMPORT)\{/` becomes a linked prop, so nearly all ~1,500 built
+widgets are listening. That is the 70 µs.
+
+It also explains a number that made no sense earlier: a bare fader in a
+75-widget session costs **7.8 µs** for the same OSC message. Nothing about the
+fader differs — the listener list does. **The per-message cost is a property
+of the layout, not of the widget being addressed.**
+
+One hypothesis this killed: `clientSync` is on by default and never set by
+formuls, and `sync()` looked like it would echo every received value back to
+the server. Measured — 4,000 messages in, **5 frames out**. It does not.
+
+## Step 3: packing values into one message
+
+Priced in the real layout, with a `canvas` widget of `valueLength: 72` added
+to the synth-1 tab, against the same 3,600 values sent the current way:
+
+| | messages | client JS | per value |
+|---|---|---|---|
+| individual widget updates | 3,605 | 249 ms | **69.3 µs** |
+| packed into one 72-value canvas | 51 | 35 ms | **9.8 µs** |
+| packed, with `--skip-prearg-search` | 54 | 12 ms | **3.4 µs** |
+
+**7.1× cheaper, or 20× with the lookup patch.** The mechanism is not that
+canvas drawing is cheap — the canvas's own `setValue` costs the same ~91 µs
+global broadcast, and its `onDraw` 8.3 µs. It is that one message fires *one*
+broadcast instead of seventy-two.
+
+The packed message's own cost is 694 µs, and only ~99 µs of that is the
+widget. The rest is `getWidgetByAddressAndArgs`, which walks every possible
+split of the arguments into (preArgs, value) — 73 address lookups for a
+72-value message — preferring the longest preArgs match. `_main.json`
+declares preArgs on **no widget at all**, so every one of those lookups is a
+guaranteed miss. `patch-osc-perf.py --skip-prearg-search` short-circuits it,
+verifying that precondition against the layout first.
+
+That flag is **off by default**, because on its own it is a regression.
+Measured back to back, same session, same tab:
+
+| | stock | `--skip-prearg-search` |
+|---|---|---|
+| an xy pad (2 values) | 130 µs | **166 µs (worse)** |
+| a packed 72-value message | 694 µs | **226 µs** |
+
+It replaces N lookups that miss with one that hits, and a hit costs more than
+a miss — so at two values it loses, and xy pads are the only multi-value
+messages the instrument sends today. It is worth turning on only alongside
+packing.
+
+### What was not done, and why
+
+Packing is not implemented in the instrument, because it cannot be done
+without changing how formuls looks. The saving comes precisely from *not*
+updating the 36 real widgets — so under modulation the faders and xy pads
+would stop moving, and a canvas overlay would have to draw the moving
+indicator in their place. That is a redesign of the instrument's visual
+feedback, not an optimisation, and it needs a decision:
+
+- **A — replace.** The canvas draws all parameter values; the widgets move
+  only on touch. Largest win, biggest change to how the instrument reads.
+- **B — overlay.** Widgets keep showing the value the player set, and a canvas
+  overlay draws the modulated value on top of them. Arguably better than what
+  exists now, since base and modulated value become separately visible. Needs
+  the overlay to know where each widget sits on screen.
+
+Both need the Pd side to pack one list per instance per tick, which is
+straightforward, and the overlay geometry, which is not.
+
 ## What does fix it, in order
 
 | | work | expected |
 |---|---|---|
 | **1** ~~Delete the `/GET` poll~~; hoist the `stringify`; make batching available — **done**, see "What shipped" | 1–2 days | −4.5% server CPU at four tablets by default; −64% and 83× fewer frames with `--batch-ms 20`. Does not fix client saturation, and the `/GET` half of this was a wrong call |
 | **2** Gate the traffic that escapes `inter-act` — **done**, see "Gating what escaped the gate" | one object changed | **−43% of idle messages and −41% of idle client CPU** |
-| **3** The blob idea in the place it pays: one packed frame per tick into an o-s-c `canvas` widget with an `onDraw` script, replacing ~72 individual widget updates with one | 1–2 weeks | Attacks the 95% directly. This is the version of "send it as a blob" that works |
+| **3** The blob idea in the place it pays: one packed message per tick into a `canvas` widget — **measured, not implemented**, see "Step 3" | 1–2 weeks, and a decision about how the instrument looks | **7.1× cheaper per value, 20× with `--skip-prearg-search`**. Needs A-or-B answered first |
 | **4** Merge xy pads into `multixy` + mode buttons — `filter` already does this with HiPass/LowPass points | 2–4 weeks | Real, but touches the 1.7 MB `_main.json` (907 authored widgets, 67 clones) and the string-concatenated addresses in `f.util.oscformatxy` / `f.util.oscinparse` |
 
 Steps 1–3 are roughly three weeks.

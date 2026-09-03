@@ -39,6 +39,29 @@ whenever batching is enabled) does not recover the difference.
 Turn it on if the server or the Wi-Fi link is the bottleneck rather than
 the tablet -- several tablets connected, or a marginal access point.
 
+Opt-in, and off by default: --skip-prearg-search
+------------------------------------------------
+Every message carrying more than one value walks every possible split of
+its arguments into (preArgs, value) -- N+1 address lookups for N values --
+preferring the longest preArgs match. `_main.json` declares preArgs on no
+widget at all, so every one of those lookups is a guaranteed miss and the
+walk always falls through to the plain address. Trying the plain address
+first is then exactly equivalent, which --session verifies before this is
+applied (and refuses if the layout ever gains a preArgs widget).
+
+It is worth having only alongside packed messages. Measured back to back
+in the real layout, same session, same tab:
+
+                                 stock    --skip-prearg-search
+    an xy pad (2 values)         130 us   166 us  (WORSE, +35 us)
+    a packed 72-value message    694 us   226 us  (-468 us)
+
+Short-circuiting adds one address lookup that hits and removes N that
+miss; a hit costs more than a miss, so at two values the trade is a loss
+-- and xy pads are the only multi-value messages the instrument sends
+today. This becomes worth applying if the packed-canvas work in
+docs/gui/README.md is ever done, and not before.
+
 Matched on the code rather than on line numbers or byte offsets, because
 this is a webpack bundle and both move the moment Open Stage Control is
 updated. A patch that silently does nothing is worse than one that stops
@@ -113,11 +136,62 @@ IPC_SEND_BATCH = (
 CLIENT_BUNDLE_OLD = 'bundle:function(n){for(let o in n)e.receive(n[o])}'
 CLIENT_BUNDLE_NEW = 'bundle:function(n){for(var i=0;i<n.length;i++)e.receive(n[i])}'
 
+# --- the preArgs search, in client/index.js
+#
+# Every message carrying more than one value goes through this, and it walks
+# every possible split of the arguments into (preArgs, value) -- N+1 address
+# lookups for an N-value message -- preferring the longest preArgs match. When
+# no widget in the session declares preArgs, every one of those lookups is a
+# guaranteed miss, and the walk always falls through to the plain address.
+#
+# Trying the plain address first is then exactly equivalent, and skips the
+# walk. It is NOT equivalent in a session that does use preArgs, because the
+# order of preference reverses -- which is why applying this requires
+# --session and a check that the layout declares none.
+CLIENT_LOOKUP_OLD = (
+    'getWidgetByAddressAndArgs(a,l){var u=a,h=l;'
+    'if("object"==typeof l&&null!=l)'
+    'for(var p=l.length;p>=0;p--){'
+    'var g=this.createAddressRef(null,l.slice(0,p),a);'
+    'if(this.getWidgetByAddress(g).length){u=g,h=l.slice(p,l.length);break}}'
+    'else h=l;'
+)
+CLIENT_LOOKUP_NEW = (
+    'getWidgetByAddressAndArgs(a,l){var u=a,h=l;'
+    'if("object"==typeof l&&null!=l){'
+    'if(!this.getWidgetByAddress(a).length)'
+    'for(var p=l.length;p>=0;p--){'
+    'var g=this.createAddressRef(null,l.slice(0,p),a);'
+    'if(this.getWidgetByAddress(g).length){u=g,h=l.slice(p,l.length);break}}}'
+    'else h=l;'
+)
+
 
 def fail(*lines):
     for line in lines:
         print(line, file=sys.stderr)
     sys.exit(1)
+
+
+def count_prearg_widgets(session_path):
+    """How many widgets in the layout declare a non-empty preArgs."""
+    import json
+    try:
+        doc = json.load(open(session_path, encoding="utf8"))
+    except Exception as e:
+        fail(f"ERROR: could not read the session file {session_path}: {e}")
+    n = 0
+    stack = [doc]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            pa = node.get("preArgs")
+            if pa not in (None, "", []):
+                n += 1
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+    return n
 
 
 def edit(path, pairs):
@@ -142,7 +216,19 @@ def main():
                     help="coalesce broadcast value updates into one frame per "
                          "N ms (default 0: off -- see the header of this file "
                          "for why)")
+    ap.add_argument("--skip-prearg-search", action="store_true",
+                    help="short-circuit the client's preArgs search. Only pays "
+                         "for messages carrying many values, and COSTS ~35 us on "
+                         "a two-value one -- see the header. Requires --session, "
+                         "which is checked for preArgs before applying")
+    ap.add_argument("--session", metavar="PATH",
+                    help="the .json layout this build ships; required by "
+                         "--skip-prearg-search so the precondition can be checked")
     a = ap.parse_args()
+
+    if a.skip_prearg_search and not a.session:
+        fail("ERROR: --skip-prearg-search requires --session <layout.json>",
+             "       so the no-preArgs precondition can be verified.")
 
     server = os.path.join(a.osc_dir, *SERVER)
     client = os.path.join(a.osc_dir, *CLIENT)
@@ -165,6 +251,17 @@ def main():
                   (IPC_SEND_OLD, ipc_new)])
     if a.batch_ms > 0:
         edit(client, [(CLIENT_BUNDLE_OLD, CLIENT_BUNDLE_NEW)])
+
+    if a.skip_prearg_search:
+        n = count_prearg_widgets(a.session)
+        if n:
+            fail(f"ERROR: {a.session} declares preArgs on {n} widget(s).",
+                 "       Short-circuiting the search would reverse which match",
+                 "       wins for those widgets. Not applying.")
+        edit(os.path.join(a.osc_dir, "client", "index.js"),
+             [(CLIENT_LOOKUP_OLD, CLIENT_LOOKUP_NEW)])
+        print("patched Open Stage Control: preArgs search short-circuited "
+              "(the layout declares none)")
 
     # Confirm it took, rather than trusting the replace calls.
     if MARKER not in open(server, encoding="utf8", errors="replace").read():
