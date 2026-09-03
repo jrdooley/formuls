@@ -29,12 +29,18 @@
  * All other libpd calls (init, openPatch, closePatch) are made from the
  * message thread while the audio callback is *not* attached, so no extra
  * locking is required.
+ *
+ * If a recorder has been attached with setRecorder(), every block the engine
+ * renders is also handed to it, straight from the audio callback (see
+ * AudioRecorder.h -- the recorder ignores blocks until the user starts a
+ * take, so this costs nothing while not recording).
  */
 
 #pragma once
 
 #include <JuceHeader.h>
 #include "PdBase.hpp"
+#include "AudioRecorder.h"
 
 namespace formuls
 {
@@ -72,6 +78,16 @@ public:
                         int numOutputChannels,
                         double sampleRate,
                         const juce::File& resourceRoot);
+
+    /** Attaches the recorder that each rendered block is copied to, or
+        nullptr to detach. Call this from the message thread while the engine
+        is stopped (MainComponent does it once, at construction); the
+        recorder itself decides when a block is actually written. */
+    void setRecorder (AudioRecorder* recorderToUse) noexcept  { recorder = recorderToUse; }
+
+    /** The number of output channels the engine is running with (0 when
+        stopped). This is what a recording should have. */
+    int getNumOutputChannels() const noexcept   { return running ? pdOutputChannels : 0; }
 
     /** The sample rate the audio device actually opened at (0 when stopped).
         May differ from the rate passed to start() if the device could not
@@ -118,6 +134,13 @@ private:
     std::vector<float> pdInputBuffer;       // dummy interleaved input (0 channels)
     std::vector<float> pdOutputBuffer;      // one Pd tick of interleaved output
     int samplesLeftInTick = 0;              // unconsumed frames in pdOutputBuffer
+
+    // Recording tap. recordChannels/recordSilence are sized in
+    // audioDeviceAboutToStart() so the audio callback never allocates;
+    // recordSilence stands in for any device channel JUCE hands us as null.
+    AudioRecorder* recorder = nullptr;
+    std::vector<const float*> recordChannels;
+    std::vector<float> recordSilence;
 
     bool running = false;
 

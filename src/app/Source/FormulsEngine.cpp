@@ -132,13 +132,21 @@ void FormulsEngine::stop()
 }
 
 //==============================================================================
-void FormulsEngine::audioDeviceAboutToStart (juce::AudioIODevice*)
+void FormulsEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
     const auto blockSize = libpd_blocksize();   // always 64 frames
 
     pdInputBuffer.assign ((size_t) blockSize, 0.0f);   // no input channels used
     pdOutputBuffer.assign ((size_t) (blockSize * juce::jmax (1, pdOutputChannels)), 0.0f);
     samplesLeftInTick = 0;
+
+    // Allocate the recording tap here, on the message thread, generously
+    // enough that a device buffer size change still fits without the audio
+    // callback ever having to allocate.
+    const auto deviceBufferSize = device != nullptr ? device->getCurrentBufferSizeSamples() : 0;
+
+    recordChannels.assign ((size_t) juce::jmax (1, pdOutputChannels), nullptr);
+    recordSilence.assign ((size_t) juce::jmax (8192, deviceBufferSize * 4), 0.0f);
 }
 
 void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
@@ -189,6 +197,22 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
 
         samplesLeftInTick -= numToCopy;
         sampleIndex += numToCopy;
+    }
+
+    // The whole block is now rendered, so the recorder can take it in one
+    // go. Device channels JUCE gave us as null are recorded as silence, so
+    // the file always has exactly the engine's channel count.
+    if (recorder != nullptr
+        && pdOutputChannels > 0
+        && (int) recordChannels.size() >= pdOutputChannels
+        && (size_t) numSamples <= recordSilence.size())
+    {
+        for (int ch = 0; ch < pdOutputChannels; ++ch)
+            recordChannels[(size_t) ch] = (ch < numOutputChannels && outputChannelData[ch] != nullptr)
+                                            ? outputChannelData[ch]
+                                            : recordSilence.data();
+
+        recorder->write (recordChannels.data(), pdOutputChannels, numSamples);
     }
 }
 

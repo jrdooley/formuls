@@ -28,6 +28,9 @@
  *   Restyle the address panel    -> edit style::addressFill / addressText /
  *                                   addressFontHeight (the read-only box
  *                                   listing the control GUI's web addresses)
+ *   Change the "recording" red    -> edit style::recordActive (the colour the
+ *                                   Record button turns while a take is in
+ *                                   progress)
  *   Change widget colours        -> edit the setColour() calls in the
  *                                   FormulsLookAndFeel constructor below.
  *                                   Each juce widget documents its own
@@ -75,6 +78,7 @@ namespace style
     static const juce::Colour statusColour  { 0xffdcf0dc };   // status line text
     static const juce::Colour addressFill   { 0xff00491e };   // GUI address panel background
     static const juce::Colour addressText   { 0xffeafbea };   // GUI address panel text
+    static const juce::Colour recordActive  { 0xffb3271e };   // Record button while recording
 
     // ------------------------------------------------------------------ layout
     constexpr int margin          = 24;    // outer margin around all controls
@@ -83,6 +87,9 @@ namespace style
     constexpr int comboWidth      = 280;   // width of the two combo boxes
     constexpr int buttonWidth     = 150;   // width of the start/stop button
     constexpr int buttonHeight    = 44;    // height of the start/stop button
+    constexpr int recordButtonWidth = 150; // width of the record button, which
+                                           // sits to the right of start/stop
+    constexpr int buttonGap       = 14;    // horizontal gap between the two buttons
 
     // ------------------------------------------------------------------ fonts
     constexpr float labelFontHeight   = 15.0f;

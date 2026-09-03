@@ -12,23 +12,60 @@ It is one app that:
    and launches the bundled node.js build of **Open Stage Control** (the formuls
    GUI) as a child process, then lists the **web addresses the GUI can be
    opened at** (see below),
-3. on **Stop formuls**, shuts both down again while the window stays open, so a
+3. **records its own output to a WAV file** at the press of the **Record**
+   button, matching the running sample rate and channel count (see below),
+4. on **Stop formuls**, shuts both down again while the window stays open, so a
    different device or channel count can be chosen,
-4. quits fully when the window is closed — stopping the engine and killing the
+5. quits fully when the window is closed — stopping the engine and killing the
    Open Stage Control process it started,
-5. quits when **the Pd patch asks it to** (see below).
+6. quits when **the Pd patch asks it to** (see below).
 
 ## Source files
 
 | File | What it does |
 | --- | --- |
 | `Source/Main.cpp` | App entry point; creates the main window, installs the look and feel, handles quitting. |
-| `Source/MainComponent.h/.cpp` | The window contents: device/channel combo boxes, Start/Stop button, status line. |
+| `Source/MainComponent.h/.cpp` | The window contents: device/channel combo boxes, Start/Stop and Record buttons, status line. |
+| `Source/AudioRecorder.h/.cpp` | Writes the engine's output to a WAV file on a background thread. |
 | `Source/FormulsEngine.h/.cpp` | libpd embedded behind a `juce::AudioIODeviceCallback`; loads `_main.pd`, renders audio, receives patch messages. |
 | `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server with `juce::ChildProcess`; also works out the GUI's web addresses. |
 | `Source/FormulsLookAndFeel.h` | **All styling** — window title/size, colours, fonts, layout metrics. |
 | `Source/ResourceLocator.h` | Finds the `pd/` and `gui/` resources both in the packaged app and in development builds. |
 | `formuls.jucer` | Projucer project. Generates `Builds/MacOSX` (Xcode) and `Builds/LinuxMakefile`. |
+
+## Recording
+
+The **Record** button sits next to Start/Stop and is enabled only while the
+engine is running. The first press starts a take; the next press ends it and
+opens a "save as" dialog.
+
+The file always matches what the engine is actually producing:
+
+* **Sample rate** — the rate the audio device really opened at, which is not
+  always the rate that was asked for (`FormulsEngine::getActualSampleRate()`).
+* **Channels** — one WAV channel per *selected* output channel, so "2 channels"
+  gives a stereo file and "14 channels" gives a 14-channel file. This follows
+  the combo box, not the hardware: if the device has fewer outputs than that,
+  the channels it does not have are recorded as silence, so a 14-channel take
+  keeps its channel numbering on any device.
+* **Format** — 24-bit PCM WAV (`AudioRecorder::bitsPerSample`; set it to 32 to
+  write 32-bit float instead, which `juce::WavAudioFormat` does automatically
+  at that depth and which cannot clip). Files over 4 GB become RF64, which the
+  JUCE writer switches to on its own, so long multichannel takes are not
+  truncated.
+
+Audio is written straight to a timestamped file in **`~/Music/formuls/`**
+(falling back to `~/Documents/formuls`, then the temp folder) while recording;
+the save dialog just *moves* that finished file wherever you want it. Nothing
+is recorded to a scratch file that could be lost — if the dialog is cancelled,
+or the app is closed mid-take, or Stop formuls is pressed while recording, the
+audio is still in that folder and the status line says exactly where.
+
+The audio thread only ever hands blocks to a
+`juce::AudioFormatWriter::ThreadedWriter`, which copies them into a FIFO that a
+background thread drains to disk — no disk I/O and no allocation happens in the
+audio callback. `FormulsEngine` offers it every block it renders; the recorder
+ignores them until a take is started, so recording costs nothing while idle.
 
 ## The control GUI addresses
 
@@ -161,13 +198,20 @@ xcodebuild -project formuls.xcodeproj -configuration Release \
   GCC_PREPROCESSOR_DEFINITIONS='$(inherited) FORMULS_AUTOSTART_TEST=1'
 ```
 
-That build also logs the address panel's contents, and — if the environment
-variable `FORMULS_SNAPSHOT_PATH` is set — writes a PNG of the window to that
-path four seconds after launch. JUCE renders the snapshot itself, so it works
-without granting screen-recording permission:
+That build also logs the address panel's contents and the status line, and
+reads a few environment variables so a whole run can be scripted:
+
+| Variable | Effect |
+| --- | --- |
+| `FORMULS_TEST_SAMPLERATE` | Selects that sample rate instead of the default 48 kHz. |
+| `FORMULS_TEST_CHANNELS` | Selects that channel count instead of the default 2. |
+| `FORMULS_TEST_RECORD_SECONDS` | Records for that many seconds, then finishes the file with no save dialog and logs where it went. |
+| `FORMULS_SNAPSHOT_PATH` | Writes a PNG of the window to that path four seconds after launch. JUCE renders it itself, so it needs no screen-recording permission. |
 
 ```bash
-FORMULS_SNAPSHOT_PATH=/tmp/formuls.png ./build/Release/formuls.app/Contents/MacOS/formuls
+FORMULS_TEST_CHANNELS=14 FORMULS_TEST_SAMPLERATE=96000 \
+FORMULS_TEST_RECORD_SECONDS=3 FORMULS_SNAPSHOT_PATH=/tmp/formuls.png \
+  ./build/Release/formuls.app/Contents/MacOS/formuls
 ```
 
 ## Runtime resource layout

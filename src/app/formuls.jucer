@@ -10,6 +10,9 @@
       <FILE id="srcMC0" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="srcMC1" name="MainComponent.cpp" compile="1" resource="0"
             file="Source/MainComponent.cpp"/>
+      <FILE id="srcAR0" name="AudioRecorder.h" compile="0" resource="0" file="Source/AudioRecorder.h"/>
+      <FILE id="srcAR1" name="AudioRecorder.cpp" compile="1" resource="0"
+            file="Source/AudioRecorder.cpp"/>
       <FILE id="srcFE0" name="FormulsEngine.h" compile="0" resource="0" file="Source/FormulsEngine.h"/>
       <FILE id="srcFE1" name="FormulsEngine.cpp" compile="1" resource="0"
             file="Source/FormulsEngine.cpp"/>
@@ -30,6 +33,7 @@
   <MODULES>
     <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
@@ -49,6 +53,7 @@
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_core" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_data_structures" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_events" path="../../../../../JUCE/modules"/>
@@ -66,6 +71,7 @@
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_audio_devices" path="../../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_core" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_data_structures" path="../../../../../JUCE/modules"/>
         <MODULEPATH id="juce_events" path="../../../../../JUCE/modules"/>

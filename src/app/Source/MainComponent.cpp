@@ -24,6 +24,9 @@ static constexpr int kDefaultSampleRate = 48000;
 static const juce::String kStartText { "Start formuls" };
 static const juce::String kStopText  { "Stop formuls" };
 
+static const juce::String kRecordText     { "Record" };
+static const juce::String kStopRecordText { "Stop recording" };
+
 MainComponent::MainComponent()
 {
     setSize (style::windowWidth, style::windowHeight);
@@ -52,6 +55,15 @@ MainComponent::MainComponent()
     startStopButton.setButtonText (kStartText);
     startStopButton.onClick = [this] { startStopClicked(); };
     addAndMakeVisible (startStopButton);
+
+    // ------------------------------------------------------------ record button
+    // Every block the engine renders is offered to the recorder from the
+    // audio thread; the recorder ignores them until a take is started.
+    engine.setRecorder (&recorder);
+
+    recordButton.onClick = [this] { recordClicked(); };
+    addAndMakeVisible (recordButton);
+    updateRecordButton();
 
     // ------------------------------------------------------- GUI address panel
     // Read-only, but still selectable so the address can be copied out
@@ -92,12 +104,18 @@ MainComponent::MainComponent()
         {
             safeThis->audioDeviceBox.setSelectedId (1);
 
-            // FORMULS_TEST_SAMPLERATE overrides the sample rate choice, so
-            // non-default rates can be tested without clicking.
+            // FORMULS_TEST_SAMPLERATE / FORMULS_TEST_CHANNELS override the
+            // combo boxes, so non-default rates and channel counts can be
+            // tested without clicking.
             if (auto rate = juce::SystemStats::getEnvironmentVariable (
                                 "FORMULS_TEST_SAMPLERATE", {}).getIntValue();
                 rate > 0)
                 safeThis->sampleRateBox.setSelectedId (rate);
+
+            if (auto channels = juce::SystemStats::getEnvironmentVariable (
+                                    "FORMULS_TEST_CHANNELS", {}).getIntValue();
+                channels > 0)
+                safeThis->channelsBox.setSelectedId (channels);
 
             safeThis->startStopClicked();
 
@@ -105,6 +123,27 @@ MainComponent::MainComponent()
                                       + safeThis->addressPanel.getText());
             juce::Logger::writeToLog ("status: "
                                       + safeThis->statusLabel.getText());
+
+            // FORMULS_TEST_RECORD_SECONDS records for that long and finishes
+            // the file without a save dialog, so the recorder can be checked
+            // end to end from a script.
+            if (auto seconds = juce::SystemStats::getEnvironmentVariable (
+                                   "FORMULS_TEST_RECORD_SECONDS", {}).getFloatValue();
+                seconds > 0.0f && safeThis->engine.isRunning())
+            {
+                safeThis->recordClicked();
+
+                juce::Timer::callAfterDelay ((int) (seconds * 1000.0f), [safeThis]
+                {
+                    if (safeThis == nullptr || ! safeThis->recorder.isRecording())
+                        return;
+
+                    safeThis->finishRecording (false);
+                    safeThis->updateRecordButton();
+                    juce::Logger::writeToLog ("status: "
+                                              + safeThis->statusLabel.getText());
+                });
+            }
         }
     });
 
@@ -136,7 +175,10 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
-    stopEverything();
+    // The app is closing, so there is nowhere to show a save dialog: any
+    // take in progress is simply finished where it was being recorded.
+    stopEverything (false);
+    engine.setRecorder (nullptr);
 }
 
 //==============================================================================
@@ -161,8 +203,10 @@ void MainComponent::resized()
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
 
-    startStopButton.setBounds (area.removeFromTop (style::buttonHeight)
-                                   .withWidth (style::buttonWidth));
+    auto buttonRow = area.removeFromTop (style::buttonHeight);
+    startStopButton.setBounds (buttonRow.removeFromLeft (style::buttonWidth));
+    buttonRow.removeFromLeft (style::buttonGap);
+    recordButton.setBounds (buttonRow.removeFromLeft (style::recordButtonWidth));
     area.removeFromTop (style::controlSpacing);
 
     // status line sits at the bottom; the address panel fills what is left
@@ -193,7 +237,7 @@ void MainComponent::populateDeviceList()
 void MainComponent::startStopClicked()
 {
     if (engine.isRunning())
-        stopEverything();
+        stopEverything (true);
     else
         startEverything();
 }
@@ -239,6 +283,7 @@ void MainComponent::startEverything()
     sampleRateBox.setEnabled (false);
 
     updateAddressPanel (oscResult.wasOk());
+    updateRecordButton();
 
     // If the device couldn't do the requested rate, say what it's really at.
     const auto actualRate = (int) engine.getActualSampleRate();
@@ -254,8 +299,15 @@ void MainComponent::startEverything()
         setStatus ("Running." + rateNote);
 }
 
-void MainComponent::stopEverything()
+void MainComponent::stopEverything (bool offerToSaveRecording)
 {
+    // Finish the take before the audio device goes away, so the tail of the
+    // recording isn't cut off by the engine shutting down.
+    const bool wasRecording = recorder.isRecording();
+
+    if (wasRecording)
+        finishRecording (offerToSaveRecording);
+
     openStageControl.stop();
     engine.stop();
 
@@ -264,7 +316,130 @@ void MainComponent::stopEverything()
     channelsBox.setEnabled (true);
     sampleRateBox.setEnabled (true);
     updateAddressPanel (false);
-    setStatus ("Stopped.");
+    updateRecordButton();
+
+    // finishRecording() has already put the file's fate in the status line;
+    // don't overwrite it with "Stopped."
+    if (! wasRecording)
+        setStatus ("Stopped.");
+}
+
+//==============================================================================
+void MainComponent::recordClicked()
+{
+    if (recorder.isRecording())
+        finishRecording (true);
+    else
+        startRecording();
+
+    updateRecordButton();
+}
+
+void MainComponent::startRecording()
+{
+    if (! engine.isRunning())
+    {
+        setStatus ("Start formuls before recording.");
+        return;
+    }
+
+    // Record exactly what the engine is producing: the channel count it
+    // opened with, and the rate the device really runs at (which is not
+    // always the rate that was asked for).
+    const auto numChannels = engine.getNumOutputChannels();
+    const auto sampleRate  = engine.getActualSampleRate();
+    const auto destination = AudioRecorder::makeRecordingFile();
+
+    if (auto result = recorder.start (destination, numChannels, sampleRate);
+        result.failed())
+    {
+        setStatus (result.getErrorMessage());
+        return;
+    }
+
+    setStatus ("Recording " + juce::String (numChannels) + " channels @ "
+               + juce::String ((int) sampleRate) + " Hz to "
+               + destination.getFileName() + "...");
+}
+
+void MainComponent::finishRecording (bool offerToSaveRecording)
+{
+    recorder.stop();
+
+    const auto recorded = recorder.getFile();
+
+    if (! recorded.existsAsFile())
+    {
+        setStatus ("Recording failed: no file was written.");
+        return;
+    }
+
+    const auto describe = [] (const juce::File& f)
+    {
+        return f.getFullPathName() + " ("
+             + juce::File::descriptionOfSizeInBytes (f.getSize()) + ")";
+    };
+
+    if (! offerToSaveRecording)
+    {
+        // Shutting down: no dialog, just leave the file where it is.
+        setStatus ("Recording saved to " + describe (recorded));
+        return;
+    }
+
+    setStatus ("Recording finished -- choose where to save it.");
+
+    saveChooser = std::make_unique<juce::FileChooser> ("Save recording as...",
+                                                       recorded, "*.wav");
+
+    const auto flags = juce::FileBrowserComponent::saveMode
+                     | juce::FileBrowserComponent::canSelectFiles
+                     | juce::FileBrowserComponent::warnAboutOverwriting;
+
+    saveChooser->launchAsync (flags,
+        [safeThis = juce::Component::SafePointer (this), recorded, describe]
+        (const juce::FileChooser& chooser)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            auto chosen = chooser.getResult();
+
+            // Cancelled: the take is not lost, it just stays where it was
+            // recorded (see AudioRecorder.h).
+            if (chosen == juce::File())
+            {
+                safeThis->setStatus ("Recording kept at " + describe (recorded));
+                return;
+            }
+
+            if (! chosen.hasFileExtension ("wav"))
+                chosen = chosen.withFileExtension ("wav");
+
+            if (chosen == recorded)
+            {
+                safeThis->setStatus ("Recording saved to " + describe (recorded));
+                return;
+            }
+
+            chosen.deleteFile();   // moveFileTo won't overwrite on its own
+
+            if (recorded.moveFileTo (chosen))
+                safeThis->setStatus ("Recording saved to " + describe (chosen));
+            else
+                safeThis->setStatus ("Could not save to " + chosen.getFullPathName()
+                                     + " -- recording kept at " + describe (recorded));
+        });
+}
+
+void MainComponent::updateRecordButton()
+{
+    const bool isRecording = recorder.isRecording();
+
+    recordButton.setButtonText (isRecording ? kStopRecordText : kRecordText);
+    recordButton.setEnabled (engine.isRunning());
+    recordButton.setColour (juce::TextButton::buttonColourId,
+                            isRecording ? style::recordActive : style::widgetFill);
 }
 
 void MainComponent::setStatus (const juce::String& message)

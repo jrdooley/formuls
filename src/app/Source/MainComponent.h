@@ -14,6 +14,13 @@
  *   - a Start/Stop button that boots (or shuts down) the formuls engine
  *     (libpd, see FormulsEngine.h) and the Open Stage Control server
  *     (see OpenStageControlProcess.h) together,
+ *   - a Record button beside it, enabled while the engine is running. The
+ *     first press starts recording the engine's output to a WAV file at the
+ *     rate the device is running at, with one channel per selected output
+ *     channel (2 -> stereo, 14 -> a 14-channel file). The next press stops
+ *     the take and opens a "save as" dialog. See AudioRecorder.h for where
+ *     the audio is written while recording, and what happens if the dialog
+ *     is cancelled,
  *   - a read-only panel listing the web addresses the control GUI can be
  *     opened at once it is running: the loopback address for a browser on
  *     this machine, plus this machine's address on each network it is
@@ -30,6 +37,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "AudioRecorder.h"
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"
 
@@ -49,7 +57,24 @@ private:
     void populateDeviceList();
     void startStopClicked();
     void startEverything();
-    void stopEverything();
+
+    /** Stops the o-s-c server and the engine, finishing any recording first.
+        @param offerToSaveRecording  true from the Stop button (a take in
+                                     progress is finished and the save dialog
+                                     opened); false when the app is shutting
+                                     down, where a modal dialog is not an
+                                     option -- the finished file is simply
+                                     left where it was recorded. */
+    void stopEverything (bool offerToSaveRecording);
+
+    void recordClicked();
+    void startRecording();
+
+    /** Finishes the take, then (unless the app is closing) asks where to
+        keep the file and moves it there. */
+    void finishRecording (bool offerToSaveRecording);
+
+    void updateRecordButton();
     void setStatus (const juce::String& message);
 
     /** Fills the address panel: the GUI's web addresses when the server is
@@ -57,6 +82,9 @@ private:
     void updateAddressPanel (bool guiIsRunning);
 
     juce::AudioDeviceManager deviceManager;
+
+    // Declared before the engine so it outlives the engine's recording tap.
+    AudioRecorder recorder;
     FormulsEngine engine;
     OpenStageControlProcess openStageControl;
 
@@ -64,10 +92,14 @@ private:
     juce::ComboBox channelsBox;
     juce::ComboBox sampleRateBox;
     juce::TextButton startStopButton;
+    juce::TextButton recordButton;
     juce::TextEditor addressPanel;
     juce::Label statusLabel;
 
     juce::StringArray outputDeviceNames;
+
+    // Kept alive while the (asynchronous, non-modal) save dialog is open.
+    std::unique_ptr<juce::FileChooser> saveChooser;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
