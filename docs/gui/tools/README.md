@@ -11,6 +11,7 @@ and `gui/open-stage-control` package are reused rather than downloaded again.
 | `osc-load.py` | Drives those addresses into an o-s-c server: `throttled` (N addresses at 25 Hz, the realistic instrument load), `steady` (one message every GAP seconds, for pricing a single widget update), or `packed` (one message of N floats to a canvas, for pricing the blob idea). |
 | `ws-probe.js` | Pasted into the client's console: wraps `WebSocket` to count frames and time the app's own message handler. |
 | `ws-probe-read.js` | Defines `__reset()` and `__read(sent)` to read those counters back. |
+| `gen-modpack.py` | Generates `src/pd/controlabstractions/f.gui.modpack.pd`, the per-instance value packer. Pd connection indices are managed here rather than by hand. |
 | `ws-client.js` | A headless extra "tablet" -- connects, counts frames, answers pings, renders nothing. For measuring how server cost scales with client count. |
 
 ## Running the whole thing

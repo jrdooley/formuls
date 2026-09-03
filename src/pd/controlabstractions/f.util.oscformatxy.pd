@@ -276,6 +276,8 @@
 #X obj 495 740 \$9;
 #X obj 458 718 t b b;
 #X obj 458 697 r \$2-reset;
+#X obj 700 800 list prepend \$3;
+#X obj 700 825 s \$2-modvalue;
 #X connect 3 0 83 0;
 #X connect 4 0 68 0;
 #X connect 5 0 1 0;
@@ -369,3 +371,5 @@
 #X connect 93 0 91 0;
 #X connect 93 1 92 0;
 #X connect 94 0 93 0;
+#X connect 28 0 95 0;
+#X connect 95 0 96 0;
