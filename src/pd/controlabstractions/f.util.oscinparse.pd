@@ -673,7 +673,7 @@
 #X connect 7 0 4 0;
 #X connect 7 0 3 0;
 #X restore 17 268 pd FILTER_PITCH_TRACK__;
-#X obj 27 198 -f.util.oscformatxy \$0 \$1 filter filterfreq 1 0 1 filterq 0 0 2.7;
+#X text 27 198 DISABLED - this was an object \, but the leading hyphen only made Pd log "couldn t create" 6 times per session. It read: f.util.oscformatxy (dollar)0 (dollar)1 filter filterfreq 1 0 1 filterq 0 0 2.7;
 #X connect 0 0 2 0;
 #X connect 2 0 7 0;
 #X connect 3 0 1 0;
