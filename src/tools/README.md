@@ -167,3 +167,78 @@ cp -R /path/to/formuls.app/Contents/Resources/pd/externals /tmp/pd-test/external
 The first measurement after a change often reads negative -- the patch
 sends `reset` to `abl_link~`, so the beat counter jumps backwards once.
 That is an artefact of the probe, not a fault.
+
+
+## automation-probe.py
+
+Records a gesture into one `f.seq.automater` and reports every discontinuity
+in the value it sends towards Faust:
+
+```bash
+python3 src/tools/automation-probe.py
+python3 src/tools/automation-probe.py --gesture triangle --press 520
+```
+
+It builds a throwaway patch that drives a single automater the way the running
+app does -- both master throttles, a beat on `clockin`, `record 1`, a gesture,
+`record 0` -- runs it under `pd -nogui`, and diffs consecutive output frames.
+It needs no audio device, no GUI, no externals and no built app: the automater
+and everything under it are plain Pd, so a run costs about as long as the
+timeline it simulates (four seconds by default).
+
+A step in that value is what a click sounds like, so this is the cheapest way
+to tell a real automation fault from a Faust smoothing problem. It answers a
+question reading the patch cannot: *when* a value moves, relative to the beat
+and to the record button.
+
+`--gesture` picks what the take records. `ramp` sweeps 0 to 1. `triangle`
+returns to where it started, so a correct implementation loops it with no step
+at all -- the useful one for judging a fix. `hold` never moves, so any step it
+reports is the harness's own fault and not the patch's; run it first when a
+result looks surprising.
+
+`--press` and `--release` move the take relative to the beat grid, which is the
+axis most automation faults vary along. `--trace` prints every frame.
+
+### Comparing revisions
+
+`--rev` extracts one revision's `controlabstractions` and probes that instead of
+the working tree, which is how to tell a regression from something that was
+always broken:
+
+```bash
+python3 src/tools/automation-probe.py --gesture triangle              # working tree
+python3 src/tools/automation-probe.py --gesture triangle --rev HEAD   # last commit
+python3 src/tools/automation-probe.py --gesture triangle --rev 2194d48
+```
+
+Errors Pd reports while loading a historical tree are printed with the object
+that caused them, so an old revision's broken objects are visible rather than
+silently changing the result.
+
+### What it has established so far
+
+- **Open:** releasing the record button steps the parameter by an arbitrary
+  amount. Automation playback is armed as soon as recording starts, so the
+  first beat *during* the take sets the read head running underneath it;
+  releasing record swaps the output onto that head mid-gesture. Measured steps
+  of +0.72, -0.19, -0.48 and -0.25 for the same gesture, varying only with when
+  record was pressed relative to the beat. Reproduce with:
+
+  ```bash
+  python3 src/tools/automation-probe.py --gesture triangle --press 520
+  ```
+
+- The fault is **not** a regression. `--rev 2194d48`, the commit that
+  introduced the JUCE front end and predates all the efficiency work,
+  reproduces it exactly.
+- A gate on `clockin`, held closed while `$0-record` is 1, was tried in
+  `f.seq.automater`'s `TIMING_+_SCHEDULING______` and does fix it -- the
+  parameter holds its last live value until the next beat, then playback starts
+  from index 0, and a gesture that returns to where it started loops with no
+  step at all. It is not in the tree: it changes where the loop's phase comes
+  from, which is a musical decision rather than a bug fix.
+- Nothing in the Pd value path smooths. The `[line 0 5]` in
+  `VALUE_READ_EVOLUTION_SEND` only ever receives bare floats, so it passes them
+  straight through; whether a step is audible depends entirely on whether the
+  Faust parameter carries `si.smoo`.
