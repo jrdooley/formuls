@@ -432,14 +432,14 @@
 #X obj 248 543 -;
 #X msg 226 597 resonantfilterREAL\$5 \$1 \$2 \$3 \$4;
 #X obj 66 29 route resonantfilterfreqq\$1 resonantfilterfreqqchaos\$1 resonantfilterfreqqlfofreq\$1 resonantfilterfreqqlfodepth\$1 resonantfilterfreqqlabel\$1;
-#X obj 180 286 f.util.oscformatxy \$0 \$1 resonantfilterfreqq lowpass 1 0 1 lowpassresonance 0 0 2.7;
+#X obj 180 286 f.util.oscformatxy \$0 \$1 resonantfilterfreqq lowpass 1 0 1 lowpassresonance 0 0 2.7 1;
 #X obj 294 81 list prepend resonantfilterfreqqlabel\$1;
 #X obj 237 103 list prepend resonantfilterfreqqlfodepth\$1;
 #X obj 180 125 list prepend resonantfilterfreqqlfofreq\$1;
 #X obj 123 148 list prepend resonantfilterfreqqchaos\$1;
 #X obj 100 202 list prepend resonantfilterfreqq\$1;
 #X obj 66 386 list prepend resonantfilterfreqq\$1;
-#X obj 66 429 f.util.oscformatxy \$0 \$1 resonantfilterfreqq highpass 0 0 1 highpassresonance 0 0 2.7;
+#X obj 66 429 f.util.oscformatxy \$0 \$1 resonantfilterfreqq highpass 0 0 1 highpassresonance 0 0 2.7 1;
 #X obj 374 157 r \$0-freq-follow;
 #X obj 374 259 spigot;
 #X obj 383 176 r \$0-filter-pitch-track-on;
