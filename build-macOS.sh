@@ -53,6 +53,11 @@ unzip open-stage-control_1.31.0_node.zip
 cp -r open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
 rm -rf open-stage-control_1.31.0_node*
 
+# Rebrand the client's greeting header as formuls rather than Open Stage
+# Control. Matched on the markup rather than a line number, so it stops the
+# build if the header ever changes instead of silently shipping unbranded.
+sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION"
+
 # Serialise each broadcast once instead of once per connected tablet.
 # Add --batch-ms 20 to also coalesce value updates into one WebSocket
 # frame; that is off by default because it costs the tablet more work

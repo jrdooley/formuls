@@ -37,8 +37,8 @@ re-sign:
 codesign --force --deep -s - /path/to/formuls.app
 ```
 
-Note: neither build script currently calls this, despite the comment in the
-script saying they do. Branding is applied by hand, or not at all.
+Only needed for an app that was built before branding was wired into the
+build scripts; a fresh build is branded already.
 
 
 ## patch-osc-perf.py
