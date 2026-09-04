@@ -13,7 +13,7 @@ fx = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter
 
 fxsend = fxs
 with {
-  fxs = hslider("fxsend",1,0,1,0.01);
+  fxs = hslider("fxsend",1,0,1,0.01) : si.smoo;
 };
 
 //----------------------------------------------------------------------------------------//
@@ -97,7 +97,7 @@ bitcrush(x) = truncate(x) ;
 pitchshift = _ <: _,ef.transpose(1024,512,pit) : si.interpolate(mix)//
 with {
   pit = hslider("pitchshift",0,-24,24,0.1) : si.smoo;
-  mix = hslider("pitchshiftmix",0,0,1,0.1);
+  mix = hslider("pitchshiftmix",0,0,1,0.1) : si.smoo;
 };
 
 //-------------DELAY---------------//
