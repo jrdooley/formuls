@@ -199,6 +199,18 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
         sampleIndex += numToCopy;
     }
 
+    // Compute peak levels for the first two channels (VU meter source).
+    for (int ch = 0; ch < 2 && ch < numOutputChannels; ++ch)
+    {
+        if (outputChannelData[ch] != nullptr)
+        {
+            float peak = 0.0f;
+            for (int i = 0; i < numSamples; ++i)
+                peak = juce::jmax (peak, std::abs (outputChannelData[ch][i]));
+            peakLevels[(size_t) ch].store (peak, std::memory_order_relaxed);
+        }
+    }
+
     // The whole block is now rendered, so the recorder can take it in one
     // go. Device channels JUCE gave us as null are recorded as silence, so
     // the file always has exactly the engine's channel count.
@@ -219,6 +231,8 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
 void FormulsEngine::audioDeviceStopped()
 {
     samplesLeftInTick = 0;
+    peakLevels[0].store (0.0f, std::memory_order_relaxed);
+    peakLevels[1].store (0.0f, std::memory_order_relaxed);
 }
 
 //==============================================================================

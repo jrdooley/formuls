@@ -39,6 +39,8 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
+#include <atomic>
 #include "PdBase.hpp"
 #include "AudioRecorder.h"
 
@@ -99,6 +101,10 @@ public:
     void stop();
 
     bool isRunning() const noexcept   { return running; }
+
+    /** Peak levels for the first two output channels, updated on the audio
+        thread. Read from the GUI thread to drive VU meters. */
+    std::array<std::atomic<float>, 2> peakLevels {{ 0.0f, 0.0f }};
 
 private:
     // juce::AudioIODeviceCallback

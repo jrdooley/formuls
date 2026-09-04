@@ -65,6 +65,10 @@ MainComponent::MainComponent()
     addAndMakeVisible (recordButton);
     updateRecordButton();
 
+    // -------------------------------------------------------------- VU meters
+    vuMeter.setPeakLevels (engine.peakLevels.data());
+    addAndMakeVisible (vuMeter);
+
     // ------------------------------------------------------- GUI address panel
     // Read-only, but still selectable so the address can be copied out
     // (Cmd+C, or right-click for the Copy menu).
@@ -205,8 +209,14 @@ void MainComponent::resized()
 
     auto buttonRow = area.removeFromTop (style::buttonHeight);
     startStopButton.setBounds (buttonRow.removeFromLeft (style::buttonWidth));
-    buttonRow.removeFromLeft (style::buttonGap);
-    recordButton.setBounds (buttonRow.removeFromLeft (style::recordButtonWidth));
+    recordButton.setBounds (buttonRow.removeFromRight (style::recordButtonWidth));
+    area.removeFromTop (style::controlSpacing);
+
+    // stereo VU meters, same width as the address panel
+    const int meterGap = 4;
+    const int metersTotalHeight = style::meterHeight * 2 + meterGap;
+    auto meterArea = area.removeFromTop (metersTotalHeight);
+    vuMeter.setBounds (meterArea);
     area.removeFromTop (style::controlSpacing);
 
     // status line sits at the bottom; the address panel fills what is left

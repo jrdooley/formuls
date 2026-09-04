@@ -14,13 +14,15 @@
  *   - a Start/Stop button that boots (or shuts down) the formuls engine
  *     (libpd, see FormulsEngine.h) and the Open Stage Control server
  *     (see OpenStageControlProcess.h) together,
- *   - a Record button beside it, enabled while the engine is running. The
- *     first press starts recording the engine's output to a WAV file at the
- *     rate the device is running at, with one channel per selected output
- *     channel (2 -> stereo, 14 -> a 14-channel file). The next press stops
- *     the take and opens a "save as" dialog. See AudioRecorder.h for where
- *     the audio is written while recording, and what happens if the dialog
- *     is cancelled,
+ *   - a Record button to the right of Start/Stop, enabled while the engine
+ *     is running. The first press starts recording the engine's output to a
+ *     WAV file at the rate the device is running at, with one channel per
+ *     selected output channel (2 -> stereo, 14 -> a 14-channel file). The
+ *     next press stops the take and opens a "save as" dialog. See
+ *     AudioRecorder.h for where the audio is written while recording, and
+ *     what happens if the dialog is cancelled,
+ *   - horizontal stereo VU meters monitoring the first two output channels,
+ *     with peak hold and a green-yellow-red gradient,
  *   - a read-only panel listing the web addresses the control GUI can be
  *     opened at once it is running: the loopback address for a browser on
  *     this machine, plus this machine's address on each network it is
@@ -40,6 +42,7 @@
 #include "AudioRecorder.h"
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"
+#include "StereoMeter.h"
 
 namespace formuls
 {
@@ -94,6 +97,7 @@ private:
     juce::TextButton startStopButton;
     juce::TextButton recordButton;
     juce::TextEditor addressPanel;
+    StereoMeter vuMeter;
     juce::Label statusLabel;
 
     juce::StringArray outputDeviceNames;
