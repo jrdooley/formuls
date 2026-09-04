@@ -13,6 +13,27 @@ and `gui/open-stage-control` package are reused rather than downloaded again.
 | `ws-probe-read.js` | Defines `__reset()` and `__read(sent)` to read those counters back. |
 | `gen-modpack.py` | Generates `src/pd/controlabstractions/f.gui.modpack.pd`, the per-instance value packer. Pd connection indices are managed here rather than by hand. |
 | `ws-client.js` | A headless extra "tablet" -- connects, counts frames, answers pings, renders nothing. For measuring how server cost scales with client count. |
+| `ws-watch.js` | The same headless extra "tablet", but it prints the frames it receives instead of counting them. For watching what the server tells a widget to do while you drive the real interface by hand. |
+
+## Watching a running app
+
+`ws-watch.js` connects to the app's own Open Stage Control server as an extra
+client. The server broadcasts widget updates to everyone connected, so this
+sees exactly what the real interface sees -- without a browser console, without
+modifying the client, and without going near the OSC ports that `osc-sink.py`
+must not be pointed at while the app is live.
+
+With the app running, matching on one widget's address:
+
+    APP=formuls-0.3.0-beta.app/Contents/Resources
+    "$APP/gui/node" docs/gui/tools/ws-watch.js resonantfilterfreqq 9001
+
+Drive the interface, then ctrl-c. Each matching frame prints as
+
+    1483 ms  receiveOsc /resonantfilterfreqq7 [0,1,0.475,0]
+
+Pass an empty first argument to log every frame. The port is the server's
+`--port`, which is 9001 in the shipped app (`OpenStageControlProcess.h`).
 
 ## Running the whole thing
 
