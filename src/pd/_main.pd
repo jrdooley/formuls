@@ -475,8 +475,9 @@
 #X obj 35 209 f.util.modinput;
 #X obj 35 188 pack f f;
 #X obj 35 280 outlet;
-#X msg 185 164 reset 0;
-#X obj 185 143 r reset-global;
+#X msg 185 164 reset bang;
+#X obj 185 143 r resetglobal;
+#X msg 262 164 0;
 #X connect 0 0 2 0;
 #X connect 1 0 6 1;
 #X connect 2 0 3 0;
@@ -486,8 +487,10 @@
 #X connect 5 0 7 0;
 #X connect 6 0 8 0;
 #X connect 7 0 6 0;
-#X connect 9 0 6 1;
+#X connect 9 0 6 0;
 #X connect 10 0 9 0;
+#X connect 10 0 11 0;
+#X connect 11 0 6 1;
 #X restore 35 465 pd MOD_PARSE;
 #X msg 35 486 extmod \$1;
 #N canvas 1174 500 315 366 MOD_PARSE 0;
@@ -500,8 +503,9 @@
 #X obj 35 209 f.util.modinput;
 #X obj 35 188 pack f f;
 #X obj 35 280 outlet;
-#X msg 185 164 reset 0;
-#X obj 185 143 r reset-global;
+#X msg 185 164 reset bang;
+#X obj 185 143 r resetglobal;
+#X msg 262 164 0;
 #X connect 0 0 2 0;
 #X connect 1 0 6 1;
 #X connect 2 0 3 0;
@@ -511,8 +515,10 @@
 #X connect 5 0 7 0;
 #X connect 6 0 8 0;
 #X connect 7 0 6 0;
-#X connect 9 0 6 1;
+#X connect 9 0 6 0;
 #X connect 10 0 9 0;
+#X connect 10 0 11 0;
+#X connect 11 0 6 1;
 #X restore 233 466 pd MOD_PARSE;
 #X msg 233 487 extmod \$1;
 #X obj 472 46 route rollingfreezertranspose rollingfreezertransposechaos rollingfreezerlevel rollingfreezerlevelchaos rollingfreezerdrylevel rollingfreezerdrylevelchaos rollingfreezerfeedback;

@@ -1041,7 +1041,7 @@
 #X connect 11 0 10 0;
 #X connect 12 0 11 0;
 #X restore 265 227 pd SEQCYCLE_____;
-#X obj 44 254 f.util.oscformatxy \$2 \$1 seqrandomadddrop seqrandomadd 0 0 0 seqrandomdrop 0 0 0;
+#X obj 44 254 f.util.oscformatxy \$0 \$1 seqrandomadddrop seqrandomadd 0 0 0 seqrandomdrop 0 0 0;
 #N canvas 740 287 360 245 SEQRANDOMADDDROP 0;
 #X obj 109 28 inlet;
 #X obj 109 179 s \$0-seq-messages;
@@ -1076,7 +1076,7 @@
 #X connect 7 0 5 0;
 #X connect 7 0 6 0;
 #X restore 378 293 pd FLAMSPREADHITS;
-#X obj 44 284 f.util.oscformatxy \$2 \$1 flamhitsspread flamhits 0 0 0 flamspread 0 0 0;
+#X obj 44 284 f.util.oscformatxy \$0 \$1 flamhitsspread flamhits 0 0 0 flamspread 0 0 0;
 #X connect 0 0 9 0;
 #X connect 2 0 3 0;
 #X connect 3 0 4 0;
@@ -2036,7 +2036,7 @@
 #X obj 35 280 outlet;
 #X obj 168 278 outlet;
 #X obj 290 76 unpack f f;
-#X obj 343 126 r \$2-reset;
+#X obj 343 126 r \$1-reset;
 #X msg 413 147 0;
 #X msg 343 147 reset bang;
 #X connect 0 0 3 0;

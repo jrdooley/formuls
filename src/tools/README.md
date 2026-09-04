@@ -79,6 +79,29 @@ characters `sed` would need escaping for, and BSD and GNU `sed` disagree about
 several of them.
 
 
+## check-reset-coverage.py
+
+Checks that every parameter carrying chaos/LFO/mod sub-widgets in
+`gui/_main.json` is reset by `f.util.reset.pd`, with the right abstraction
+for its widget type and the right mod-matrix flag:
+
+```bash
+python3 src/tools/check-reset-coverage.py
+```
+
+The same parameter is declared in two places -- the interface builds the
+widgets, and Pd zeroes them on reset -- and Pd has no way to derive the
+second from the first. When the two drift, nothing complains: Pd sends to an
+address no widget owns and the interface never hears about the widget it was
+never told to move. That is how the Sequencer Add/Drop, Chorus/Phaser,
+Saturation/Bitcrush, Pitchshift, Gate Threshold/Release and Flam widgets came
+to sit through a reset untouched, along with Filter Type, Sequencer
+Swing/Delay/Warp and Pitch Repeat.
+
+Run it after adding a parameter or renaming a widget. It exits non-zero and
+names the fix for each mismatch.
+
+
 ## bpm-probe
 
 Loads the real `pd/_main.pd` under libpd, drives BPM over genuine OSC to
