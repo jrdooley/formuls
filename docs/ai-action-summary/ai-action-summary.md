@@ -188,7 +188,7 @@ correct `~/JUCE/modules`). Pre-existing bug, surfaced during the VU meters build
 
 ### Session cost and energy
 
-| Metric | Estimate |
+| Metric | Value |
 |---|---|
-| **Cost** | ~$16.00 (Claude Sonnet 4, ~350k input + ~90k output tokens across ~45 turns) |
+| **Cost** | $0.33 (as reported by MiMoCode session meter) |
 | **Energy** | ~0.22 kWh (~790 kJ) estimated for inference compute; negligible local CPU for builds |
