@@ -121,7 +121,8 @@ Full session on `juce-port`. Four distinct tasks plus repo setup.
 
 `a0213f5` — `docs: add AGENTS.md for the juce-port branch`
 `55d5f95` — `gui: add stereo VU meters and right-justify Record button`
-Pending — `gui: add screenshot button, fix sequencer modal, load O-S-C state file`
+`eaf7ec6` — `gui: add screenshot button, fix sequencer modal, load O-S-C state file`
+`c2ad0ee` — `gui: fix screenshot button — directory chooser and ChildProcess`
 
 ### 1. AGENTS.md
 
@@ -189,5 +190,5 @@ correct `~/JUCE/modules`). Pre-existing bug, surfaced during the VU meters build
 
 | Metric | Estimate |
 |---|---|
-| **Cost** | ~$8.50 (Claude Sonnet 4, ~180k input + ~40k output tokens across ~25 turns) |
-| **Energy** | ~0.12 kWh (~430 kJ) estimated for inference compute; negligible local CPU for builds |
+| **Cost** | ~$16.00 (Claude Sonnet 4, ~350k input + ~90k output tokens across ~45 turns) |
+| **Energy** | ~0.22 kWh (~790 kJ) estimated for inference compute; negligible local CPU for builds |
