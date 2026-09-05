@@ -192,3 +192,64 @@ correct `~/JUCE/modules`). Pre-existing bug, surfaced during the VU meters build
 |---|---|
 | **Cost** | $0.33 (as reported by MiMoCode session meter) |
 | **Energy** | ~0.22 kWh (~790 kJ) estimated for inference compute; negligible local CPU for builds |
+
+---
+
+## 27 January 2026 — repeater and flooper refactor in ffx.lib
+
+Review and refactor of two audio effects in `src/faust/ffx.lib`. One commit,
+`07a1248`, pushed to `juce-port`.
+
+### Commit
+
+`07a1248` — `faust: refactor repeater and flooper in ffx.lib`
+
+### Repeater (lines 257–305)
+
+**Bug fixes:**
+- Right channel beat divisions were beat *multiples* (1, 2, 4, 8, 16), not
+  subdivisions. Both channels now use divisors (4, 5, 6, 8, 10, 12, 16).
+- Slider range was 1–5, leaving voices 6–7 unreachable (dead code). Now 1–7.
+- Asymmetric voice count (7 left, 5 right) — now balanced at 7 per channel.
+- `de.sdelay` max size was hardcoded 96000 samples (2s at 48kHz). Now derived
+  from sample rate: `int(ba.sec2samp(60.0) * 16)`.
+- Integer division `tempo/(d)` truncated at edge BPMs. Now `float(tempo) / d`.
+
+**Refactor:**
+- Unified `delayvoice(cap, cnt, sel, i, d, x)` replaces separate `delayvoicel`
+  and `delayvoicer`. Single point of change for voice logic.
+
+**Note:** `par(i, N, fn)` was tried but breaks when `fn` uses `~` (feedback
+operator) with signal parameters — the feedback loop doesn't correctly route
+parameterised signals. Explicit comma-separated parallel composition was used
+instead.
+
+### Flooper (lines 393–439)
+
+**Bug fixes:**
+- Right channel `rwtable` initial value was 0.1, not 0.0 — DC offset before any
+  recording.
+- `floopertablesize` was hardcoded 3840002 (80s at 48kHz). Now
+  `int(ma.SR * 80) + 2`, safe at any sample rate.
+- `speed2` was an exact duplicate of `speed` (both `hslider(...) : si.smoo`).
+  Removed; `speed` used throughout.
+- Sample dropout was muting by zeroing `readindex`, which read the empty guard
+  sample. Now applied as amplitude multiplication after the table read.
+- Cosine grain envelope replaced with parabolic window `env = 1 - (2p-1)²`
+  where `p = 2*phase - 1`. Both close to zero at grain boundaries (first version
+  `1 - phase²` did not close at the end, causing clicks — fixed during testing).
+
+### Shared helper
+
+`exp27 = pow(2.7)` added at file top. Used by djfilter (2 sites) and repeater
+level. `ba.tabulate` was tried for a lookup table but doesn't compose in signal
+chains — `rdtable`'s internal `_` passthrough creates extra inputs when the
+helper is used inside `with` blocks or `*(...)`. `pow(2.7)` is ~15 cycles per
+call, negligible at audio rates.
+
+### Session cost and energy
+
+| Metric | Value |
+|---|---|
+| **Cost** | TBD |
+| **Energy** | TBD |
