@@ -109,6 +109,8 @@ private:
 
     // Kept alive while the (asynchronous, non-modal) save dialog is open.
     std::unique_ptr<juce::FileChooser> saveChooser;
+    std::unique_ptr<juce::FileChooser> screenshotChooser;
+    std::unique_ptr<juce::ChildProcess> screenshotProc;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

@@ -467,22 +467,73 @@ void MainComponent::updateRecordButton()
 
 void MainComponent::screenshotClicked()
 {
+    // The script lives in src/tools/ in the repo.  In a development build
+    // the resource root IS src/, so tools/ is a direct child.  In a packaged
+    // app the resource root is Contents/Resources/ — walk up to the repo root
+    // and look for src/tools/ there.
     const auto resourceRoot = findResourceRoot();
     auto script = resourceRoot.getChildFile ("tools").getChildFile ("screenshot-gui.py");
 
     if (! script.existsAsFile())
     {
-        setStatus ("Screenshot tool not found: " + script.getFullPathName());
+        auto dir = resourceRoot;
+        for (int i = 0; i < 8; ++i)
+        {
+            dir = dir.getParentDirectory();
+            auto candidate = dir.getChildFile ("src").getChildFile ("tools")
+                                 .getChildFile ("screenshot-gui.py");
+            if (candidate.existsAsFile())
+            {
+                script = candidate;
+                break;
+            }
+        }
+    }
+
+    if (! script.existsAsFile())
+    {
+        setStatus ("Screenshot tool not found (src/tools/screenshot-gui.py).");
         return;
     }
 
-    // Launch the script as a detached process so the UI stays responsive.
-    auto command = "python3 " + script.getFullPathName().quoted();
+    auto defaultDir = juce::File::getSpecialLocation (juce::File::userDesktopDirectory)
+                          .getChildFile ("formuls-gui");
 
-    if (juce::Process::openDocument (command, {}))
-        setStatus ("Taking screenshots... saved to ~/Desktop/formuls-gui/");
-    else
-        setStatus ("Could not run screenshot tool.");
+    screenshotChooser = std::make_unique<juce::FileChooser> ("Save screenshots to...",
+                                                              defaultDir, "");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectDirectories;
+
+    screenshotChooser->launchAsync (flags,
+        [this, safeThis = juce::Component::SafePointer (this), script]
+        (const juce::FileChooser& chooser)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            auto dir = chooser.getResult();
+
+            if (dir == juce::File())
+            {
+                safeThis->setStatus ("Screenshot cancelled.");
+                return;
+            }
+
+            dir.createDirectory();
+
+            screenshotProc = std::make_unique<juce::ChildProcess>();
+            juce::StringArray args { "python3", script.getFullPathName(),
+                                     "-o", dir.getFullPathName() };
+
+            if (screenshotProc->start (args))
+                safeThis->setStatus ("Taking screenshots... saving to " + dir.getFileName());
+            else
+            {
+                safeThis->setStatus ("Could not run screenshot tool.");
+                screenshotProc.reset();
+            }
+        });
 }
 
 void MainComponent::setStatus (const juce::String& message)

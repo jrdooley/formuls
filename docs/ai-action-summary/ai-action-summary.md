@@ -173,8 +173,11 @@ tab, and saves a PNG. Skips hidden tabs (`display: none`) and the RESET page.
 - Output: `~/Desktop/formuls-gui/` (customisable via `-o`)
 
 **Take Screenshot button** added to the JUCE app window, right-justified above
-the Record button. Enabled only while the engine is running. Calls
-`juce::Process::openDocument` to launch the Python script as a detached process.
+the Record button. Enabled only while the engine is running. Opens a directory
+chooser dialog (default: `~/Desktop/formuls-gui/`), then launches
+`screenshot-gui.py` via `juce::ChildProcess` with the chosen `-o` path. The
+script is found by walking up from the resource root to locate `src/tools/` in
+the repo, since `tools/` is not copied into the app bundle.
 
 ### 5. MODULEPATH bug fix
 
