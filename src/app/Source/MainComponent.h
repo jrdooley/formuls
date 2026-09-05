@@ -21,6 +21,9 @@
  *     next press stops the take and opens a "save as" dialog. See
  *     AudioRecorder.h for where the audio is written while recording, and
  *     what happens if the dialog is cancelled,
+ *   - a Take Screenshot button (top right) that captures each visible page
+ *     of the control GUI as a PNG using Playwright, saving to
+ *     ~/Desktop/formuls-gui/ while the engine is running,
  *   - horizontal stereo VU meters monitoring the first two output channels,
  *     with peak hold and a green-yellow-red gradient,
  *   - a read-only panel listing the web addresses the control GUI can be
@@ -78,6 +81,7 @@ private:
     void finishRecording (bool offerToSaveRecording);
 
     void updateRecordButton();
+    void screenshotClicked();
     void setStatus (const juce::String& message);
 
     /** Fills the address panel: the GUI's web addresses when the server is
@@ -96,6 +100,7 @@ private:
     juce::ComboBox sampleRateBox;
     juce::TextButton startStopButton;
     juce::TextButton recordButton;
+    juce::TextButton screenshotButton;
     juce::TextEditor addressPanel;
     StereoMeter vuMeter;
     juce::Label statusLabel;

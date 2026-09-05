@@ -33,7 +33,10 @@ juce::Result OpenStageControlProcess::start (const juce::File& resourceRoot)
 
     // Same command line the Python front end used:
     //   node open-stage-control/ --send 127.0.0.1:9000 --port 9001
-    //        --load _main.json --client-options framerate=25 hdpi=0
+    //        --load _main.json --state _formuls-default.state
+    //        --client-options framerate=25 hdpi=0
+    auto state = guiDir.getChildFile ("_formuls-default.state");
+
     juce::StringArray args { node.getFullPathName(),
                              oscDir.getFullPathName(),
                              // OSC out -> the Pd patch
@@ -42,6 +45,9 @@ juce::Result OpenStageControlProcess::start (const juce::File& resourceRoot)
                              "--port", juce::String (guiPort),
                              "--load", layout.getFullPathName(),
                              "--client-options", "framerate=25", "hdpi=0" };
+
+    if (state.existsAsFile())
+        args.addArray ({ "--state", state.getFullPathName() });
 
     if (! process.start (args))
         return juce::Result::fail ("Could not start Open Stage Control ("

@@ -65,7 +65,7 @@ namespace style
     // ------------------------------------------------------------------ window
     static const juce::String windowTitle   { "formuls" };
     constexpr int  windowWidth      = 450;
-    constexpr int  windowHeight     = 518;
+    constexpr int  windowHeight     = 553;
     constexpr bool windowResizable  = false;
 
     // ------------------------------------------------------------------ colours
@@ -90,6 +90,8 @@ namespace style
     constexpr int recordButtonWidth = 150; // width of the record button, which
                                            // sits to the right of start/stop
     constexpr int buttonGap       = 14;    // horizontal gap between the two buttons
+    constexpr int screenshotButtonWidth = 150; // width of the screenshot button
+    constexpr int screenshotButtonHeight = 28; // height of the screenshot button
     constexpr int meterHeight     = 20;    // height of each VU meter bar (stereo = 2x + gap)
 
     // ------------------------------------------------------------------ fonts

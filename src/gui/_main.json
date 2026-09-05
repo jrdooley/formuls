@@ -12328,7 +12328,7 @@
                         "padding": 0,
                         "css": "",
                         "value": "",
-                        "default": "",
+                        "default": "0",
                         "linkId": "",
                         "address": "auto",
                         "preArgs": "",
@@ -21159,7 +21159,7 @@
                         ],
                         "tabs": [],
                         "onTouch": "",
-                        "click": false
+                        "click": true
                       },
                       {
                         "type": "button",

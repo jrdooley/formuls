@@ -65,6 +65,12 @@ MainComponent::MainComponent()
     addAndMakeVisible (recordButton);
     updateRecordButton();
 
+    // ---------------------------------------------------- take screenshot button
+    screenshotButton.setButtonText ("Take Screenshot");
+    screenshotButton.setEnabled (engine.isRunning());
+    screenshotButton.onClick = [this] { screenshotClicked(); };
+    addAndMakeVisible (screenshotButton);
+
     // -------------------------------------------------------------- VU meters
     vuMeter.setPeakLevels (engine.peakLevels.data());
     addAndMakeVisible (vuMeter);
@@ -206,6 +212,11 @@ void MainComponent::resized()
     sampleRateBox.setBounds (area.removeFromTop (style::controlHeight)
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
+
+    // screenshot button: right-justified, above the record button
+    auto screenshotRow = area.removeFromTop (style::screenshotButtonHeight);
+    screenshotButton.setBounds (screenshotRow.removeFromRight (style::screenshotButtonWidth));
+    area.removeFromTop (style::controlSpacing / 2);
 
     auto buttonRow = area.removeFromTop (style::buttonHeight);
     startStopButton.setBounds (buttonRow.removeFromLeft (style::buttonWidth));
@@ -450,6 +461,28 @@ void MainComponent::updateRecordButton()
     recordButton.setEnabled (engine.isRunning());
     recordButton.setColour (juce::TextButton::buttonColourId,
                             isRecording ? style::recordActive : style::widgetFill);
+
+    screenshotButton.setEnabled (engine.isRunning());
+}
+
+void MainComponent::screenshotClicked()
+{
+    const auto resourceRoot = findResourceRoot();
+    auto script = resourceRoot.getChildFile ("tools").getChildFile ("screenshot-gui.py");
+
+    if (! script.existsAsFile())
+    {
+        setStatus ("Screenshot tool not found: " + script.getFullPathName());
+        return;
+    }
+
+    // Launch the script as a detached process so the UI stays responsive.
+    auto command = "python3 " + script.getFullPathName().quoted();
+
+    if (juce::Process::openDocument (command, {}))
+        setStatus ("Taking screenshots... saved to ~/Desktop/formuls-gui/");
+    else
+        setStatus ("Could not run screenshot tool.");
 }
 
 void MainComponent::setStatus (const juce::String& message)

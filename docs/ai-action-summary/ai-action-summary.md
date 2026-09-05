@@ -110,3 +110,81 @@ headless rigs had failed to reproduce it.
   `#X ` prefix makes Pd try to create an object called `text`. Every one was
   caught by loading the patch afterwards and reading the console, which is now
   the routine after any hand edit.
+
+---
+
+## 5 September 2026 — VU meters, sequencer modal fix, screenshot tool, AGENTS.md
+
+Full session on `juce-port`. Four distinct tasks plus repo setup.
+
+### Commits
+
+`a0213f5` — `docs: add AGENTS.md for the juce-port branch`
+`55d5f95` — `gui: add stereo VU meters and right-justify Record button`
+Pending — `gui: add screenshot button, fix sequencer modal, load O-S-C state file`
+
+### 1. AGENTS.md
+
+Created `AGENTS.md` for the `juce-port` branch — a compact instruction file for
+future AI sessions covering build prerequisites, JUCE architecture, directory
+layout, signal flow, critical gotchas (abl_link~ Xcode bug, Faust `.lib` files,
+Pd patch copy trap, `formuls-quit` mechanism), diagnostic tools, and branch
+context pointing to `docs/README.md`.
+
+### 2. Stereo VU meters
+
+Added horizontal stereo VU meters to the JUCE app window monitoring the first
+two audio output channels from libpd.
+
+- **`src/app/Source/StereoMeter.h`** — header-only component: green→yellow→red
+  gradient bars with white peak hold markers, 30Hz timer with smart repaint.
+- **`src/app/Source/FormulsEngine.h/cpp`** — added `std::array<std::atomic<float>,
+  2> peakLevels` computed on the audio thread, zeroed on device stop.
+- **`src/app/Source/MainComponent.cpp`** — meters placed between button row and
+  address panel, same width as the address panel. Record button right-justified
+  via `removeFromRight()`.
+- **`src/app/Source/FormulsLookAndFeel.h`** — `meterHeight` constant, window
+  height bumped 446→553.
+- **`src/app/formuls.jucer`** — registered `StereoMeter.h`.
+
+### 3. Sequencer modal fix
+
+The `sequencer@{parent.variables.n}` modal in `src/gui/_main.json` was always
+open on synth tabs. Two root causes found and fixed:
+
+1. **Missing `--state` flag.** The JUCE launcher (`OpenStageControlProcess.cpp`)
+   did not pass `--state _formuls-default.state` to O-S-C, unlike the old Python
+   launcher. The state file sets `sequencer1:0` through `sequencer6:0`. Fixed by
+   adding the `--state` argument when the file exists.
+
+2. **`click: false` + empty `default`.** The modal had `click: false` (renders
+   inline, always visible) and `default: ""` (no initial value). Changed to
+   `click: true` (renders as a tappable button with closeable popup) and
+   `default: "0"` (popup starts closed).
+
+### 4. Screenshot tool
+
+**`src/tools/screenshot-gui.py`** — Playwright/Chromium script that connects to
+the running O-S-C server, finds all tabs in `_main.json`, clicks each visible
+tab, and saves a PNG. Skips hidden tabs (`display: none`) and the RESET page.
+
+- Prerequisites: `pip3 install playwright && python3 -m playwright install chromium`
+- Default viewport: 2048x1536 (tablet-sized), customisable via `--width`/`--height`
+- Output: `~/Desktop/formuls-gui/` (customisable via `-o`)
+
+**Take Screenshot button** added to the JUCE app window, right-justified above
+the Record button. Enabled only while the engine is running. Calls
+`juce::Process::openDocument` to launch the Python script as a detached process.
+
+### 5. MODULEPATH bug fix
+
+`src/app/formuls.jucer` had `../../../../../JUCE/modules` (5 levels up →
+`/Users/JUCE/modules`). Fixed to `../../../../JUCE/modules` (4 levels up →
+correct `~/JUCE/modules`). Pre-existing bug, surfaced during the VU meters build.
+
+### Session cost and energy
+
+| Metric | Estimate |
+|---|---|
+| **Cost** | ~$8.50 (Claude Sonnet 4, ~180k input + ~40k output tokens across ~25 turns) |
+| **Energy** | ~0.12 kWh (~430 kJ) estimated for inference compute; negligible local CPU for builds |
