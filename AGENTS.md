@@ -153,6 +153,8 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 - `docs/README.md` is the index to all juce-port work: efficiency refactor, GUI performance, recording, master bus cuts, branch map
 - `docs/efficiency/` — Faust + Pd efficiency refactor with measured results
 - `docs/gui/` — why the control GUI disconnects, what each fix is worth, the load rig
+- `docs/claude/memory/` — working notes a Claude session keeps for itself, copied
+  into the repo; a snapshot of `~/.claude/projects/<project>/memory/`, so it can drift
 - `git log juce-port..main` shows four duplicate commits, not missing work
 - `alacarte-prototype` branch was never merged and can be deleted
 - The `FORMULS_TRACE` env var belongs to the discarded à la carte branch, not this one

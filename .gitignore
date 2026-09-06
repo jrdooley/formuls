@@ -18,6 +18,11 @@ src/app/JuceLibraryCode/
 # Dependencies downloaded by the build scripts
 # ---------------------------------------------------------------
 src/gui/open-stage-control*
+# The bundled node binary is copied to build/gui/node by the build scripts,
+# but earlier runs left a ~105 MB copy at src/gui/node. "node-v*" below does
+# not cover the bare name, so it showed as untracked and one "git add -A"
+# would have committed it.
+src/gui/node
 src/gui/node-v*
 node_modules/
 

@@ -17,9 +17,21 @@ if [[ ! -x "$PROJUCER" ]]; then
     exit 1
 fi
 
-# make staging directories and copy assets across
-mkdir -p build
-cp -r src/gui build/gui
+# Make staging directories and copy assets across.
+#
+# build/ is removed first. A run that failed part-way leaves a populated
+# build/gui behind, and "cp -r src/gui build/gui" would then copy INTO it
+# rather than replacing it.
+#
+# Only the two files the app actually reads from src/gui are copied. Copying
+# all of src/gui also picks up open-stage-control/ and node/ left behind by
+# earlier runs -- both gitignored, so invisible in "git status". The fresh
+# download below would then nest inside the stale tree, brand-osc.sh would
+# find it already branded and exit 0, and the build would silently ship the
+# old GUI plus tens of MB of dead weight.
+rm -rf build
+mkdir -p build/gui
+cp src/gui/_main.json src/gui/_formuls-default.state build/gui/
 cp -r src/pd build/pd
 mkdir -p build/pd/externals
 
@@ -33,12 +45,14 @@ cd "$ROOT/src/libs/abl_link/external"
 make
 mv abl_link~.pd_linux "$ROOT/build/pd/externals"
 
-# download open stage control and nodejs
-cd "$ROOT/src/gui"
+# Download open stage control and nodejs into build/, not into src/gui/:
+# src/ is a source tree and downloads left there become the stale copies the
+# staging step above has to work around.
+cd "$ROOT/build"
 wget https://openstagecontrol.ammd.net/packages/open-stage-control_1.31.0_node.zip
 unzip open-stage-control_1.31.0_node.zip
-cp -r open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
-rm -rf open-stage-control_1.31.0_node*
+mv open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
+rm -f open-stage-control_1.31.0_node.zip
 
 # Rebrand the client's greeting header as formuls rather than Open Stage
 # Control. Matched on the markup rather than a line number, so it stops the
@@ -51,6 +65,7 @@ sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION
 # than it saves. Both measured in docs/gui/README.md.
 python3 "$ROOT/src/tools/patch-osc-perf.py" "$ROOT/build/gui/open-stage-control"
 
+cd "$ROOT/build"
 wget https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz
 tar -xf node-v22.17.0-linux-x64.tar.xz
 cp node-v22.17.0-linux-x64/bin/node "$ROOT/build/gui/node"
@@ -63,7 +78,50 @@ make UTIL=true EXTRA=true
 
 # generate the Makefile from formuls.jucer and build the JUCE app
 cd "$ROOT"
+# UNTESTED on Linux -- ported from build-macOS.sh, which is verified.
+#
+# Projucer resolves MODULEPATH relative to the .jucer file, and the committed
+# value (../../../../JUCE/modules) only resolves when the repo sits exactly two
+# levels below home. Rewrite it to an absolute path, resave, then put the file
+# back: the generated Builds/ and JuceLibraryCode/ keep the absolute path,
+# which is all the build needs, and the tracked .jucer is left alone. The trap
+# restores it even if the resave or the build below fails under "set -e".
+# (--set-global-search-path does not override per-project MODULEPATH entries.)
+#
+# Two deliberate differences from build-macOS.sh:
+#   - the rewrite goes through a temp file rather than "sed -i". BSD and GNU
+#     sed disagree about that flag, and src/tools/brand-osc.sh already avoids
+#     it for the same reason. This form needs no in-place support at all, so
+#     it is one less thing that can differ between the two platforms.
+#   - macOS walks up a fixed 4 directories because Projucer.app/Contents/MacOS
+#     is a fixed layout. On Linux the Projucer lives at a depth that depends on
+#     how it was built (6 levels up from the default
+#     extras/Projucer/Builds/LinuxMakefile/build/Projucer), so this searches
+#     upward for the JUCE root instead of counting.
+JUCE_DIR="$(dirname "$PROJUCER")"
+while [[ "$JUCE_DIR" != "/" && ! -d "$JUCE_DIR/modules/juce_core" ]]; do
+    JUCE_DIR="$(dirname "$JUCE_DIR")"
+done
+
+if [[ ! -d "$JUCE_DIR/modules/juce_core" ]]; then
+    echo "Could not find the JUCE modules folder above: $PROJUCER"
+    echo "Set PROJUCER to a Projucer binary inside your JUCE checkout."
+    exit 1
+fi
+
+JUCE_MODULES="$JUCE_DIR/modules"
+cp src/app/formuls.jucer "$ROOT/build/formuls.jucer.orig"
+trap 'cp -f "$ROOT/build/formuls.jucer.orig" "$ROOT/src/app/formuls.jucer" 2>/dev/null || true' EXIT
+sed "s|path=\"[^\"]*JUCE/modules\"|path=\"$JUCE_MODULES\"|g" \
+    src/app/formuls.jucer > "$ROOT/build/formuls.jucer.tmp"
+mv -f "$ROOT/build/formuls.jucer.tmp" src/app/formuls.jucer
 "$PROJUCER" --resave src/app/formuls.jucer
+cp -f "$ROOT/build/formuls.jucer.orig" src/app/formuls.jucer
+rm -f "$ROOT/build/formuls.jucer.orig"
+trap - EXIT
+
+# make reads src/app/Builds/LinuxMakefile, not the .jucer, so restoring the
+# .jucer above does not affect it.
 cd "$ROOT/src/app/Builds/LinuxMakefile"
 make CONFIG=Release
 

@@ -67,6 +67,12 @@ public:
 
         @param deviceManager     the app's (shared) AudioDeviceManager
         @param outputDeviceName  device name as reported by JUCE
+        @param outputDeviceType  name of the AudioIODeviceType that reported
+                                 outputDeviceName ("CoreAudio", "ALSA",
+                                 "JACK"...). A device name only resolves
+                                 against the current type, so this is
+                                 selected first; pass an empty string to
+                                 leave the current type alone.
         @param numOutputChannels number of output channels to open (2 or 14)
         @param sampleRate        requested sample rate in Hz. If the device
                                  cannot run at this rate, whatever rate it
@@ -77,6 +83,7 @@ public:
     */
     juce::Result start (juce::AudioDeviceManager& deviceManager,
                         const juce::String& outputDeviceName,
+                        const juce::String& outputDeviceType,
                         int numOutputChannels,
                         double sampleRate,
                         const juce::File& resourceRoot);
