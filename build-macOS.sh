@@ -18,9 +18,21 @@ if [[ ! -x "$PROJUCER" ]]; then
     exit 1
 fi
 
-# make staging directories and copy assets across
-mkdir -p build
-cp -r src/gui build/gui
+# Make staging directories and copy assets across.
+#
+# build/ is removed first. A run that failed part-way leaves a populated
+# build/gui behind, and "cp -r src/gui build/gui" would then copy INTO it
+# rather than replacing it.
+#
+# Only the two files the app actually reads from src/gui are copied. Copying
+# all of src/gui also picks up open-stage-control/ and node/ left behind by
+# earlier runs -- both gitignored, so invisible in "git status". The fresh
+# download below would then nest inside the stale tree, brand-osc.sh would
+# find it already branded and exit 0, and the build would silently ship the
+# old GUI plus tens of MB of dead weight.
+rm -rf build
+mkdir -p build/gui
+cp src/gui/_main.json src/gui/_formuls-default.state build/gui/
 cp -r src/pd build/pd
 mkdir -p build/pd/externals
 
@@ -46,12 +58,14 @@ else
     mv abl_link~.pd_darwin "$ROOT/build/pd/externals"
 fi
 
-# download open stage control and nodejs (native arch)
-cd "$ROOT/src/gui"
+# Download open stage control and nodejs (native arch) into build/, not into
+# src/gui/: src/ is a source tree and downloads left there become the stale
+# copies the staging step above has to work around.
+cd "$ROOT/build"
 wget https://openstagecontrol.ammd.net/packages/open-stage-control_1.31.0_node.zip
 unzip open-stage-control_1.31.0_node.zip
-cp -r open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
-rm -rf open-stage-control_1.31.0_node*
+mv open-stage-control_1.31.0_node "$ROOT/build/gui/open-stage-control"
+rm -f open-stage-control_1.31.0_node.zip
 
 # Rebrand the client's greeting header as formuls rather than Open Stage
 # Control. Matched on the markup rather than a line number, so it stops the
@@ -64,6 +78,7 @@ sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION
 # than it saves. Both measured in docs/gui/README.md.
 python3 "$ROOT/src/tools/patch-osc-perf.py" "$ROOT/build/gui/open-stage-control"
 
+cd "$ROOT/build"
 NODE_ARCH=$(uname -m | sed 's/x86_64/x64/')
 wget "https://nodejs.org/dist/v22.17.0/node-v22.17.0-darwin-$NODE_ARCH.tar.gz"
 tar -xf "node-v22.17.0-darwin-$NODE_ARCH.tar.gz"
@@ -79,10 +94,27 @@ codesign --force -s - libs/libpd.dylib
 
 # generate the Xcode project from formuls.jucer and build the JUCE app
 cd "$ROOT"
+# Projucer resolves MODULEPATH relative to the .jucer file, and the committed
+# value only resolves when the repo sits exactly two levels below home. Rewrite
+# it to an absolute path derived from the Projucer binary, resave, then put the
+# file back: the generated Builds/ and JuceLibraryCode/ keep the absolute path,
+# which is all the build needs. The restore matters -- without it every build
+# leaves the tracked .jucer dirty with a machine-specific path, one
+# "git commit -a" away from being baked into the repository. The trap restores
+# it even if the resave or the build below fails under "set -e".
+# (--set-global-search-path does not override per-project MODULEPATH entries.)
 JUCE_DIR="$PROJUCER"; for _ in 1 2 3 4; do JUCE_DIR="$(dirname "$JUCE_DIR")"; done
 JUCE_MODULES="$JUCE_DIR/modules"
+cp src/app/formuls.jucer "$ROOT/build/formuls.jucer.orig"
+trap 'cp -f "$ROOT/build/formuls.jucer.orig" "$ROOT/src/app/formuls.jucer" 2>/dev/null || true' EXIT
 sed -i '' "s|path=\"[^\"]*JUCE/modules\"|path=\"$JUCE_MODULES\"|g" src/app/formuls.jucer
 "$PROJUCER" --resave src/app/formuls.jucer
+cp -f "$ROOT/build/formuls.jucer.orig" src/app/formuls.jucer
+rm -f "$ROOT/build/formuls.jucer.orig"
+trap - EXIT
+
+# xcodebuild reads src/app/Builds/MacOSX, not the .jucer, so restoring the
+# .jucer above does not affect it.
 xcodebuild -project src/app/Builds/MacOSX/formuls.xcodeproj -configuration Release ARCHS=$(uname -m) ONLY_ACTIVE_ARCH=YES
 
 # assemble the final self-contained app bundle
