@@ -551,3 +551,77 @@ All 41 patches in `src/pd/` parsed for dangling connections - **none**. All
 `_main.json` parses. `check-reset-coverage.py`: all 36 parameters covered.
 `sequencer0`-`sequencer6` present in `_formuls-default.state`. Every Python
 tool byte-compiles.
+
+### Commits
+
+Eleven, `c15ae51..811ef27`, pushed to `juce-port`. Five code, six docs.
+
+`c15ae51` - `faust: size repeater delay lines per voice, not 64x over`
+`2e7dd9d` - `docs: retract the OSC routing diagnosis, add the audit summary`
+`68fd729` - `build: stop shipping a stale GUI, stop dirtying formuls.jucer`
+`9a3330a` - `build: port the MODULEPATH fix to build-linux.sh (UNTESTED on Linux)`
+`5f1000c` - `docs: record the build script fixes in the audit entry`
+`b095838` - `pd: remove the ungated debug [print] from OPEN_STAGE_CONTROL_RECEIVE_`
+`892c9cc` - `docs: record the [print] removal, and why the other one stays`
+`b671807` - `docs: record flooper and ott as a deliberate keep, not a cleanup`
+`b7c7431` - `gui: gradient VU meter, safer screenshot lambda, device type selection`
+`1981656` - `docs: record the three JUCE-side fixes`
+`811ef27` - `docs: record the 'undefined' error investigation`
+
+### End-to-end verification
+
+The app was rebuilt with `./build-macOS.sh` **twice** and run. Both build-script
+fixes held on real runs, not just in the sandbox: `git status` came back clean
+(the `.jucer` trap restored it), `build/` was removed by the cleanup, and
+`src/gui` kept only its two source files with no downloads left behind.
+
+The repeater fix was confirmed on the shipped artefact and then in the live
+instrument: `f_repeater~` instantiates, the patch peaks at **419 MB** loaded
+headlessly, and the running app sits at **466 MB** resident with audio going -
+where the previous build needed 28 GiB for that one object. Capture was
+confirmed working by hand. Clean startup and clean shutdown
+(`Open Stage Control stopped` / `formuls engine stopped`, no orphaned node).
+
+One long-standing benign error across every run, before and after:
+`netsend: already connected`.
+
+### Session cost and energy
+
+| Metric | Value |
+|---|---|
+| **Cost** | **$30.88** (measured) |
+| **Energy - inference** | ~0.2-0.7 kWh (**order-of-magnitude estimate**) |
+| **Energy - local compute** | ~4 Wh (measured build time x assumed SoC draw) |
+| **Average power** | ~100-300 W over the 149-minute session |
+
+**Cost is measured, not estimated.** Token counts come from this session's own
+transcript (`~/.claude/projects/<project>/<session>.jsonl`), deduplicated by
+message id - 150 assistant messages are logged twice with byte-identical usage
+payloads, so summing the raw records **double-counts and gives $61.69**. Dedupe
+by `message.id` first.
+
+| | tokens | rate /MTok | cost |
+|---|---:|---:|---:|
+| input | 442 | $5.00 | $0.00 |
+| cache write | 320,640 | $6.25 | $2.00 |
+| cache read | 48,907,535 | $0.50 | $24.45 |
+| output | 176,880 | $25.00 | $4.42 |
+| | | **total** | **$30.88** |
+
+221 assistant turns on `claude-opus-5`. **Cache reads are 79% of the bill** -
+49M tokens of context re-read across the session. That is the number to watch:
+output was only 14%.
+
+**Energy figures are far weaker than the cost figure and should not be quoted as
+measurements.** Local compute is defensible - ~250 s of measured build wall-clock
+(two full `build-macOS.sh` runs, five `xcodebuild` invocations, two libpd
+builds, faust externals) plus test compiles, at an assumed ~30 W sustained
+multicore draw on an Apple M5. The inference figure is not measurable
+client-side and no per-token energy number is published for this model; the
+range above applies a generic frontier-model-inference figure to 221 requests
+dominated by ~49M tokens of prefill. Treat it as an order of magnitude, not a
+result. It also uses a different method from the 5 September entry's estimate,
+so the two are **not comparable**.
+
+*(Note on units: watts measure power, kWh measure energy. Energy consumed is the
+kWh rows; the average-power row is the watts equivalent over the session.)*
