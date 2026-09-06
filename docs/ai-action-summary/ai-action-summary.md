@@ -404,13 +404,31 @@ nesting and the `brand-osc.sh` no-op; the new staging leaves the package
 unnested and `brand-osc.sh` brands it for real. The `.jucer` save/restore was
 exercised on the success path and on a genuine `set -e` abort, on both scripts.
 
+### Also fixed: the ungated debug `[print]` (`b095838`)
+
+`[r o-s-c-messages] -> [route multixy_1] -> [f.util.multitouchdebounce] ->
+[print]` in `OPEN_STAGE_CONTROL_RECEIVE_` had no gate, so under libpd every
+frame of every multi-touch drag reached `juce::Logger`. Removed, and the
+canvas's connect block renumbered: object 21 goes, and the three objects after
+it shift from 22/23/24 to 21/22/23.
+
+**The other bare `[print]`, in `O-S-C_&_FORMULS_SEND_______`, was deliberately
+left.** It sits behind a `[spigot]` whose toggle inits to 0 and is re-closed by
+a `[del 1000]` - an off-by-default diagnostic, not a leftover probe. Worth
+knowing before anyone greps for `#X obj .* print;` and removes both.
+
+Method, given the renumbering trap: a before/after dump resolving every
+connection to its source and destination **objects** rather than indices, which
+came out identical apart from the removed link; then loading the patch in Pd
+0.56-2 before and after, with byte-identical console output and no creation or
+connection errors. The `netreceive: Address already in use` lines present in
+both runs are a running formuls app holding 9000/9009 - which incidentally
+confirms that `listen 9000` does fire, as the retraction above says.
+
 ### Found, not fixed
 
 Reported in full in-session; recorded here so they are not re-derived.
 
-- **Debug `[print]` on a live touch path**, `_main.pd:107`, fed by
-  `route multixy_1`. Under libpd that reaches `juce::Logger` every frame of
-  every drag.
 - **`flooper` and `ott` are dead code** - unreachable from `fx`, `formuls.dsp`,
   `f_reverb.dsp` or `f_repeater.dsp` (confirmed: zero occurrences in the
   generated C++). The 27 January flooper rework does not affect the shipped
