@@ -79,6 +79,9 @@ codesign --force -s - libs/libpd.dylib
 
 # generate the Xcode project from formuls.jucer and build the JUCE app
 cd "$ROOT"
+JUCE_DIR="$PROJUCER"; for _ in 1 2 3 4; do JUCE_DIR="$(dirname "$JUCE_DIR")"; done
+JUCE_MODULES="$JUCE_DIR/modules"
+sed -i '' "s|path=\"[^\"]*JUCE/modules\"|path=\"$JUCE_MODULES\"|g" src/app/formuls.jucer
 "$PROJUCER" --resave src/app/formuls.jucer
 xcodebuild -project src/app/Builds/MacOSX/formuls.xcodeproj -configuration Release ARCHS=$(uname -m) ONLY_ACTIVE_ARCH=YES
 
