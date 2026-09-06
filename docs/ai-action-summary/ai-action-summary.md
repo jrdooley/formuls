@@ -280,24 +280,34 @@ not override per-project MODULEPATH entries in the `.jucer` file.
 
 Verified: fresh `git clone` to `/tmp`, `./build-macOS.sh` succeeds.
 
-### 2. OSC routing investigation (diagnosed, not yet fixed)
+### 2. OSC routing investigation — **RETRACTED, see 6 September (audit)**
 
-The `OPEN_STAGE_CONTROL_RECEIVE_` subpatch in `_main.pd` at commit `664cf31`
+> **This diagnosis was wrong.** Both "defects" were counting errors, not faults
+> in the patch. `OPEN_STAGE_CONTROL_RECEIVE_` routes correctly and always has;
+> nothing here needs fixing. The original text is struck through rather than
+> deleted so the mistake stays legible.
+
+~~The `OPEN_STAGE_CONTROL_RECEIVE_` subpatch in `_main.pd` at commit `664cf31`
 has two pre-existing defects that prevent GUI parameter changes from reaching
-the Pd backend:
+the Pd backend:~~
 
-- **Broken data path.** Connection `#X connect 1 0 22 0` references object 22,
-  which does not exist in the subpatch (only objects 0–21). Pd silently ignores
-  it. All parsed OSC data from `list trim` is dropped.
-- **`listen 9000` never triggered.** The `msg listen 9000` object that opens
-  port 9000 on `netreceive -u -b` has no incoming connection from `loadbang`.
-  Port 9000 never opens; no OSC from O-S-C reaches Pd.
+- ~~**Broken data path.** Connection `#X connect 1 0 22 0` references object 22,
+  which does not exist in the subpatch (only objects 0-21).~~ Object 22 does
+  exist: it is `route pd GET oscmonitor testtone`, and the subpatch has 25
+  objects (0-24). The connection is valid.
+- ~~**`listen 9000` never triggered.**~~ It is triggered: `#X connect 2 0 14 0`
+  wires `loadbang` to `msg listen 9000`. Port 9000 opens normally.
 
 Multiple approaches to add a startup gate (spigot, del 3000) were attempted but
-reverted due to Pd's object numbering with `#X text` comment lines — text
+reverted due to Pd's object numbering with `#X text` comment lines - text
 objects ARE counted for connection indices, which shifted all references after
-the comment at line 46. The `juce-port` branch was reset to `664cf31` (clean,
-working audio build) pending a correct fix.
+the comment at line 46. The `juce-port` branch was reset to `664cf31`.
+
+The irony is exact: the sentence above states the very rule the diagnosis broke.
+`#X text` records *are* counted, which is precisely why object 22 exists. The
+lesson to carry forward is not the rule (it was already written down) but the
+method - **count objects with a parser, never by eye**, and check the claim
+against the whole file before acting on it.
 
 ### Session cost and energy
 
@@ -305,3 +315,95 @@ working audio build) pending a correct fix.
 |---|---|
 | **Cost** | TBD |
 | **Energy** | TBD |
+
+---
+
+## 6 September 2026 (later) - codebase audit, repeater sizing regression
+
+Read-only audit of the whole tree, then one fix. On `juce-port`.
+
+### Fixed
+
+**`faust: size repeater delay lines per voice, not 64x over`.** `f_repeater~`
+was allocating **28.0 GiB**. `ffx.lib`'s `maxsamp` read
+
+    maxsamp = int(ba.sec2samp(60.0) * 16);  // largest delay: 1 BPM, division 16
+
+but the delay a voice asks for is `tempo / d`, so the longest is
+`sec2samp(60) / 4` - the factor should have been `/ 4`, not `* 16`. 64x over,
+which faust then rounds up to 2^28 samples per line across 28 lines. The
+comment describing the slider was right; the arithmetic did the opposite.
+
+Introduced by `07a1248` (the 27 January refactor), where it replaced a
+hardcoded `96000`. Pre-refactor the struct was ~12.6 MB, so this was a live
+regression: `new mydsp` either fails outright or faults in 28 GiB on
+`instanceClear`. The repeater has been unusable in any build from that commit
+onward.
+
+Now `maxsamp(d)` sizes each voice from its own divisor, and `minbpm = 1` is a
+named constant feeding **both** the `hslider` floor and the sizing expression,
+so the two cannot drift apart again - which is what made the bug possible.
+
+| | `sizeof(mydsp)` | delay lines |
+|---|---|---|
+| before | 30,064,772,396 B (28.00 GiB) | 28 x 2^28 |
+| after | 268,436,804 B (256.00 MiB) | 8 x 2^22, 12 x 2^21, 8 x 2^20 |
+
+112x smaller. Verified by compiling with the build's own flags
+(`faust -vec -lv 0 -vs 4`) and summing the generated `mydsp` struct, before and
+after. The three line sizes account for all 28 lines exactly: divisors 4-5 land
+on 2^22, 6-10 on 2^21, 12-16 on 2^20, x4 for two channels x two ensembles.
+Delay *times* are untouched, so there is no audible change.
+
+### Worth carrying forward
+
+- **Faust sizes every `ba.sec2samp` table for 192 kHz.** `platform.lib:54`:
+  `SR = min(192000.0, max(1.0, ...))`. That is why the repeater is 256 MiB and
+  not the 64 MiB the arithmetic suggests at 48 kHz. Any table sized in seconds
+  carries 4x headroom over the app's 48 kHz default, whatever rate it runs at.
+- **Two levers remain on that 256 MiB, both behaviour-changing, both deliberate
+  choices rather than bugs.** Raising `minbpm` to 20 gives 13.0 MiB (about the
+  pre-refactor footprint), 30 gives 8.0 MiB; below the floor the longest repeats
+  truncate. Clamping the SR assumption to the app's 96 kHz ceiling halves it
+  again, at the cost of truncating on a device that opens at 192 kHz. Left
+  alone: narrowing the BPM range is a decision about the instrument.
+
+### Found, not fixed
+
+Reported in full in-session; recorded here so they are not re-derived.
+
+- **Build scripts ship a stale GUI.** `cp -r src/gui build/gui` (both scripts)
+  without clearing `build/` first, while `src/gui/open-stage-control/` exists as
+  a 15 MB gitignored leftover. The fresh download then nests *inside* it, and
+  `brand-osc.sh` hits its "already branded" path and exits 0 - so the build
+  looks clean and ships the old tree. Fix: `rm -rf build` first, and copy only
+  `_main.json` / `_formuls-default.state` rather than all of `src/gui`.
+- **`src/gui/node` is untracked and NOT gitignored** - a 105 MB arm64 binary one
+  `git add -A` away from the history. `.gitignore:21` covers `src/gui/node-v*`
+  but not the bare name.
+- **The build dirties a tracked file.** `build-macOS.sh:84` `sed -i ''`s an
+  absolute machine-specific `MODULEPATH` into `src/app/formuls.jucer`.
+- **Debug `[print]` on a live touch path**, `_main.pd:107`, fed by
+  `route multixy_1`. Under libpd that reaches `juce::Logger` every frame of
+  every drag.
+- **`flooper` and `ott` are dead code** - unreachable from `fx`, `formuls.dsp`,
+  `f_reverb.dsp` or `f_repeater.dsp` (confirmed: zero occurrences in the
+  generated C++). The 27 January flooper rework does not affect the shipped
+  instrument. Two latent NaN sources sit in it if it is ever wired up:
+  `readindex : %(D)` divides by an `si.smoo`'d value starting at 0, and
+  `phase = countmaster / (samplelength * speed)` divides by zero when
+  `samplelength` truncates to 0 (reachable at duration 1024 x speed 20).
+- Smaller: `StereoMeter::paint` draws one `drawVerticalLine` per pixel;
+  `screenshotClicked` captures raw `this` alongside its `SafePointer`;
+  `populateDeviceList` enumerates every `AudioIODeviceType` but
+  `initialise()` resolves the name against the current type only (Linux
+  ALSA/JACK only, macOS unaffected); six `f.util.*` abstractions are never
+  instantiated.
+
+### Checked clean
+
+All 41 patches in `src/pd/` parsed for dangling connections - **none**. All
+`s~`/`r~`, `throw~`/`catch~` pairs resolve. All three `.dsp` files compile.
+`_main.json` parses. `check-reset-coverage.py`: all 36 parameters covered.
+`sequencer0`-`sequencer6` present in `_formuls-default.state`. Every Python
+tool byte-compiles.
