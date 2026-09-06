@@ -263,7 +263,8 @@ repeater = _,_ <: delayensemble(0),delayensemble(1) :> _,_ <:
     (sp.stereoize(_ *(mono)) : + <: si.bus(2))
 :> _,_
 with {
-  tempo = hslider("bpm",120,1,240,1) : 60/(_) : ba.sec2samp(_);
+  minbpm = 1;  // slider floor AND the tempo the delay lines are sized for
+  tempo = hslider("bpm",120,minbpm,240,1) : 60/(_) : ba.sec2samp(_);
   divl = hslider("beatdivisionl",1,1,7,1) : int;
   divr = hslider("beatdivisionr",1,1,7,1) : int;
   capl = button("capturel");
@@ -274,11 +275,16 @@ with {
   capcountl = +(1)~(ba.sAndH(capl : ba.impulsify)) : %(2) : int;
   capcountr = +(1)~(ba.sAndH(capr : ba.impulsify)) : %(2) : int;
 
-  maxsamp = int(ba.sec2samp(60.0) * 16);  // largest delay: 1 BPM, division 16
+  // Longest delay THIS voice can be asked for: one beat at minbpm,
+  // divided by its own fixed division. Sizing every voice for the
+  // smallest division instead multiplies the tables by 4; multiplying
+  // by 16 (as this did) oversizes them 64x, which faust then rounds up
+  // to 2^28 samples per line -- 28 GiB across the 28 lines.
+  maxsamp(d) = int(ba.sec2samp(60.0 / minbpm) / d) + 1;
 
   delayvoice(cap, cnt, sel, i, d, x) =
       _*(x != cnt)
-      : (+ : de.sdelay(maxsamp, 1024, float(tempo) / d))
+      : (+ : de.sdelay(maxsamp(d), 1024, float(tempo) / d))
       ~ *((x == cnt) * cap)
       : *(i == sel)
       : *(x == cnt);
