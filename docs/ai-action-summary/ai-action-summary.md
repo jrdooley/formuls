@@ -425,23 +425,50 @@ connection errors. The `netreceive: Address already in use` lines present in
 both runs are a running formuls app holding 9000/9009 - which incidentally
 confirms that `listen 9000` does fire, as the retraction above says.
 
+### Deliberately kept: `flooper` and `ott`
+
+Both are unreachable from `fx`, `formuls.dsp`, `f_reverb.dsp` and
+`f_repeater.dsp` - confirmed, not assumed: zero occurrences in the generated
+C++. So the 27 January flooper rework does not affect the shipped instrument.
+
+**They stay. Do not remove them** - decided on request, 6 September 2026. Not a
+pending cleanup and not to be re-proposed; if a future session lists them as
+dead code, that is this note's cue, not a new finding.
+
+What is worth knowing *if* either is ever wired into the chain: two divisions in
+`flooper` produce NaN, which would poison the output for the rest of the
+session.
+
+- `readindex : %(D)` takes its modulo from an `si.smoo`'d value whose one-pole
+  starts at 0, and `fmod(x, 0)` is NaN.
+- `phase = countmaster / (samplelength * speed)` divides by zero whenever
+  `samplelength` truncates to 0 - reachable at `duration` 1024 with `speed` 20
+  on a short take.
+
+Neither can fire while the functions are unreachable. They are recorded here so
+that wiring `flooper` up starts from a known list rather than from a debugging
+session.
+
 ### Found, not fixed
 
 Reported in full in-session; recorded here so they are not re-derived.
 
-- **`flooper` and `ott` are dead code** - unreachable from `fx`, `formuls.dsp`,
-  `f_reverb.dsp` or `f_repeater.dsp` (confirmed: zero occurrences in the
-  generated C++). The 27 January flooper rework does not affect the shipped
-  instrument. Two latent NaN sources sit in it if it is ever wired up:
-  `readindex : %(D)` divides by an `si.smoo`'d value starting at 0, and
-  `phase = countmaster / (samplelength * speed)` divides by zero when
-  `samplelength` truncates to 0 (reachable at duration 1024 x speed 20).
-- Smaller: `StereoMeter::paint` draws one `drawVerticalLine` per pixel;
-  `screenshotClicked` captures raw `this` alongside its `SafePointer`;
-  `populateDeviceList` enumerates every `AudioIODeviceType` but
-  `initialise()` resolves the name against the current type only (Linux
-  ALSA/JACK only, macOS unaffected); six `f.util.*` abstractions are never
-  instantiated.
+All small, none urgent.
+
+- `StereoMeter::paint` draws one `drawVerticalLine` per pixel - about 1000 draw
+  calls per frame at 30 Hz. A `ColourGradient` fill is one call and looks the
+  same.
+- `MainComponent::screenshotClicked` captures raw `this` alongside its
+  `SafePointer` and uses the raw one. Safe today only because the null check
+  runs first, which defeats the point of the `SafePointer`.
+- `populateDeviceList` enumerates every `AudioIODeviceType`, but
+  `deviceManager.initialise()` resolves the name against the current type only,
+  with `selectDefaultDeviceOnFailure = true`. On Linux with ALSA and JACK both
+  present, picking a JACK device by name silently opens the ALSA default and the
+  status line still reports success. macOS is unaffected (CoreAudio only).
+- Six abstractions are never instantiated: `f.util.floatint`,
+  `f.util.matrixunpack`, `f.util.message`, `f.util.seqwriteparse`,
+  `f.util.xylfoparse`, `f.util.xywidgetparse`.
 
 ### Checked clean
 
