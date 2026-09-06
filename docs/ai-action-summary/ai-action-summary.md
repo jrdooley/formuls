@@ -368,21 +368,46 @@ Delay *times* are untouched, so there is no audible change.
   again, at the cost of truncating on a device that opens at 192 kHz. Left
   alone: narrowing the BPM range is a decision about the instrument.
 
+### Also fixed: the build scripts (`68fd729`, `9a3330a`)
+
+Three defects, all invisible in `git status` because the files involved are
+gitignored.
+
+- **A stale GUI was being shipped.** `cp -r src/gui build/gui` ran without
+  clearing `build/` first, while `src/gui/open-stage-control/` sat there as a
+  15 MB leftover from an earlier run. The fresh download then landed *inside*
+  the stale tree, so `brand-osc.sh` read the old already-branded `index.html`,
+  took its "already branded; leaving it alone" path and exited 0 - the build
+  looked clean and shipped the old GUI. Now `build/` is removed first and only
+  the two files the app actually reads are copied (`OpenStageControlProcess.cpp`
+  reads exactly four things from `gui/`: those two plus `node` and
+  `open-stage-control`, both of which the download steps provide).
+- **Downloads landed in the source tree.** Both scripts `cd`'d to `src/gui` to
+  wget and unpack, which is how the stale copies got there. They now unpack in
+  `build/`.
+- **The macOS build left `formuls.jucer` dirty** with a machine-specific
+  absolute `MODULEPATH`, one `git commit -a` from being baked in. Now backed
+  up, rewritten, resaved and restored, with a `trap` so the restore happens
+  even when a later step fails under `set -e`.
+- `src/gui/node` is now gitignored - the bare name was not covered by
+  `src/gui/node-v*`, so a 105 MB binary sat untracked.
+- **`build-linux.sh` never received `319c110` at all** and still had the
+  original MODULEPATH bug. Ported, and **marked UNTESTED in the script**: no
+  Linux toolchain here. Two deliberate differences from macOS - a temp-file
+  rewrite instead of `sed -i` (BSD and GNU disagree about that flag;
+  `brand-osc.sh` already avoids it and says why), and an upward search for
+  `modules/juce_core` instead of counting dirnames, because the Linux
+  Projucer's depth depends on how it was built.
+
+Verified in a sandbox mirroring the layout: the old staging reproduces the
+nesting and the `brand-osc.sh` no-op; the new staging leaves the package
+unnested and `brand-osc.sh` brands it for real. The `.jucer` save/restore was
+exercised on the success path and on a genuine `set -e` abort, on both scripts.
+
 ### Found, not fixed
 
 Reported in full in-session; recorded here so they are not re-derived.
 
-- **Build scripts ship a stale GUI.** `cp -r src/gui build/gui` (both scripts)
-  without clearing `build/` first, while `src/gui/open-stage-control/` exists as
-  a 15 MB gitignored leftover. The fresh download then nests *inside* it, and
-  `brand-osc.sh` hits its "already branded" path and exits 0 - so the build
-  looks clean and ships the old tree. Fix: `rm -rf build` first, and copy only
-  `_main.json` / `_formuls-default.state` rather than all of `src/gui`.
-- **`src/gui/node` is untracked and NOT gitignored** - a 105 MB arm64 binary one
-  `git add -A` away from the history. `.gitignore:21` covers `src/gui/node-v*`
-  but not the bare name.
-- **The build dirties a tracked file.** `build-macOS.sh:84` `sed -i ''`s an
-  absolute machine-specific `MODULEPATH` into `src/app/formuls.jucer`.
 - **Debug `[print]` on a live touch path**, `_main.pd:107`, fed by
   `route multixy_1`. Under libpd that reaches `juce::Logger` every frame of
   every drag.
