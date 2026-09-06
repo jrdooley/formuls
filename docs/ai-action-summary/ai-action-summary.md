@@ -480,6 +480,62 @@ identical name list, index-aligned, non-empty type for every entry.
 so the ALSA/JACK case that fix exists for is untested. Same for the screenshot
 re-entry guard, which needs a running GUI.
 
+### Investigated, unresolved: `error: /: no method for 'undefined'`
+
+Seen once in the rebuilt app's log, shortly after a browser connected to the
+GUI. A `[/ ]` object received the **symbol** `undefined`.
+
+**It is not from this session's changes.** Demonstrated rather than argued: the
+app was rebuilt with its own `FORMULS_AUTOSTART_TEST` hook so it could run
+headlessly, then **two real app bundles were built differing only in
+`_main.pd`** - one at `ce2763b` (pre-session), one at HEAD - and each was driven
+through the same scripted 7-tab run with `src/tools/screenshot-gui.py`. Both
+engines started on CoreAudio at 48 kHz with the GUI live. Zero occurrences in
+either, and the two logs are **identical line for line**.
+
+Corroborated structurally: a `[print]` has no outlets, so deleting one cannot
+change what any `[/ ]` receives, and every connection was verified to resolve to
+the same source and destination objects. Nothing else on that path moved either
+- `_main.json`, `_formuls-default.state` and every control abstraction have zero
+commits this session, and o-s-c is pinned to the same 1.31.0 before and after.
+
+**But it could not be reproduced at all** - four controlled runs (headless Pd
+with DSP off and on, real app x2). So it cannot be called *pre-existing* on
+evidence; the accurate claim is the narrower **"not attributable to this
+session"**. Whatever triggers it, a scripted tab sweep does not.
+
+**Likely mechanism, not confirmed.** `_main.json` has **652 widgets with an
+empty `default`**. An o-s-c widget holding no value serialises as JavaScript
+`undefined` and that string reaches Pd, so any `[/ ]` fed by one of those
+addresses throws exactly this. The 5 September session hit the same class of bug
+from the other side - the sequencer modal's `default: ""` - which is why
+`--state` and `default: "0"` were added.
+
+**To settle it:** next time it appears, note which widget was being touched. One
+widget name turns this from a hunt into a one-line fix.
+
+Two loose threads from the same investigation:
+
+- With DSP enabled, one run produced `error: oscparse: no method for 'fxsend6'`
+  **30 times**; it did not recur in later runs. Timing- or state-dependent,
+  unexplained.
+- The previously shipped bundles contained the **stale** o-s-c tree, since
+  deleted and therefore undiffable. If client behaviour ever differed, it
+  differed in the *old* builds - the current one ships a clean fresh 1.31.0.
+
+**Method worth reusing.** Two app bundles identical but for one file, driven by
+`screenshot-gui.py` and diffed on their console output, isolates a single
+variable in the *real* runtime rather than a headless approximation. The
+`FORMULS_AUTOSTART_TEST` define is what makes it scriptable:
+
+    xcodebuild -project src/app/Builds/MacOSX/formuls.xcodeproj \
+      -configuration Release ARCHS=$(uname -m) ONLY_ACTIVE_ARCH=YES \
+      GCC_PREPROCESSOR_DEFINITIONS='$(inherited) FORMULS_AUTOSTART_TEST=1'
+
+Note that `build-macOS.sh` deletes `libpd.dylib` in its cleanup, so a bare
+`xcodebuild` after a full build fails at link with `ld: library 'pd' not found`
+until libpd is rebuilt.
+
 ### Found, not fixed
 
 - Six abstractions are never instantiated: `f.util.floatint`,
