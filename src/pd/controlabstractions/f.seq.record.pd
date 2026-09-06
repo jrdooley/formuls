@@ -45,7 +45,7 @@
 #X obj 233 496 outlet;
 #X text 39 569 \$1 = \$0 \; \$2 = array size \; record (0/1) = activates sequencer recording \; value = value to be stored to sequencer array \; tempo (0.001+) = controls sequencer array read speed \; reverse (0/1) = reverses the sequencer array read direction \; note-trigger-on (0/1) = activates "note triggering" of sequencer array \; trigger (bang) = triggers one pass through the sequencer array \; float (0/1) = controls master on/off of sequencer;
 #X text 216 26 \$3 = automate/seq mode (0/1);
-#N canvas 400 38 427 833 AUTOMATER_PLAYBACK_MODULE_____ 1;
+#N canvas 400 38 534 851 AUTOMATER_PLAYBACK_MODULE_____ 0;
 #X obj 49 176 i 0;
 #X obj 76 175 + 1;
 #X msg 76 285 0;
@@ -98,7 +98,10 @@
 #X obj 163 592 t f f;
 #X obj 245 621 r \$0-record;
 #X obj 49 618 spigot 1;
-#X obj 48 37 r \$0-param-throttle;
+#X obj 48 20 r \$0-param-throttle;
+#X obj 175 27 r master-param-update-throttle;
+#X obj 48 62 t b;
+#X text 167 163 The automation playback clock binds the master parameter throttle directly \, instead of having every f.seq.automater relay it through this abstraction's message inlet and route. The (dollar)0-param-throttle receive to the left is kept so the "paramthrottle" inlet message still works for anything else that sends it.;
 #X connect 0 0 1 0;
 #X connect 0 0 11 0;
 #X connect 1 0 0 1;
@@ -152,7 +155,8 @@
 #X connect 50 0 45 1;
 #X connect 50 0 47 0;
 #X connect 51 0 43 0;
-#X connect 52 0 28 0;
+#X connect 53 0 54 0;
+#X connect 54 0 28 0;
 #X restore 38 451 pd AUTOMATER_PLAYBACK_MODULE_____;
 #N canvas 602 348 287 423 SEQUENCER_PLAYBACK_MODULE_____ 0;
 #X obj 75 395 outlet;

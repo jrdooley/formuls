@@ -1,0 +1,13 @@
+diff --git a/src/pd/controlabstractions/f.seq.automater.pd b/src/pd/controlabstractions/f.seq.automater.pd
+index fe4ba6d..1b20d0b 100755
+--- a/src/pd/controlabstractions/f.seq.automater.pd
++++ b/src/pd/controlabstractions/f.seq.automater.pd
+@@ -566,7 +566,7 @@ objects from each of the 427 automater instances.;
+ #X connect 26 0 25 1;
+ #X connect 27 0 17 0;
+ #X restore 32 719 pd SEQ_RECORD_OBJECT________;
+-#X obj 41 61 f.seq.automatermessage \$1;
++#X obj 41 61 f.seq.automatermessage \$1 \$2;
+ #X obj 260 728 spigot;
+ #X obj 363 684 t b;
+ #X msg 363 705 1;

@@ -432,14 +432,14 @@
 #X obj 248 543 -;
 #X msg 226 597 resonantfilterREAL\$5 \$1 \$2 \$3 \$4;
 #X obj 66 29 route resonantfilterfreqq\$1 resonantfilterfreqqchaos\$1 resonantfilterfreqqlfofreq\$1 resonantfilterfreqqlfodepth\$1 resonantfilterfreqqlabel\$1;
-#X obj 180 286 f.util.oscformatxy \$0 \$1 resonantfilterfreqq lowpass 1 0 1 lowpassresonance 0 0 2.7;
+#X obj 180 286 f.util.oscformatxy \$0 \$1 resonantfilterfreqq lowpass 1 0 1 lowpassresonance 0 0 2.7 1;
 #X obj 294 81 list prepend resonantfilterfreqqlabel\$1;
 #X obj 237 103 list prepend resonantfilterfreqqlfodepth\$1;
 #X obj 180 125 list prepend resonantfilterfreqqlfofreq\$1;
 #X obj 123 148 list prepend resonantfilterfreqqchaos\$1;
 #X obj 100 202 list prepend resonantfilterfreqq\$1;
 #X obj 66 386 list prepend resonantfilterfreqq\$1;
-#X obj 66 429 f.util.oscformatxy \$0 \$1 resonantfilterfreqq highpass 0 0 1 highpassresonance 0 0 2.7;
+#X obj 66 429 f.util.oscformatxy \$0 \$1 resonantfilterfreqq highpass 0 0 1 highpassresonance 0 0 2.7 1;
 #X obj 374 157 r \$0-freq-follow;
 #X obj 374 259 spigot;
 #X obj 383 176 r \$0-filter-pitch-track-on;
@@ -673,7 +673,7 @@
 #X connect 7 0 4 0;
 #X connect 7 0 3 0;
 #X restore 17 268 pd FILTER_PITCH_TRACK__;
-#X obj 27 198 -f.util.oscformatxy \$0 \$1 filter filterfreq 1 0 1 filterq 0 0 2.7;
+#X text 27 198 DISABLED - this was an object \, but the leading hyphen only made Pd log "couldn t create" 6 times per session. It read: f.util.oscformatxy (dollar)0 (dollar)1 filter filterfreq 1 0 1 filterq 0 0 2.7;
 #X connect 0 0 2 0;
 #X connect 2 0 7 0;
 #X connect 3 0 1 0;
@@ -1041,7 +1041,7 @@
 #X connect 11 0 10 0;
 #X connect 12 0 11 0;
 #X restore 265 227 pd SEQCYCLE_____;
-#X obj 44 254 f.util.oscformatxy \$2 \$1 seqrandomadddrop seqrandomadd 0 0 0 seqrandomdrop 0 0 0;
+#X obj 44 254 f.util.oscformatxy \$0 \$1 seqrandomadddrop seqrandomadd 0 0 0 seqrandomdrop 0 0 0;
 #N canvas 740 287 360 245 SEQRANDOMADDDROP 0;
 #X obj 109 28 inlet;
 #X obj 109 179 s \$0-seq-messages;
@@ -1076,7 +1076,7 @@
 #X connect 7 0 5 0;
 #X connect 7 0 6 0;
 #X restore 378 293 pd FLAMSPREADHITS;
-#X obj 44 284 f.util.oscformatxy \$2 \$1 flamhitsspread flamhits 0 0 0 flamspread 0 0 0;
+#X obj 44 284 f.util.oscformatxy \$0 \$1 flamhitsspread flamhits 0 0 0 flamspread 0 0 0;
 #X connect 0 0 9 0;
 #X connect 2 0 3 0;
 #X connect 3 0 4 0;
@@ -2036,7 +2036,7 @@
 #X obj 35 280 outlet;
 #X obj 168 278 outlet;
 #X obj 290 76 unpack f f;
-#X obj 343 126 r \$2-reset;
+#X obj 343 126 r \$1-reset;
 #X msg 413 147 0;
 #X msg 343 147 reset bang;
 #X connect 0 0 3 0;
@@ -2316,7 +2316,7 @@
 #X connect 12 0 3 0;
 #X restore 119 266 pd CHORDSIZE___;
 #N canvas 0 34 346 233 SEQPOS_LED___ 0;
-#X obj 70 150 s to-o-s-c-interface;
+#X obj 70 150 s \$1-message-collect;
 #X obj 70 44 inlet;
 #X obj 70 119 oscformat seqpos\$1;
 #X obj 70 93 + 1;

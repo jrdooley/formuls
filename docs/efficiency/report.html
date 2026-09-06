@@ -1,0 +1,549 @@
+<title>Where formuls Spends Its CPU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  --paper:#e9eef0;
+  --surface:#ffffff;
+  --surface-2:#f3f6f7;
+  --ink:#0f1519;
+  --ink-2:#33424c;
+  --muted:#5d6d78;
+  --rule:#c9d5da;
+  --rule-soft:#dde6e9;
+  --accent:#0d6274;
+  --accent-soft:#d6e8ec;
+  --good:#2c6f4f;
+  --good-soft:#d8ebe1;
+  --amber:#8a5a14;
+  --amber-soft:#f2e6cf;
+  --shadow:0 1px 2px rgba(15,21,25,.06),0 8px 24px -16px rgba(15,21,25,.30);
+
+  --sans:"IBM Plex Sans Condensed",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --measure:68ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0b1013;
+    --surface:#141b1f;
+    --surface-2:#1a2328;
+    --ink:#e2eaee;
+    --ink-2:#b3c2ca;
+    --muted:#8496a1;
+    --rule:#2b383f;
+    --rule-soft:#212c32;
+    --accent:#5cb3c6;
+    --accent-soft:#17323a;
+    --good:#6bbd90;
+    --good-soft:#163024;
+    --amber:#d6a457;
+    --amber-soft:#33270f;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0b1013;
+  --surface:#141b1f;
+  --surface-2:#1a2328;
+  --ink:#e2eaee;
+  --ink-2:#b3c2ca;
+  --muted:#8496a1;
+  --rule:#2b383f;
+  --rule-soft:#212c32;
+  --accent:#5cb3c6;
+  --accent-soft:#17323a;
+  --good:#6bbd90;
+  --good-soft:#163024;
+  --amber:#d6a457;
+  --amber-soft:#33270f;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -18px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--serif);
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1000px;margin:0 auto;padding:0 28px 96px}
+.col{max-width:var(--measure)}
+
+/* ---------- masthead ---------- */
+header{padding:56px 0 34px;border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+  display:flex;flex-wrap:wrap;gap:8px 18px;margin-bottom:20px;
+}
+h1{
+  font-family:var(--sans);font-weight:700;
+  font-size:clamp(2.4rem,6.2vw,4rem);line-height:1.02;letter-spacing:-.018em;
+  margin:0 0 18px;text-wrap:balance;
+}
+.standfirst{font-size:1.16rem;line-height:1.5;color:var(--ink-2);margin:0;max-width:60ch}
+.meta{
+  display:flex;flex-wrap:wrap;gap:6px 26px;margin-top:26px;
+  font-family:var(--mono);font-size:12.5px;color:var(--muted);
+}
+.meta b{color:var(--ink-2);font-weight:500}
+
+/* ---------- sections ---------- */
+section{padding-top:52px}
+h2{
+  font-family:var(--sans);font-weight:600;font-size:1.72rem;letter-spacing:-.01em;
+  margin:0 0 6px;text-wrap:balance;
+}
+h3{font-family:var(--sans);font-weight:600;font-size:1.12rem;margin:26px 0 6px;letter-spacing:-.004em}
+.kicker{
+  font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 12px;
+  padding-bottom:8px;border-bottom:1px solid var(--rule);
+}
+p{margin:0 0 14px}
+code{
+  font-family:var(--mono);font-size:.87em;
+  background:var(--surface-2);border:1px solid var(--rule-soft);
+  border-radius:3px;padding:.08em .34em;color:var(--ink-2);
+}
+a{color:var(--accent)}
+strong{font-weight:600}
+
+/* ---------- headline figures ---------- */
+.figures{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:1px;background:var(--rule);border:1px solid var(--rule);
+  margin:30px 0 8px;
+}
+.fig{background:var(--surface);padding:20px 22px 18px}
+.fig .n{
+  font-family:var(--sans);font-weight:700;font-size:2.5rem;line-height:1;
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--good);
+}
+.fig .n.dn{color:var(--accent)}
+.fig .lbl{font-family:var(--mono);font-size:12px;line-height:1.45;color:var(--muted);margin-top:9px}
+.fig .lbl b{display:block;color:var(--ink-2);font-weight:500;margin-bottom:2px}
+
+/* ---------- chart ---------- */
+figure{margin:30px 0 8px;background:var(--surface);border:1px solid var(--rule);padding:22px 22px 16px}
+figcaption{
+  font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--muted);
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--rule-soft);
+}
+.chart-title{font-family:var(--sans);font-weight:600;font-size:1rem;margin:0 0 2px}
+.chart-sub{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:0 0 16px}
+.chart-scroll{overflow-x:auto}
+svg{display:block;width:100%;height:auto;min-width:520px}
+.bar{transition:opacity .12s ease}
+.barrow:hover .bar{opacity:.82}
+.tip{
+  position:fixed;pointer-events:none;opacity:0;transition:opacity .1s ease;
+  background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11.5px;
+  padding:6px 9px;border-radius:4px;white-space:nowrap;z-index:20;
+}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:22px 0 8px;border:1px solid var(--rule);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:13.5px}
+caption{
+  text-align:left;font-family:var(--mono);font-size:11.5px;font-weight:500;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  padding:14px 18px 10px;
+}
+th,td{padding:9px 18px;text-align:left;border-top:1px solid var(--rule-soft);white-space:nowrap}
+thead th{
+  font-weight:500;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);border-top:none;border-bottom:1px solid var(--rule);
+}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.d{color:var(--good);font-weight:500}
+tbody tr:hover{background:var(--surface-2)}
+tr.hi td{background:var(--accent-soft)}
+
+/* ---------- numbered commit list ---------- */
+ol.commits{list-style:none;margin:26px 0 0;padding:0;display:flex;flex-direction:column;gap:0}
+ol.commits li{
+  display:grid;grid-template-columns:52px 1fr;gap:0 20px;
+  padding:20px 0;border-top:1px solid var(--rule);
+}
+ol.commits li:last-child{border-bottom:1px solid var(--rule)}
+.idx{
+  font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);
+  letter-spacing:.06em;padding-top:5px;
+}
+.commits h3{margin:0 0 6px}
+.commits p{margin:0 0 8px;max-width:62ch}
+.commits p:last-child{margin-bottom:0}
+.gain{
+  display:inline-block;font-family:var(--mono);font-size:12px;font-weight:500;
+  color:var(--good);background:var(--good-soft);
+  padding:2px 8px;border-radius:3px;margin-top:4px;
+}
+
+/* ---------- options ---------- */
+.opts{display:flex;flex-direction:column;gap:18px;margin-top:26px}
+.opt{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--amber);padding:20px 22px}
+.opt h3{margin:0 0 4px}
+.opt .file{font-family:var(--mono);font-size:12px;color:var(--amber);margin:0 0 12px}
+.opt p{max-width:62ch}
+.opt p:last-child{margin-bottom:0}
+.verdict{
+  font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--rule-soft);
+  padding:10px 13px;margin-top:14px;
+}
+.verdict b{color:var(--amber);font-weight:600}
+
+/* ---------- notes / caveat ---------- */
+ul.notes{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-direction:column;gap:0}
+ul.notes li{padding:16px 0;border-top:1px solid var(--rule-soft);max-width:70ch}
+ul.notes li:first-child{border-top:1px solid var(--rule)}
+ul.notes b{font-family:var(--sans);font-weight:600;font-size:1rem}
+.snapshot{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);
+  padding:16px 20px;margin:26px 0 0;font-size:.92rem;color:var(--ink-2);max-width:70ch}
+.snapshot b{font-family:var(--sans);font-weight:600;color:var(--ink)}
+.stale{display:block;margin-top:10px;padding-left:12px;border-left:2px solid var(--rule);
+  color:var(--muted);font-size:.9rem}
+.stale b{color:var(--ink-2)}
+.caveat{background:var(--surface);border:1px solid var(--rule);border-top:3px solid var(--accent);padding:24px 26px;margin-top:26px}
+.caveat h3:first-child{margin-top:0}
+.caveat p{max-width:64ch}
+.caveat ol{margin:0;padding-left:22px}
+.caveat li{margin-bottom:8px;max-width:62ch}
+
+footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:12px;color:var(--muted)}
+footer p{margin:0 0 6px;max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">
+    <span>formuls</span><span>branch efficiency-dev</span><span>9 commits off juce-port</span>
+  </div>
+  <h1>Where formuls spends its CPU</h1>
+  <p class="standfirst">I profiled the running instrument before changing anything. Half the machine was the synth, and a sixth of a core was being spent at idle on nothing but message plumbing. Both are now substantially cheaper, and the sound is unchanged to &minus;74&nbsp;dB or better &mdash; including the pitch slide, whose start and end frequencies are bit-identical.</p>
+  <div class="meta">
+    <span><b>Pd</b> 0.56.2</span>
+    <span><b>Faust</b> 2.85.9</span>
+    <span><b>Build flags</b> -vec -lv 0 -vs 4 -clang</span>
+    <span><b>Runtime</b> 427 automaters, 6 synth voicesets</span>
+  </div>
+<div class="snapshot">
+    <b>Snapshot, not a live document.</b> This describes <code>efficiency-dev</code> as merged into
+    <code>juce-port</code> at <code>e360ce7</code>, measured 3 September 2026. The branch has moved on
+    since: <code>480cc97</code> removed the OTT, digitaliser, widener and limiter from the master bus,
+    and <code>d33e554</code> routed the reverb back into the main stereo output. Everything about the
+    synth and the control-rate throttles still holds &mdash; those are untouched by that work. The one
+    measurement it invalidates is flagged below where it appears.
+  </div>
+</header>
+
+<section>
+  <p class="kicker">The finding that set the priorities</p>
+  <h2>Half the machine was the synth</h2>
+  <div class="col">
+    <p>Sampling the running patch for 20&nbsp;seconds with DSP on, three paired runs, normalised by each run's own non-idle work so the scheduler's slack cancels out: <code>formuls~</code> &mdash; the Faust synth in <code>fsynth.lib</code> &mdash; accounted for <strong>50% of every cycle the app spent doing work</strong>. Its <code>powf</code>, <code>sinf</code> and <code>tanhf</code> calls alone were about 15% of the total.</p>
+    <p>Separately, with DSP switched <em>off</em>, the patch still burned <strong>17.4% of a core</strong> doing nothing at all. That turned out to be two master throttles &mdash; one at 100&nbsp;Hz, one at 25&nbsp;Hz &mdash; fanning out to 427 instances of <code>f.seq.automater</code>, each of which rebuilt a message, pushed it through a 23-selector <code>route</code>, and re-broadcast it internally.</p>
+  </div>
+
+  <div class="figures">
+    <div class="fig">
+      <div class="n dn">&minus;78%</div>
+      <div class="lbl"><b>Idle control-rate CPU</b>17.4% &rarr; 3.8% of a core</div>
+    </div>
+    <div class="fig">
+      <div class="n">+27%</div>
+      <div class="lbl"><b>Synth throughput</b>58.9 &rarr; 74.9 MB/s</div>
+    </div>
+    <div class="fig">
+      <div class="n dn">&minus;71%</div>
+      <div class="lbl"><b>libm calls in the synth</b>pow, sin, tanh, exp2</div>
+    </div>
+    <div class="fig">
+      <div class="n dn">&minus;38%</div>
+      <div class="lbl"><b>Runtime signal objects</b>2,225 &rarr; 1,371</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="kicker">Measured</p>
+  <h2>Getting to the floor</h2>
+  <div class="col">
+    <p>The throttle work happens whether or not anything is listening. Two changes took it most of the way to the cost of not running the throttles at all &mdash; the reference line below.</p>
+  </div>
+
+  <figure>
+    <p class="chart-title">Idle control-rate CPU, share of one core</p>
+    <p class="chart-sub">25 s headless run, DSP off, startup subtracted &middot; lower is better</p>
+    <div class="chart-scroll">
+    <svg viewBox="0 0 720 254" role="img" aria-label="Bar chart: idle control-rate CPU falls from 17.4% of a core before the changes, to 7.9% after the first throttle change, to 3.8% after the playback-clock change. The floor, with the throttles not running at all, is 1.0%.">
+      <!-- grid -->
+      <g stroke="var(--rule-soft)" stroke-width="1">
+        <line x1="292.5" y1="34" x2="292.5" y2="206"/>
+        <line x1="425"   y1="34" x2="425"   y2="206"/>
+        <line x1="557.5" y1="34" x2="557.5" y2="206"/>
+        <line x1="690"   y1="34" x2="690"   y2="206"/>
+      </g>
+      <!-- axis -->
+      <line x1="160" y1="206" x2="690" y2="206" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="160" y1="34"  x2="160" y2="206" stroke="var(--rule)" stroke-width="1"/>
+      <!-- ticks -->
+      <g font-family="var(--mono)" font-size="11" fill="var(--muted)" text-anchor="middle">
+        <text x="160"   y="224">0%</text>
+        <text x="292.5" y="224">5%</text>
+        <text x="425"   y="224">10%</text>
+        <text x="557.5" y="224">15%</text>
+        <text x="690"   y="224">20%</text>
+      </g>
+      <!-- bars -->
+      <g font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)">
+        <g class="barrow" data-tip="6.24 s CPU over 25 s">
+          <text x="150" y="59" text-anchor="end" fill="var(--muted)">before</text>
+          <rect class="bar" x="160" y="42" width="461" height="30" rx="3" fill="var(--accent)"/>
+          <text x="631" y="61" font-weight="600" fill="var(--ink)">17.4%</text>
+        </g>
+        <g class="barrow" data-tip="3.88 s CPU over 25 s">
+          <text x="150" y="107" text-anchor="end" fill="var(--muted)">commit 2</text>
+          <rect class="bar" x="160" y="90" width="209" height="30" rx="3" fill="var(--accent)" opacity=".72"/>
+          <text x="379" y="109" font-weight="600" fill="var(--ink)">7.9%</text>
+        </g>
+        <g class="barrow" data-tip="2.85 s CPU over 25 s">
+          <text x="150" y="155" text-anchor="end" fill="var(--muted)">commit 5</text>
+          <rect class="bar" x="160" y="138" width="101" height="30" rx="3" fill="var(--accent)" opacity=".52"/>
+          <text x="271" y="157" font-weight="600" fill="var(--ink)">3.8%</text>
+        </g>
+      </g>
+      <!-- floor reference line, cased so it reads over the fills -->
+      <line x1="186.5" y1="34" x2="186.5" y2="206" stroke="var(--surface)" stroke-width="4"/>
+      <line x1="186.5" y1="34" x2="186.5" y2="206" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <text x="192" y="30" font-family="var(--mono)" font-size="11" fill="var(--ink-2)">floor 1.0% &mdash; throttles not running</text>
+    </svg>
+    </div>
+    <figcaption>Measured with <code>docs/efficiency/tools/pdbench.sh</code>. Startup (~1.9&nbsp;s) subtracted from each run. What remains sits 2.8 points above a build where the throttles are switched off entirely.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <p class="kicker">Applied &mdash; each independently verified</p>
+  <h2>The six changes</h2>
+
+  <ol class="commits">
+    <li>
+      <div class="idx">01</div>
+      <div>
+        <h3>Per-voice <code>powf</code>, <code>sinf</code> and <code>tanhf</code>, removed</h3>
+        <p>Each of the 20 voices ran three <code>powf()</code>, one <code>sinf()</code> and one <code>tanhf()</code> on every sample. The ADSR's <code>x^2.7</code> curve is now a 1024-point interpolated table; <code>pow(2, oscsliderange)</code> moved to <em>before</em> its sample-and-hold so Faust hoists it to control rate, which is bit-exact; <code>sin(pi*x)</code> and <code>tanh(100*sin(pi*x))</code> became tables in <code>fosc.lib</code>.</p>
+        <p>Per-sample calls: <code>pow</code> 66&rarr;28, <code>sin</code> 24&rarr;5, <code>tanh</code> 22&rarr;2.</p>
+        <span class="gain">+18% synth throughput</span>
+      </div>
+    </li>
+    <li>
+      <div class="idx">02</div>
+      <div>
+        <h3>Automaters read the master throttles directly</h3>
+        <p>Every 100&nbsp;Hz tick previously ran about ten message dispatches per automater: a receive, a message box, <code>t a</code>, a <code>spigot</code>, an outlet crossing, a 23-selector <code>route</code>, then a send and two more receives. The three consumers now bind the global symbols directly.</p>
+        <span class="gain">17.4% &rarr; 7.9% of a core at idle</span>
+      </div>
+    </li>
+    <li>
+      <div class="idx">03</div>
+      <div>
+        <h3>The automater LFO runs at control rate</h3>
+        <p>It generated its waveform with <code>[osc~]</code> and read it with <code>[snapshot~]</code> on a throttle tick &mdash; 48,000 samples a second computed so that 100 could be looked at, times 427 instances. Now a phase accumulator clocked by the same throttle.</p>
+        <span class="gain">854 signal objects removed from the DSP graph</span>
+      </div>
+    </li>
+    <li>
+      <div class="idx">04</div>
+      <div>
+        <h3>Broken objects, and the dead branches they fed</h3>
+        <p>433 <em>&ldquo;couldn't create&rdquo;</em> errors on every start, from two objects someone had disabled by typing a hyphen in front of the class name &mdash; <code>-r $0-ext-mod</code> in 427 places, <code>-f.util.oscformatxy</code> in six. Pd still tries to create them, fails, and logs. Both are gone, along with a branch that terminated in a <code>[+]</code> wired to nothing.</p>
+        <span class="gain">startup console: 876 lines &rarr; 10</span>
+      </div>
+    </li>
+    <li>
+      <div class="idx">05</div>
+      <div>
+        <h3>The automation playback clock binds the throttle directly</h3>
+        <p>The last big relay, and 75% of what remained. Every automater built a <code>paramthrottle bang</code>; <code>f.seq.record</code> matched it <em>last</em> of fifteen route selectors; it ended at a <code>[spigot 0]</code> that is shut unless automation is actually playing back. The abstraction's own <code>paramthrottle</code> inlet still works &mdash; both paths now meet at a <code>[t b]</code>.</p>
+        <span class="gain">7.9% &rarr; 3.8% of a core at idle</span>
+      </div>
+    </li>
+    <li>
+      <div class="idx">06</div>
+      <div>
+        <h3>The pitch-slide curve uses the same table</h3>
+        <p>Held back at first, because the sample-by-sample difference in the slide scenario looked large and I could not show it was harmless. It is &mdash; what moves is oscillator <em>phase</em>, not pitch or level. The deciding question was whether the slide's start and end frequencies move, and they don't: <code>ba.tabulate</code> evaluates <code>x^2.7</code> at the range ends, so entry 0 is exactly 0 and entry 1023 exactly 1, and at those inputs the interpolation fraction is exactly zero.</p>
+        <p>Measured: <code>diff = 0</code> at both endpoints. The path between them moves by at most <strong>0.02 cents</strong>, at the widest slide range &mdash; about 300&times; below the just-noticeable difference, and well inside the resolution at which a by-ear exponent was chosen.</p>
+        <span class="gain">+7% more, on top of commit 1</span>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <p class="kicker">Results</p>
+  <h2>What each number is</h2>
+
+  <div class="tw">
+    <table>
+      <caption>Synth throughput &mdash; faust2bench, shipping flags, median of 5</caption>
+      <thead><tr><th>Build</th><th class="num">MB/s</th><th class="num">CPU per instance</th><th class="num">&times;6 instances</th></tr></thead>
+      <tbody>
+        <tr><td>original</td><td class="num">58.9</td><td class="num">1.85%</td><td class="num">11.1%</td></tr>
+        <tr><td>commits 1&ndash;5</td><td class="num">69.8</td><td class="num">1.56%</td><td class="num">9.4%</td></tr>
+        <tr class="hi"><td>with commit 6</td><td class="num">74.9</td><td class="num">1.45%</td><td class="num">8.7%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tw">
+    <table>
+      <caption>libm calls attributable to the synth &mdash; sample profile, 3 paired runs</caption>
+      <thead><tr><th>Call</th><th class="num">before</th><th class="num">after</th><th class="num">change</th></tr></thead>
+      <tbody>
+        <tr><td>sinf</td><td class="num">200</td><td class="num">0</td><td class="num d">&minus;100%</td></tr>
+        <tr><td>tanhf</td><td class="num">218</td><td class="num">19</td><td class="num d">&minus;91%</td></tr>
+        <tr><td>exp2f</td><td class="num">191</td><td class="num">20</td><td class="num d">&minus;90%</td></tr>
+        <tr><td>powf</td><td class="num">558</td><td class="num">296</td><td class="num d">&minus;47%</td></tr>
+        <tr class="hi"><td>total</td><td class="num">1,167</td><td class="num">335</td><td class="num d">&minus;71%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col">
+    <p>In the running app rather than the isolated benchmark, the synth's share of non-idle work went from <strong>50.4% to 45.7%</strong> across three paired runs (0.504/0.507/0.502 against 0.457/0.444/0.464). Holding the rest of the app constant, that is the synth itself costing <strong>17% less</strong>. It is lower than the 26% the isolated benchmark shows, because in the app the new tables compete for cache with everything else.</p>
+  </div>
+</section>
+
+<section>
+  <p class="kicker">Evidence</p>
+  <h2>How the behavioural changes were checked</h2>
+  <div class="col">
+    <p>Two of the five changes alter a number somewhere. Neither was argued from first principles &mdash; a change that is algebraically identical can still move the sound, and a change that fails a sample-by-sample diff can still be perfectly transparent.</p>
+
+    <h3>The Faust rewrite</h3>
+    <p>Seven parameter scenarios rendered from both versions and compared: ADSR polyphonic, waveshape sweep, sustained mono, FM with pitch slide, noise, the full FX chain, and an AM oscillator sweep. Worst case <strong>&minus;74&nbsp;dB</strong> error relative to signal and RMS-envelope agreement <strong>&minus;71&nbsp;dB or better</strong>, in the six scenarios without a pitch slide.</p>
+
+    <h3>The pitch slide</h3>
+    <p>The one place the trajectory could have moved. Endpoints measured at <code>diff&nbsp;=&nbsp;0</code>, so the slide still starts at exactly the carrier frequency and still tops out at exactly <code>o1f&nbsp;&times;&nbsp;(1&nbsp;+&nbsp;2^oscsliderange)</code>. Worst deviation along the path is 7.2e&minus;7 of full scale &mdash; <strong>0.0007 to 0.0196 cents</strong> depending on slide range. Scenario 4 below is the only one this changes, at &minus;28.4&nbsp;dB sample-domain but &minus;59.1&nbsp;dB RMS envelope: the signature of accumulated phase, not of a change in what is heard.</p>
+
+    <h3>The LFO</h3>
+    <p>Old and new LFO canvases extracted into standalone patches and driven identically inside the real <code>_main.pd</code> for five seconds. Output range identical at <code>[0.2273, 0.7726]</code>; rate identical at 4.0 cycles in 5.0&nbsp;s; and at one tick of lag the maximum difference is <strong>0.00093</strong>, or 0.17% of modulation depth. The one-tick offset is inherent &mdash; <code>[snapshot~]</code> returns the previous block's last sample, while the accumulator advances in the current tick.</p>
+
+    <h3>The playback clock</h3>
+    <p>Both deliveries run side by side into identical <code>[i 0]</code>&rarr;<code>[+ 1]</code> counters for 399 ticks. The captured sequences are <strong>byte-identical</strong>.</p>
+  </div>
+</section>
+
+<section>
+  <p class="kicker">Yours to decide &mdash; ready to <code>git apply</code></p>
+  <h2>Two options I did not take</h2>
+  <div class="col">
+    <p>Each is a judgement about the instrument rather than about the code, so each is a patch in <code>docs/efficiency/</code> rather than a commit. The third, tabulating the pitch-slide curve, is now commit 6 above.</p>
+  </div>
+
+  <div class="opts">
+    <div class="opt" style="border-left-color:var(--good);opacity:.9">
+      <h3>A &mdash; Tabulate the pitch-slide <code>pow</code> &mdash; <span style="color:var(--good)">applied</span></h3>
+      <p class="file">was option-A-tabulate-slide-pow.patch &middot; now commit 6</p>
+      <p>Two sqrt-only alternatives were measured against it and rejected. Exponents built from halvings need no table at all and also keep the endpoints exact, but they bend the curve enough that you would be re-tuning the slide by ear afterwards, for about 3% more throughput.</p>
+      <div class="tw" style="margin:16px 0 0">
+        <table>
+          <thead><tr><th>curve</th><th class="num">MB/s</th><th class="num">worst offset, widest range</th></tr></thead>
+          <tbody>
+            <tr class="hi"><td>x^2.7 tabulated (shipped)</td><td class="num">75.3</td><td class="num">0.02 cents</td></tr>
+            <tr><td>x^2.6875, 4 sqrt</td><td class="num">77.4</td><td class="num">22.6 cents</td></tr>
+            <tr><td>x^2.75, 2 sqrt</td><td class="num">77.5</td><td class="num">85.1 cents</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="opt">
+      <h3>B &mdash; Lower the polyphony</h3>
+      <p class="file">option-B-polyphony-12.patch</p>
+      <p><code>POLYPHONY</code> is 20. Every voice is computed on every sample and then multiplied by <code>poly(i,c)</code>, which is zero for all but the current voice unless the <em>polyphonic</em> checkbox and the ADSR are both on &mdash; so in three of the four modes, 19 of 20 voices are computed and thrown away. Faust cannot skip them; only the constant can change.</p>
+      <div class="tw" style="margin:16px 0 0">
+        <table>
+          <thead><tr><th>POLYPHONY</th><th class="num">MB/s</th><th class="num">per instance</th><th class="num">&times;6</th></tr></thead>
+          <tbody>
+            <tr class="hi"><td>20 (current)</td><td class="num">74.9</td><td class="num">1.45%</td><td class="num">8.7%</td></tr>
+            <tr><td>16</td><td class="num">86.0</td><td class="num">1.26%</td><td class="num">7.6%</td></tr>
+            <tr><td>12 (the patch)</td><td class="num">104.6</td><td class="num">1.04%</td><td class="num">6.3%</td></tr>
+            <tr><td>8</td><td class="num">135.3</td><td class="num">0.81%</td><td class="num">4.9%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="verdict"><b>Why I left it:</b> the audible cost is how many releasing voices can overlap &mdash; your longest release against your fastest retrigger. That is a decision about the instrument.</div>
+    </div>
+
+    <div class="opt">
+      <h3>C &mdash; Wire up the trigger that never fires</h3>
+      <p class="file">option-C-wire-up-automater-trig.patch</p>
+      <p>A live bug, not an optimisation. <code>f.seq.automater</code> creates <code>f.seq.automatermessage $1</code> with <strong>one</strong> argument, but the abstraction uses <code>$2</code>: <code>[r $2-trig]</code> expands to <code>[r 0-trig]</code>, a symbol nothing sends. It gates a <code>[spigot]</code> that therefore never opens, so <code>trig bang</code> never reaches the automater from <code>$1-automater-trig</code>. Passing <code>$2</code> through is what the code looks like it wants.</p>
+      <div class="verdict"><b>Why I left it:</b> this switches on dormant behaviour rather than speeding anything up. Turning it on with you offline seemed like the wrong call &mdash; a comment in the patch records the finding either way.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="kicker">Investigated, deliberately left alone</p>
+  <h2>Things that looked promising and weren't</h2>
+  <ul class="notes">
+    <li><b>Master-bus effects are already cheap.</b> Measured individually: reverb 0.46%, repeater 0.27%, OTT 0.14%, digitaliser 0.06%, widener 0.06%, limiter 0.02% of a core. Wrapping them in <code>[switch~]</code> to bypass them would buy about 1% and risk graph-rebuild clicks.<span class="stale"><b>Superseded.</b> Four of these six
+      effects &mdash; OTT, digitaliser, widener and limiter &mdash; were removed from this branch in
+      <code>480cc97</code>, after these numbers were taken. The figures stand as a record of what the
+      full chain cost; they no longer describe the master bus as it is built today. The conclusion is
+      unaffected, and now more so: what remains is cheaper still.</span></li>
+    <li><b>Three half-wired <code>[pipe 30]</code> objects</b> in <code>f.util.oscinparse</code>. Five <code>[sel 1]</code>&rarr;<code>[pipe 30]</code> chains, of which two have output connections and three do not. Two of five being wired reads like an edit that stopped halfway rather than dead code, so it is reported rather than removed. Runtime cost is negligible.</li>
+    <li><b><code>f.seq.record</code> carries a <code>TEST_UNIT___</code> panel</b> &mdash; a manual test harness with GUI widgets &mdash; in all 427 instances, about 7,700 objects. It costs allocation and a little load time and nothing per tick. Removing it would lose a development affordance for no measurable gain.</li>
+    <li><b>A genuine double-selection in <code>fsynth.lib</code>.</b> Line 18 wraps the carrier frequency in <code>si.interpolate(adsron)</code> over a value that <code>ox()</code> has <em>already</em> selected on <code>adsron</code>. Removing it measures at 0% and perturbs how Faust factors the surrounding expression &mdash; it starts emitting <code>A*(P+1)</code> where it emitted <code>A + A*P</code>, which rounds differently and drifts the oscillator. Left as written.</li>
+  </ul>
+</section>
+
+<section>
+  <p class="kicker">Read this before re-running anything</p>
+  <h2>One measurement trap</h2>
+  <div class="caveat">
+    <p><code>pd -nogui -noaudio</code> <strong>with DSP on is not a valid way to compare DSP cost.</strong> Pd's polling scheduler spends whatever slack it has spinning, so making the DSP cheaper shows up as <em>more</em> measured CPU.</p>
+    <p>Verified directly: swapping in the faster <code>formuls~</code> raised the number, while <code>faust2bench</code> measured the same binary 26% faster. Every DSP claim on this page therefore comes from <code>faust2bench</code> or from <code>sample</code> profiles normalised by total non-idle work. The <code>dsp=0</code> runs behave correctly and monotonically, and are where the control-rate numbers come from.</p>
+    <h3>Two smaller traps in the same harness</h3>
+    <ol>
+      <li><code>[print]</code> output is discarded under <code>-nogui</code>, even with <code>-stderr</code>, while <code>pd_error</code> output still appears. Capture values with <code>[textfile]</code> and a <code>write &lt;path&gt; cr</code> message instead.</li>
+      <li>Piping Pd's console into <code>head</code> kills it with SIGPIPE partway through loading, so loadbangs and delays never run and the patch looks broken. Redirect to a file.</li>
+    </ol>
+    <p style="margin-top:14px">And in the file format itself: a message box needs <code>\;</code>. An unescaped <code>;</code> truncates the record and silently breaks every following connection in that canvas.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Tooling to reproduce all of it is in <code>docs/efficiency/tools/</code> &mdash; a Pd patch parser, a structural editor that renumbers connections while preserving untouched records byte for byte, a runtime object census that expands the abstraction tree, and a Faust A/B architecture file with sample-domain and spectral comparison scripts.</p>
+  <p>Full write-up: <code>docs/efficiency/README.md</code> on <code>efficiency-dev</code>.</p>
+</footer>
+
+</div>
+
+<div class="tip" id="tip"></div>
+<script>
+(function(){
+  var tip=document.getElementById('tip');
+  document.querySelectorAll('.barrow').forEach(function(row){
+    row.addEventListener('mousemove',function(e){
+      tip.textContent=row.getAttribute('data-tip');
+      tip.style.opacity='1';
+      tip.style.left=(e.clientX+14)+'px';
+      tip.style.top=(e.clientY-32)+'px';
+    });
+    row.addEventListener('mouseleave',function(){tip.style.opacity='0';});
+  });
+})();
+</script>

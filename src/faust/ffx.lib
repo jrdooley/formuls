@@ -7,13 +7,16 @@ declare options "[osc:on]";
 import("stdfaust.lib");
 fo = library("fosc.lib"); 
 
+// shared x^2.7 curve, used by djfilter and flooper
+exp27 = pow(2.7);
+
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
 fx = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
 
 fxsend = fxs
 with {
-  fxs = hslider("fxsend",1,0,1,0.01);
+  fxs = hslider("fxsend",1,0,1,0.01) : si.smoo;
 };
 
 //----------------------------------------------------------------------------------------//
@@ -29,7 +32,7 @@ with{
   amp = hslider("amphasereset",0.5,0,1,0.01); // phase reset
 
   // sine -> square -> rising sawtooth -> impulse
-  amosc = _ : fo.multiwave4(_,amw,amp) : *(0.5) : +(0.5);
+  amosc = _ : fo.multiwave4(amw,amp) : *(0.5) : +(0.5);
 };
 //-----------SATURATION---------------//
 /* tanh waveshape distortion */
@@ -97,7 +100,7 @@ bitcrush(x) = truncate(x) ;
 pitchshift = _ <: _,ef.transpose(1024,512,pit) : si.interpolate(mix)//
 with {
   pit = hslider("pitchshift",0,-24,24,0.1) : si.smoo;
-  mix = hslider("pitchshiftmix",0,0,1,0.1);
+  mix = hslider("pitchshiftmix",0,0,1,0.1) : si.smoo;
 };
 
 //-------------DELAY---------------//
@@ -230,8 +233,8 @@ with{
   fc = hslider("djfiltercutoff",0.5,0,1,0.01) : si.smoo;
   r = hslider("djfilterresonance",1,1,100,1) : si.smoo;
 
-  fh = fc : -(0.6) : max(0) : *(2.5) : pow(2.7) : *(5000) : +(5); // scales "filtercutoff" values between 0.6-1 to lie between 5-5000Hz (high pass)
-  fl = fc : *(2.5) : min(1) : pow(2.7) : *(9980) : +(80); // scales "filtercutoff" values between 0-0.4 to lie between 80-10060Hz (low pass)
+  fh = fc : -(0.6) : max(0) : *(2.5) : exp27 : *(5000) : +(5); // scales "filtercutoff" values between 0.6-1 to lie between 5-5000Hz (high pass)
+  fl = fc : *(2.5) : min(1) : exp27 : *(9980) : +(80); // scales "filtercutoff" values between 0-0.4 to lie between 80-10060Hz (low pass)
   djhip = fi.resonhp(fh,r,1);
   djlop = fi.resonlp(fl,r,1);
 };
@@ -254,23 +257,55 @@ roundf(x) = floor(x + 0.5);
 
 //------------REPEATER------//
 // Glitchy tempo-synchronised repeater effect.
-// Two delayensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
-repeater = _,_ <: delayensemble(0),delayensemble(1) :> _,_ <: sp.stereoize(_ *(1-(mono))), (sp.stereoize(_ *(mono)) : + <: si.bus(2)) :> _,_
+// Two delay ensembles act like "voices", ensuring audio is always present in a delay line and captured immediately after the capture button has been released
+repeater = _,_ <: delayensemble(0),delayensemble(1) :> _,_ <:
+    sp.stereoize(_ *(1-(mono))),
+    (sp.stereoize(_ *(mono)) : + <: si.bus(2))
+:> _,_
 with {
-  tempo = hslider("bpm",120,1,240,1) : 60/(_) : ba.sec2samp(_); // global tempo
-  divl = hslider("beatdivisionl",1,1,5,1) : int; //sample/capture duration in beats
-  divr = hslider("beatdivisionr",1,1,5,1) : int; //sample/capture duration in beats
-  capl = button("capturel"); // capture some sound!
-  capr = button("capturer"); // capture some sound!
-  mono = checkbox("repeatermono") : si.smoo; //sums channels together or creates true stereo glitching
-  level = hslider("repeaterlevel",1,0,1,0.01) : pow(2.7) : si.smoo; // effect level
+  minbpm = 1;  // slider floor AND the tempo the delay lines are sized for
+  tempo = hslider("bpm",120,minbpm,240,1) : 60/(_) : ba.sec2samp(_);
+  divl = hslider("beatdivisionl",1,1,7,1) : int;
+  divr = hslider("beatdivisionr",1,1,7,1) : int;
+  capl = button("capturel");
+  capr = button("capturer");
+  mono = checkbox("repeatermono") : si.smoo;
+  level = hslider("repeaterlevel",1,0,1,0.01) : exp27 : si.smoo;
 
   capcountl = +(1)~(ba.sAndH(capl : ba.impulsify)) : %(2) : int;
   capcountr = +(1)~(ba.sAndH(capr : ba.impulsify)) : %(2) : int;
-  delayvoicel(i,d,x) = _*(x != capcountl) : (+ : de.sdelay(96000,1024,tempo/(d))) ~ *((x == capcountl)*(capl)) : *(i==divl) : *(x == capcountl); //i = instance, d = beat division, j = incoming instance number(truth test)
-  delayvoicer(i,d,x) = _*(x != capcountr) : (+ : de.sdelay(96000,1024,tempo/(d))) ~ *((x == capcountr)*(capr)) : *(i==divr) : *(x == capcountr); //i = instance, d = beat division, j = incoming instance number(truth test)
 
-  delayensemble(x) = _,_ <: (delayvoicel(1,4,x), delayvoicel(2,5,x), delayvoicel(3,6,x), delayvoicel(4,8,x), delayvoicel(5,10,x),delayvoicel(6,12,x),delayvoicel(7,16,x) :> _ : *(capl) : *(level)),(delayvoicer(1,1,x), delayvoicer(2,2,x), delayvoicer(3,4,x), delayvoicer(4,8,x), delayvoicer(5,16,x) :> _ : *(capr) : *(level));
+  // Longest delay THIS voice can be asked for: one beat at minbpm,
+  // divided by its own fixed division. Sizing every voice for the
+  // smallest division instead multiplies the tables by 4; multiplying
+  // by 16 (as this did) oversizes them 64x, which faust then rounds up
+  // to 2^28 samples per line -- 28 GiB across the 28 lines.
+  maxsamp(d) = int(ba.sec2samp(60.0 / minbpm) / d) + 1;
+
+  delayvoice(cap, cnt, sel, i, d, x) =
+      _*(x != cnt)
+      : (+ : de.sdelay(maxsamp(d), 1024, float(tempo) / d))
+      ~ *((x == cnt) * cap)
+      : *(i == sel)
+      : *(x == cnt);
+
+  delayensemble(x) = _,_ <:
+      (delayvoice(capl, capcountl, divl, 1, 4, x),
+       delayvoice(capl, capcountl, divl, 2, 5, x),
+       delayvoice(capl, capcountl, divl, 3, 6, x),
+       delayvoice(capl, capcountl, divl, 4, 8, x),
+       delayvoice(capl, capcountl, divl, 5, 10, x),
+       delayvoice(capl, capcountl, divl, 6, 12, x),
+       delayvoice(capl, capcountl, divl, 7, 16, x)
+       :> _ : *(capl) : *(level)),
+      (delayvoice(capr, capcountr, divr, 1, 4, x),
+       delayvoice(capr, capcountr, divr, 2, 5, x),
+       delayvoice(capr, capcountr, divr, 3, 6, x),
+       delayvoice(capr, capcountr, divr, 4, 8, x),
+       delayvoice(capr, capcountr, divr, 5, 10, x),
+       delayvoice(capr, capcountr, divr, 6, 12, x),
+       delayvoice(capr, capcountr, divr, 7, 16, x)
+       :> _ : *(capr) : *(level));
 };
 
 //------------OTT----------//
@@ -364,8 +399,8 @@ with {
 //----------------------------------FLOOPER-----------------------------------------------//
 //----------------------------------------------------------------------------------------//
 //---------------flooper-------------//
-flooper = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo)),
-                        ((rwtable(floopertablesize,0.1,recindex,_,readindex) : ampenvelope : *(level)) : *(play :si.smoo))
+flooper = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : *(level) : *(play :si.smoo) : *(sampledropout)),
+                        ((rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelope : *(level) : *(play :si.smoo) : *(sampledropout))))
   with {
     //-------- paramter control interface
     record = button("record") : int;
@@ -381,25 +416,29 @@ flooper = _,_ : ((rwtable(floopertablesize,0.0,recindex,_,readindex) : ampenvelo
     dropout = hslider("dropout",0,0,1,0.01) : pow(2) : si.smoo;
 
     //----table record functions-----//
-    floopertablesize = 3840002; //80 seconds of audio at 48kHz + 2 extra samples. 1st sample of table empty for readback without sound, last sample empty for write without overwriting existing sample.
+    floopertablesize = int(ma.SR * 80) + 2; //80 seconds of audio + 2 guard samples. 1st sample empty for readback without sound, last sample empty for write without overwriting existing sample.
     recindex = ((+(1) : %(floopertablesize)) ~ *(record)) : +(1); // records audio to tables below
 
     //--------calculate the recorded sample duration---//
-    I = int(record);				// convert button "Record" signal from float to integer
-    R = (I-I') <= 0;		// Reset capture when button is pressed
-    D = (+(I):*(R))~_ : +(1) : ba.sAndH(1-(record)) : si.smoo;		// Compute capture duration while button is pressed: 0..NNNN0..MMM
+    I = int(record);
+    R = (I-I') <= 0;
+    D = (+(I):*(R))~_ : +(1) : ba.sAndH(1-(record)) : si.smoo;
 
     //-------- Table read and envelope control-------//
-    // "readindex" triggers counters and controls random sample drop out
     samplelength = D : *(1/(duration)) : /(speed) : int; // calculates the duration of the sample/grain in samples
-    speed2 = speed : si.smoo;
 
     countforward = ba.countup(samplelength,play==(0)), ba.sweep(samplelength,play) : ba.selectn(2,loop); // forward playback of sample
     countbackward = ba.countdown(samplelength,play==(0)), ((<=(0) : ba.countdown(samplelength,play*(_)))~(_)) : ba.selectn(2,loop); // reverse/backward playback of sample
     countfandb = countforward,countbackward : ba.selectn(2,reverse); //aggregate of countforward and countbackward functions
-    countmaster = countfandb <: *(speed2 : ba.sAndH(countfandb ==(0)));
+    countmaster = countfandb <: *(speed : ba.sAndH(countfandb ==(0)));
     sampledropout = no.lfnoise0(32) : *(0.5) : +(0.5) : ba.sAndH(countmaster <=(1) : ba.impulsify) : >(dropout); // calculate whether a sample/grain should play or not
-    readindex =  countmaster : +(readoffset *(D) : ba.sAndH(countfandb ==(0) : ba.impulsify)) : %(D) : *(sampledropout) : int; //the main counter that reads from the rwtable
-    // Grain/sample envelope: raised cosine envelope applied to amplitude
-    ampenvelope = _ : *(cos(countmaster/(samplelength*(speed2)) : *(ma.PI *(2))) : *(0.5) : +(0.5) : 1-(_) : *(envelope) : (_,1 : min));
+    readindex =  countmaster : +(readoffset *(D) : ba.sAndH(countfandb ==(0) : ba.impulsify)) : %(D) : int; //the main counter that reads from the rwtable
+
+    // Grain/sample envelope: parabolic window applied to amplitude
+    ampenvelope = _ : *(env : *(envelope) : (_,1 : min))
+    with {
+      phase = countmaster / (samplelength * speed);
+      p = 2 * phase - 1;
+      env = 1 - p * p;
+    };
   };
