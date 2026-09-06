@@ -449,26 +449,44 @@ Neither can fire while the functions are unreachable. They are recorded here so
 that wiring `flooper` up starts from a known list rather than from a debugging
 session.
 
+### Also fixed: the three JUCE-side items (`b7c7431`)
+
+- **`StereoMeter::paint` drew one `drawVerticalLine` per pixel** - about 1000
+  calls per frame at 30 Hz across the two bars. Now one `ColourGradient` fill
+  per bar. The gradient spans the **full** bar rather than the filled part, so a
+  colour stays pinned to its level as the bar moves.
+- **`screenshotClicked` captured raw `this`** alongside its `SafePointer` and
+  used the raw one - safe only because the null check happened to run first.
+  Now the `SafePointer` alone. It also guards re-entry:
+  `juce::ChildProcess::~ChildProcess()` is empty and `ActiveProcess`'s
+  destructor never `waitpid()`s, so replacing a live one left a zombie *and* put
+  two Playwright runs on the GUI at once.
+- **`populateDeviceList` offered names from every `AudioIODeviceType`** while
+  `AudioDeviceManager` resolves a name against the current type only - and with
+  `selectDefaultDeviceOnFailure`, a name from another type would quietly open
+  the default device and still report "Running." Names are now index-aligned
+  with the type that reported them, and `FormulsEngine::start` takes the type
+  and selects it before `initialise()`.
+
+Verified: the whole app builds clean (`xcodebuild` Release, arm64, no new
+warnings). The meter was **pixel-compared**, not assumed - both implementations
+rendered into `juce::Image`s at 101 levels, worst per-channel difference 3/255,
+mean 0.54, anchor colours exact; the residue is JUCE's gradient lookup table
+quantising the ramp plus pixel-centre vs left-edge sampling. The device
+enumeration was checked to be behaviour-preserving: old and new produce an
+identical name list, index-aligned, non-empty type for every entry.
+
+**Not verified:** the multi-type device path itself. macOS has CoreAudio alone,
+so the ALSA/JACK case that fix exists for is untested. Same for the screenshot
+re-entry guard, which needs a running GUI.
+
 ### Found, not fixed
 
-Reported in full in-session; recorded here so they are not re-derived.
-
-All small, none urgent.
-
-- `StereoMeter::paint` draws one `drawVerticalLine` per pixel - about 1000 draw
-  calls per frame at 30 Hz. A `ColourGradient` fill is one call and looks the
-  same.
-- `MainComponent::screenshotClicked` captures raw `this` alongside its
-  `SafePointer` and uses the raw one. Safe today only because the null check
-  runs first, which defeats the point of the `SafePointer`.
-- `populateDeviceList` enumerates every `AudioIODeviceType`, but
-  `deviceManager.initialise()` resolves the name against the current type only,
-  with `selectDefaultDeviceOnFailure = true`. On Linux with ALSA and JACK both
-  present, picking a JACK device by name silently opens the ALSA default and the
-  status line still reports success. macOS is unaffected (CoreAudio only).
 - Six abstractions are never instantiated: `f.util.floatint`,
   `f.util.matrixunpack`, `f.util.message`, `f.util.seqwriteparse`,
   `f.util.xylfoparse`, `f.util.xywidgetparse`.
+- `libpd.dylib` builds for a newer macOS than the app's 11.0 deployment target,
+  so every link warns. Pre-existing, harmless, not investigated.
 
 ### Checked clean
 
