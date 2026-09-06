@@ -1,0 +1,19 @@
+--- a/src/pd/controlabstractions/f.util.oscformatxy.pd
++++ b/src/pd/controlabstractions/f.util.oscformatxy.pd
+@@ -265,7 +265,7 @@
+ #X obj 257 588 f.seq.automater \$1 \$1-\$4 \$5 \$6;
+ #X obj 469 586 f.seq.automater \$1 \$1-\$8 \$9 \$10;
+ #X obj 37 51 route \$3\$2 \$3chaos\$2 \$3lfofreq\$2 \$3lfodepth\$2 \$3xmod\$2 \$3ymod\$2 \$3moddepth\$2 \$3label\$2;
+-#X obj 267 675 +;
++#X obj 267 675 expr $f1 * 0.35 + $f2;
+ #X obj 282 632 t b f;
+ #X obj 267 654 f;
+ #X obj 463 21 inlet x-offset;
+@@ -283,6 +283,7 @@
+ #X obj 560 780 \$12;
+ #X obj 560 802 == 0;
+ #X text 620 690 \$12 = 1 to keep this widget's own GUI value off to-o-s-c-interface. A composite pad -- the resonant filter's two nodes -- is assembled from two of these under one address \, and each would otherwise broadcast its own half-length pair on the shared address. Open Stage Control ignores a wrong-length array \, so it was only wasted traffic \, but it is a trap for whoever next changes the pad's point count. The (dollar)2-modvalue tap is upstream of this and still fires \, so f.gui.modpack is unaffected.;
++#X text 620 620 Pitch track \, option B: the node is a fixed span above the carrier. The [expr] left inlet is the node \, its right inlet the carrier \, both normalised over the MIDI 0-136 span faust maps the cutoff onto \, so 0.35 is about four octaves. Edit that number to taste. The gesture means the same number of semitones wherever the carrier sits \, but the [clip 0 1] below still bites once carrier + span passes the top -- with 0.35 that is a carrier above 0.65.;
+ #X connect 3 0 83 0;
+ #X connect 4 0 68 0;
+ #X connect 5 0 1 0;

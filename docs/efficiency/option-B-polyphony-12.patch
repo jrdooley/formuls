@@ -1,0 +1,13 @@
+diff --git a/src/faust/fsynth.lib b/src/faust/fsynth.lib
+index e22de95..49c58f3 100644
+--- a/src/faust/fsynth.lib
++++ b/src/faust/fsynth.lib
+@@ -10,7 +10,7 @@ fo = library("fosc.lib");
+ //-------------------------------------SYNTH----------------------------------------------//
+ //----------------------------------------------------------------------------------------//
+ 
+-POLYPHONY = 20;
++POLYPHONY = 12;
+ 
+ /* x^2.7 over [0,1], pre-computed into a 1024-point interpolated table. Both
+    callers - the ADSR amplitude curve and the pitch-slide envelope in fmosc -

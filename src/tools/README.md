@@ -37,23 +37,70 @@ re-sign:
 codesign --force --deep -s - /path/to/formuls.app
 ```
 
+Only needed for an app that was built before branding was wired into the
+build scripts; a fresh build is branded already.
 
-## FORMULS_TRACE (built into the a la carte app)
 
-Set `FORMULS_TRACE` to a comma-separated list of Pd send symbols and the app
-subscribes to them, timestamping everything they carry:
+## patch-osc-perf.py
+
+Performance surgery on the same downloaded Open Stage Control package. Both
+build scripts run it straight after unpacking:
 
 ```bash
-FORMULS_TRACE=bpmglobal,link ./formuls-alacarte-0.3.0-beta.app/Contents/MacOS/formuls-alacarte
+python3 src/tools/patch-osc-perf.py build/gui/open-stage-control
 ```
 
-```
-trace     5547 ms  bpmglobal                110.000000
+**Applied always.** `IpcServer.send` ships serialising its payload once per
+connected client:
+
+```js
+for (var s in i) ... i[s].send(e, t)      // JSON.stringify per client
 ```
 
-A value being fought over between the patch and the GUI shows up as an
-obvious alternation between two numbers; a value that is simply not
-arriving shows up as silence.
+so one parameter move costs N `JSON.stringify` calls for N tablets. The patch
+serialises once and hands every client the same string. Worth −4.5% of server
+CPU with four clients connected, nothing with one, and no behavioural change.
+
+**Opt-in: `--batch-ms N`.** Also coalesces broadcast value updates into one
+WebSocket frame per N ms, using the `bundle` event the client has always
+handled but that no server release sends. At four clients that is −64% server
+CPU and 83× fewer frames — but it makes the *client* do 32% more work, in
+12 ms slabs instead of 0.1 ms slivers. Since a saturated tablet main thread is
+what drops the connection in the first place, it is off by default. Turn it on
+when the server or the access point is the bottleneck rather than the tablet.
+
+Measurements, and the rig that produced them, are in `docs/gui/`.
+
+Same contract as `brand-osc.sh`: matched on the code rather than line numbers
+or byte offsets (it is a webpack bundle, so both move on every upgrade), a
+hard failure if an anchor is missing, and a no-op on an already-patched tree.
+Python rather than sh because the anchors are long minified strings full of
+characters `sed` would need escaping for, and BSD and GNU `sed` disagree about
+several of them.
+
+
+## check-reset-coverage.py
+
+Checks that every parameter carrying chaos/LFO/mod sub-widgets in
+`gui/_main.json` is reset by `f.util.reset.pd`, with the right abstraction
+for its widget type and the right mod-matrix flag:
+
+```bash
+python3 src/tools/check-reset-coverage.py
+```
+
+The same parameter is declared in two places -- the interface builds the
+widgets, and Pd zeroes them on reset -- and Pd has no way to derive the
+second from the first. When the two drift, nothing complains: Pd sends to an
+address no widget owns and the interface never hears about the widget it was
+never told to move. That is how the Sequencer Add/Drop, Chorus/Phaser,
+Saturation/Bitcrush, Pitchshift, Gate Threshold/Release and Flam widgets came
+to sit through a reset untouched, along with Filter Type, Sequencer
+Swing/Delay/Warp and Pitch Repeat.
+
+Run it after adding a parameter or renaming a widget. It exits non-zero and
+names the fix for each mismatch.
+
 
 ## bpm-probe
 
@@ -63,7 +110,7 @@ rate `abl_link~` actually produces after each change. It needs no audio
 device and no tablet, so BPM behaviour can be tested in isolation from the
 GUI.
 
-Build (libpd must already be built -- see `src/app-alacarte/README.md`):
+Build (libpd must already be built -- see `src/app/README.md`):
 
 ```bash
 LP=../libs/libpd
@@ -120,3 +167,78 @@ cp -R /path/to/formuls.app/Contents/Resources/pd/externals /tmp/pd-test/external
 The first measurement after a change often reads negative -- the patch
 sends `reset` to `abl_link~`, so the beat counter jumps backwards once.
 That is an artefact of the probe, not a fault.
+
+
+## automation-probe.py
+
+Records a gesture into one `f.seq.automater` and reports every discontinuity
+in the value it sends towards Faust:
+
+```bash
+python3 src/tools/automation-probe.py
+python3 src/tools/automation-probe.py --gesture triangle --press 520
+```
+
+It builds a throwaway patch that drives a single automater the way the running
+app does -- both master throttles, a beat on `clockin`, `record 1`, a gesture,
+`record 0` -- runs it under `pd -nogui`, and diffs consecutive output frames.
+It needs no audio device, no GUI, no externals and no built app: the automater
+and everything under it are plain Pd, so a run costs about as long as the
+timeline it simulates (four seconds by default).
+
+A step in that value is what a click sounds like, so this is the cheapest way
+to tell a real automation fault from a Faust smoothing problem. It answers a
+question reading the patch cannot: *when* a value moves, relative to the beat
+and to the record button.
+
+`--gesture` picks what the take records. `ramp` sweeps 0 to 1. `triangle`
+returns to where it started, so a correct implementation loops it with no step
+at all -- the useful one for judging a fix. `hold` never moves, so any step it
+reports is the harness's own fault and not the patch's; run it first when a
+result looks surprising.
+
+`--press` and `--release` move the take relative to the beat grid, which is the
+axis most automation faults vary along. `--trace` prints every frame.
+
+### Comparing revisions
+
+`--rev` extracts one revision's `controlabstractions` and probes that instead of
+the working tree, which is how to tell a regression from something that was
+always broken:
+
+```bash
+python3 src/tools/automation-probe.py --gesture triangle              # working tree
+python3 src/tools/automation-probe.py --gesture triangle --rev HEAD   # last commit
+python3 src/tools/automation-probe.py --gesture triangle --rev 2194d48
+```
+
+Errors Pd reports while loading a historical tree are printed with the object
+that caused them, so an old revision's broken objects are visible rather than
+silently changing the result.
+
+### What it has established so far
+
+- **Open:** releasing the record button steps the parameter by an arbitrary
+  amount. Automation playback is armed as soon as recording starts, so the
+  first beat *during* the take sets the read head running underneath it;
+  releasing record swaps the output onto that head mid-gesture. Measured steps
+  of +0.72, -0.19, -0.48 and -0.25 for the same gesture, varying only with when
+  record was pressed relative to the beat. Reproduce with:
+
+  ```bash
+  python3 src/tools/automation-probe.py --gesture triangle --press 520
+  ```
+
+- The fault is **not** a regression. `--rev 2194d48`, the commit that
+  introduced the JUCE front end and predates all the efficiency work,
+  reproduces it exactly.
+- A gate on `clockin`, held closed while `$0-record` is 1, was tried in
+  `f.seq.automater`'s `TIMING_+_SCHEDULING______` and does fix it -- the
+  parameter holds its last live value until the next beat, then playback starts
+  from index 0, and a gesture that returns to where it started loops with no
+  step at all. It is not in the tree: it changes where the loop's phase comes
+  from, which is a musical decision rather than a bug fix.
+- Nothing in the Pd value path smooths. The `[line 0 5]` in
+  `VALUE_READ_EVOLUTION_SEND` only ever receives bare floats, so it passes them
+  straight through; whether a step is audible depends entirely on whether the
+  Faust parameter carries `si.smoo`.

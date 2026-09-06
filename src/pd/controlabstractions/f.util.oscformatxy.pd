@@ -1,4 +1,4 @@
-#N canvas 642 38 870 916 10;
+#N canvas 221 33 870 916 10;
 #X text 470 194 \$1 = \$0;
 #X obj 257 888 outlet;
 #X text 470 209 \$2 = synth instance (only used in Pd \, not faust external);
@@ -88,7 +88,7 @@
 #X connect 12 0 9 0;
 #X connect 13 0 8 0;
 #X connect 14 0 1 0;
-#X restore 257 514 pd X_QUANTISATION;
+#X restore 267 514 pd X_QUANTISATION;
 #X text 470 227 \$3 = xy name;
 #X text 471 244 \$4 = x paramname;
 #X text 472 263 \$5 = x parameter default value;
@@ -128,7 +128,7 @@
 #X connect 12 0 9 0;
 #X connect 13 0 8 0;
 #X connect 14 0 1 0;
-#X restore 469 515 pd Y_QUANTISATION;
+#X restore 480 513 pd Y_QUANTISATION;
 #N canvas 31 98 299 326 SCALE___ 0;
 #X obj 70 275 outlet;
 #X obj 183 52 loadbang;
@@ -165,7 +165,7 @@
 #X obj 450 775 f.util.pak;
 #X obj 257 831 f.util.pak;
 #X obj 267 748 list prepend formuls\$2 \$4;
-#X obj 470 835 s \$2-message-collect;
+#X obj 512 860 s \$2-message-collect;
 #X obj 358 87 s \$0-reject;
 #X obj 57 442 unpack f f;
 #X msg 317 136 active \$1;
@@ -276,13 +276,20 @@
 #X obj 495 740 \$9;
 #X obj 458 718 t b b;
 #X obj 458 697 r \$2-reset;
+#X obj 676 812 list prepend \$3;
+#X obj 676 837 s \$2-modvalue;
+#X obj 511 837 spigot 1;
+#X obj 556 765 loadbang;
+#X obj 556 787 \$12;
+#X obj 556 809 == 0;
+#X text 620 690 \$12 = 1 to keep this widget's own GUI value off to-o-s-c-interface. A composite pad -- the resonant filter's two nodes -- is assembled from two of these under one address \, and each would otherwise broadcast its own half-length pair on the shared address. Open Stage Control ignores a wrong-length array \, so it was only wasted traffic \, but it is a trap for whoever next changes the pad's point count. The (dollar)2-modvalue tap is upstream of this and still fires \, so f.gui.modpack is unaffected.;
 #X connect 3 0 83 0;
 #X connect 4 0 68 0;
 #X connect 5 0 1 0;
 #X connect 6 0 5 1;
 #X connect 8 0 30 0;
 #X connect 17 0 23 0;
-#X connect 18 0 31 0;
+#X connect 18 0 97 0;
 #X connect 18 0 7 0;
 #X connect 23 0 4 0;
 #X connect 24 0 26 1;
@@ -292,6 +299,7 @@
 #X connect 27 0 16 0;
 #X connect 27 0 82 0;
 #X connect 28 0 18 0;
+#X connect 28 0 95 0;
 #X connect 29 0 5 0;
 #X connect 30 0 4 0;
 #X connect 33 0 42 0;
@@ -369,3 +377,8 @@
 #X connect 93 0 91 0;
 #X connect 93 1 92 0;
 #X connect 94 0 93 0;
+#X connect 95 0 96 0;
+#X connect 97 0 31 0;
+#X connect 98 0 99 0;
+#X connect 99 0 100 0;
+#X connect 100 0 97 1;

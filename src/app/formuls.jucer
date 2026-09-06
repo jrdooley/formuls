@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="frmls0" name="formuls" projectType="guiapp" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.3.0"
+              companyName="formuls" bundleIdentifier="net.formuls.formuls"
+              cppLanguageStandard="17" projectLineFeed="&#10;">
+  <MAINGROUP id="frmlsG" name="formuls">
+    <GROUP id="frmSrc" name="Source">
+      <FILE id="srcMn0" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
+      <FILE id="srcMC0" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
+      <FILE id="srcMC1" name="MainComponent.cpp" compile="1" resource="0"
+            file="Source/MainComponent.cpp"/>
+      <FILE id="srcAR0" name="AudioRecorder.h" compile="0" resource="0" file="Source/AudioRecorder.h"/>
+      <FILE id="srcAR1" name="AudioRecorder.cpp" compile="1" resource="0"
+            file="Source/AudioRecorder.cpp"/>
+      <FILE id="srcFE0" name="FormulsEngine.h" compile="0" resource="0" file="Source/FormulsEngine.h"/>
+      <FILE id="srcFE1" name="FormulsEngine.cpp" compile="1" resource="0"
+            file="Source/FormulsEngine.cpp"/>
+      <FILE id="srcOS0" name="OpenStageControlProcess.h" compile="0" resource="0"
+            file="Source/OpenStageControlProcess.h"/>
+      <FILE id="srcOS1" name="OpenStageControlProcess.cpp" compile="1" resource="0"
+            file="Source/OpenStageControlProcess.cpp"/>
+      <FILE id="srcLF0" name="FormulsLookAndFeel.h" compile="0" resource="0"
+            file="Source/FormulsLookAndFeel.h"/>
+      <FILE id="srcRL0" name="ResourceLocator.h" compile="0" resource="0"
+            file="Source/ResourceLocator.h"/>
+      <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
+    </GROUP>
+    <GROUP id="frmAst" name="Assets">
+      <FILE id="astIc0" name="formuls-app-icon.png" compile="0" resource="1"
+            file="../icons/formuls-app-icon.png"/>
+    </GROUP>
+  </MAINGROUP>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+  </MODULES>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_CURL="0"/>
+  <EXPORTFORMATS>
+    <XCODE_MAC targetFolder="Builds/MacOSX" smallIcon="astIc0" bigIcon="astIc0"
+               externalLibraries="pd" extraLinkerFlags="-Wl,-rpath,@executable_path/../Frameworks -Wl,-rpath,@executable_path/../../../../../../../../libs/libpd/libs">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="formuls" headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../libs/libpd/libs"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="formuls" headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../libs/libpd/libs"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../JUCE/modules"/>
+      </MODULEPATHS>
+    </XCODE_MAC>
+    <LINUX_MAKE targetFolder="Builds/LinuxMakefile" externalLibraries="pd" extraLinkerFlags="-Wl,-rpath,'$$ORIGIN/libs'">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="formuls" headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../libs/libpd/libs"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="formuls" headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../libs/libpd/libs"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../JUCE/modules"/>
+      </MODULEPATHS>
+    </LINUX_MAKE>
+  </EXPORTFORMATS>
+</JUCERPROJECT>

@@ -2,7 +2,7 @@
 # Build output
 # ---------------------------------------------------------------
 # "build" at any depth: the top-level dir used by build-macOS.sh /
-# build-linux.sh, and nested ones such as src/app-alacarte/build/.
+# build-linux.sh, and any nested ones.
 build/
 
 # Packaged applications produced by the build scripts
@@ -18,6 +18,11 @@ src/app/JuceLibraryCode/
 # Dependencies downloaded by the build scripts
 # ---------------------------------------------------------------
 src/gui/open-stage-control*
+# The bundled node binary is copied to build/gui/node by the build scripts,
+# but earlier runs left a ~105 MB copy at src/gui/node. "node-v*" below does
+# not cover the bare name, so it showed as untracked and one "git add -A"
+# would have committed it.
+src/gui/node
 src/gui/node-v*
 node_modules/
 
