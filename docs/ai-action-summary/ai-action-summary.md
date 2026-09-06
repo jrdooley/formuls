@@ -253,3 +253,55 @@ call, negligible at audio rates.
 |---|---|
 | **Cost** | TBD |
 | **Energy** | TBD |
+
+---
+
+## 6 September 2026 — build path fix, OSC routing investigation
+
+Session on `juce-port`. Build fix committed; OSC routing diagnosed but not yet fixed.
+
+### Commit
+
+`319c110` — `build: set JUCE module path dynamically before Projucer resave`
+
+### 1. Build: JUCE module path fix
+
+`build-macOS.sh` failed on fresh checkouts at different directory depths because
+`formuls.jucer` contains hardcoded relative `MODULEPATH` entries
+(`../../../../JUCE/modules`) that only resolve when the repo sits exactly two
+levels below home.
+
+Fix: before `--resave`, the build script now derives the absolute JUCE modules
+path from the Projucer binary location (4 `dirname` calls from
+`Projucer.app/Contents/MacOS/Projucer` to the JUCE root), then uses `sed` to
+rewrite every `path="...JUCE/modules"` attribute in `formuls.jucer` to the
+absolute path. Projucer's `--set-global-search-path` was tried first but does
+not override per-project MODULEPATH entries in the `.jucer` file.
+
+Verified: fresh `git clone` to `/tmp`, `./build-macOS.sh` succeeds.
+
+### 2. OSC routing investigation (diagnosed, not yet fixed)
+
+The `OPEN_STAGE_CONTROL_RECEIVE_` subpatch in `_main.pd` at commit `664cf31`
+has two pre-existing defects that prevent GUI parameter changes from reaching
+the Pd backend:
+
+- **Broken data path.** Connection `#X connect 1 0 22 0` references object 22,
+  which does not exist in the subpatch (only objects 0–21). Pd silently ignores
+  it. All parsed OSC data from `list trim` is dropped.
+- **`listen 9000` never triggered.** The `msg listen 9000` object that opens
+  port 9000 on `netreceive -u -b` has no incoming connection from `loadbang`.
+  Port 9000 never opens; no OSC from O-S-C reaches Pd.
+
+Multiple approaches to add a startup gate (spigot, del 3000) were attempted but
+reverted due to Pd's object numbering with `#X text` comment lines — text
+objects ARE counted for connection indices, which shifted all references after
+the comment at line 46. The `juce-port` branch was reset to `664cf31` (clean,
+working audio build) pending a correct fix.
+
+### Session cost and energy
+
+| Metric | Value |
+|---|---|
+| **Cost** | TBD |
+| **Energy** | TBD |
