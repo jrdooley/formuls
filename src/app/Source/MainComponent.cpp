@@ -71,6 +71,17 @@ MainComponent::MainComponent()
     screenshotButton.onClick = [this] { screenshotClicked(); };
     addAndMakeVisible (screenshotButton);
 
+    // ----------------------------------------------------- preset buttons
+    savePresetButton.setButtonText ("Save Preset");
+    savePresetButton.setEnabled (false);
+    savePresetButton.onClick = [this] { savePresetClicked(); };
+    addAndMakeVisible (savePresetButton);
+
+    loadPresetButton.setButtonText ("Load Preset");
+    loadPresetButton.setEnabled (false);
+    loadPresetButton.onClick = [this] { loadPresetClicked(); };
+    addAndMakeVisible (loadPresetButton);
+
     // -------------------------------------------------------------- VU meters
     vuMeter.setPeakLevels (engine.peakLevels.data());
     addAndMakeVisible (vuMeter);
@@ -213,9 +224,13 @@ void MainComponent::resized()
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
 
-    // screenshot button: right-justified, above the record button
-    auto screenshotRow = area.removeFromTop (style::screenshotButtonHeight);
-    screenshotButton.setBounds (screenshotRow.removeFromRight (style::screenshotButtonWidth));
+    // screenshot + preset buttons row: right-align screenshot, left-align presets
+    auto topButtonRow = area.removeFromTop (style::presetButtonHeight);
+    screenshotButton.setBounds (topButtonRow.removeFromRight (style::screenshotButtonWidth));
+    topButtonRow.removeFromRight (style::buttonGap);
+    loadPresetButton.setBounds (topButtonRow.removeFromRight (style::presetButtonWidth));
+    topButtonRow.removeFromRight (style::buttonGap);
+    savePresetButton.setBounds (topButtonRow.removeFromRight (style::presetButtonWidth));
     area.removeFromTop (style::controlSpacing / 2);
 
     auto buttonRow = area.removeFromTop (style::buttonHeight);
@@ -463,6 +478,8 @@ void MainComponent::updateRecordButton()
                             isRecording ? style::recordActive : style::widgetFill);
 
     screenshotButton.setEnabled (engine.isRunning());
+    savePresetButton.setEnabled (engine.isRunning());
+    loadPresetButton.setEnabled (engine.isRunning());
 }
 
 void MainComponent::screenshotClicked()
@@ -534,6 +551,119 @@ void MainComponent::screenshotClicked()
                 screenshotProc.reset();
             }
         });
+}
+
+void MainComponent::savePresetClicked()
+{
+    if (! engine.isRunning())
+    {
+        setStatus ("Start formuls before saving a preset.");
+        return;
+    }
+
+    auto defaultDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+                          .getChildFile ("formuls").getChildFile ("presets");
+    defaultDir.createDirectory();
+
+    presetSaveChooser = std::make_unique<juce::FileChooser> ("Save preset as...",
+                                                              defaultDir, "*.state");
+
+    auto flags = juce::FileBrowserComponent::saveMode
+               | juce::FileBrowserComponent::canSelectFiles
+               | juce::FileBrowserComponent::warnAboutOverwriting;
+
+    presetSaveChooser->launchAsync (flags,
+        [this, safeThis = juce::Component::SafePointer (this)]
+        (const juce::FileChooser& chooser)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            auto chosen = chooser.getResult();
+
+            if (chosen == juce::File())
+            {
+                safeThis->setStatus ("Preset save cancelled.");
+                return;
+            }
+
+            if (! chosen.hasFileExtension ("state"))
+                chosen = chosen.withFileExtension ("state");
+
+            sendOscToOsc ("/STATE/SAVE", chosen.getFullPathName());
+            safeThis->setStatus ("Preset saved to " + chosen.getFileName());
+        });
+}
+
+void MainComponent::loadPresetClicked()
+{
+    if (! engine.isRunning())
+    {
+        setStatus ("Start formuls before loading a preset.");
+        return;
+    }
+
+    auto defaultDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+                          .getChildFile ("formuls").getChildFile ("presets");
+
+    if (! defaultDir.isDirectory())
+        defaultDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+
+    presetLoadChooser = std::make_unique<juce::FileChooser> ("Load preset...",
+                                                              defaultDir, "*.state");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    presetLoadChooser->launchAsync (flags,
+        [this, safeThis = juce::Component::SafePointer (this)]
+        (const juce::FileChooser& chooser)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            auto chosen = chooser.getResult();
+
+            if (chosen == juce::File())
+            {
+                safeThis->setStatus ("Preset load cancelled.");
+                return;
+            }
+
+            sendOscToOsc ("/STATE/OPEN", chosen.getFullPathName());
+            safeThis->setStatus ("Preset loaded: " + chosen.getFileName());
+        });
+}
+
+void MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
+{
+    // Construct a minimal OSC message: address + ",s" type tag + string value.
+    // Sent as UDP to the O-S-C server's OSC receive port.
+    juce::MemoryBlock msg;
+
+    // OSC address (null-terminated, padded to 4-byte boundary)
+    auto addrBytes = address.toRawUTF8();
+    auto addrLen   = (int) strlen (addrBytes);
+    msg.append (addrBytes, (size_t) addrLen);
+    int addrPad = 4 - (addrLen % 4);
+    for (int i = 0; i < addrPad; ++i)
+        msg.append ("\0", 1);
+
+    // OSC type tag string: ",s" (null-terminated, padded to 4 bytes)
+    msg.append (",s\0\0", 4);
+
+    // OSC string argument (null-terminated, padded to 4-byte boundary)
+    auto valBytes = value.toRawUTF8();
+    auto valLen   = (int) strlen (valBytes);
+    msg.append (valBytes, (size_t) valLen);
+    int valPad = 4 - (valLen % 4);
+    for (int i = 0; i < valPad; ++i)
+        msg.append ("\0", 1);
+
+    juce::DatagramSocket socket (false);
+    socket.bindToPort (0);   // bind to any available local port
+    socket.write ("127.0.0.1", OpenStageControlProcess::guiPort,
+                  msg.getData(), (int) msg.getSize());
 }
 
 void MainComponent::setStatus (const juce::String& message)

@@ -82,6 +82,9 @@ private:
 
     void updateRecordButton();
     void screenshotClicked();
+    void savePresetClicked();
+    void loadPresetClicked();
+    void sendOscToOsc (const juce::String& address, const juce::String& value);
     void setStatus (const juce::String& message);
 
     /** Fills the address panel: the GUI's web addresses when the server is
@@ -101,6 +104,8 @@ private:
     juce::TextButton startStopButton;
     juce::TextButton recordButton;
     juce::TextButton screenshotButton;
+    juce::TextButton savePresetButton;
+    juce::TextButton loadPresetButton;
     juce::TextEditor addressPanel;
     StereoMeter vuMeter;
     juce::Label statusLabel;
@@ -110,6 +115,8 @@ private:
     // Kept alive while the (asynchronous, non-modal) save dialog is open.
     std::unique_ptr<juce::FileChooser> saveChooser;
     std::unique_ptr<juce::FileChooser> screenshotChooser;
+    std::unique_ptr<juce::FileChooser> presetSaveChooser;
+    std::unique_ptr<juce::FileChooser> presetLoadChooser;
     std::unique_ptr<juce::ChildProcess> screenshotProc;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

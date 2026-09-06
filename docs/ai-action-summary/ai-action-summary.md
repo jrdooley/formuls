@@ -253,3 +253,60 @@ call, negligible at audio rates.
 |---|---|
 | **Cost** | TBD |
 | **Energy** | TBD |
+
+---
+
+## 27 January 2026 — preset save/load for synth parameters
+
+Added Save Preset and Load Preset buttons to the JUCE app window. Branch
+`juce-port-dev` (not yet merged to `juce-port`).
+
+### Architecture
+
+Parameters flow from the O-S-C touchscreen GUI to the Pd patch via OSC over
+UDP (port 9000). The JUCE app never touches synth parameters directly — it
+only handles audio device management, libpd lifecycle, and the `formuls-quit`
+signal.
+
+O-S-C exposes a remote control API including `/STATE/SAVE path.state` (writes
+all widget values as JSON to disk) and `/STATE/OPEN path.state` (reads a state
+file, updates all GUI widgets, and forwards values to Pd). The preset system
+sends these two commands as raw OSC over UDP to `127.0.0.1:9001`.
+
+### Changes
+
+**`src/app/Source/FormulsLookAndFeel.h`** — added `presetButtonWidth` (100px)
+and `presetButtonHeight` (28px) style constants.
+
+**`src/app/Source/MainComponent.h`** — added `savePresetButton`,
+`loadPresetButton`, file choosers, and `sendOscToOsc()` helper.
+
+**`src/app/Source/MainComponent.cpp`**:
+- Buttons placed in the top row alongside Take Screenshot (left-aligned, same
+  28px height).
+- Save: opens a file dialog defaulting to `~/Documents/formuls/presets/`, then
+  sends `/STATE/SAVE <path>` to O-S-C.
+- Load: opens a file browser in the same directory, filters for `.state` files,
+  then sends `/STATE/OPEN <path>` to O-S-C.
+- `sendOscToOsc()` hand-constructs an OSC message (address + `,s` type tag +
+  string argument, null-terminated and 4-byte padded) and sends it as UDP via
+  `juce::DatagramSocket`. No `juce_osc` module dependency needed — only
+  `juce_core` is used.
+- Buttons are enabled only while the engine is running.
+
+### Key files
+
+| File | Role |
+|---|---|
+| `src/app/Source/MainComponent.cpp` | UI setup, layout, preset save/load logic, OSC helper |
+| `src/app/Source/MainComponent.h` | Member declarations for buttons, choosers, methods |
+| `src/app/Source/FormulsLookAndFeel.h` | Style constants for preset button dimensions |
+
+### Known issue
+
+When running from the Xcode build directory (`Builds/MacOSX/build/Release/`),
+the app crashes on first browser connection to O-S-C. This is a pre-existing
+Pd stack overflow in the audio thread (`pd_typedmess` → `outlet_anything` →
+`outlet_list` → `sys_domicrosleep` hitting the stack guard page), not related
+to the preset changes. The same crash occurs with the old app. The full
+`build-macOS.sh` build produces a working `.app` bundle.

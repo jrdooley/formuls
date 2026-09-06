@@ -92,6 +92,8 @@ namespace style
     constexpr int buttonGap       = 14;    // horizontal gap between the two buttons
     constexpr int screenshotButtonWidth = 150; // width of the screenshot button
     constexpr int screenshotButtonHeight = 28; // height of the screenshot button
+    constexpr int presetButtonWidth = 100;  // width of Save Preset / Load Preset buttons
+    constexpr int presetButtonHeight = 28;  // height of preset buttons (matches screenshot button)
     constexpr int meterHeight     = 20;    // height of each VU meter bar (stereo = 2x + gap)
 
     // ------------------------------------------------------------------ fonts
