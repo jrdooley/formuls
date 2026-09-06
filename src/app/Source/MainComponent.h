@@ -105,7 +105,10 @@ private:
     StereoMeter vuMeter;
     juce::Label statusLabel;
 
+    // Index-aligned: outputDeviceTypes[i] is the AudioIODeviceType that
+    // reported outputDeviceNames[i]. Both are rebuilt by populateDeviceList().
     juce::StringArray outputDeviceNames;
+    juce::StringArray outputDeviceTypes;
 
     // Kept alive while the (asynchronous, non-modal) save dialog is open.
     std::unique_ptr<juce::FileChooser> saveChooser;

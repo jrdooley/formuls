@@ -240,16 +240,30 @@ void MainComponent::populateDeviceList()
 {
     audioDeviceBox.clear (juce::dontSendNotification);
     outputDeviceNames.clear();
+    outputDeviceTypes.clear();
 
     // Collect output-capable devices from every available device type
     // (on macOS this is just CoreAudio; on Linux it may be ALSA and JACK).
+    //
+    // Each name is stored with the type it came from, and the two arrays are
+    // kept index-aligned. AudioDeviceManager resolves a device name against
+    // the CURRENT type only, so without the type a name belonging to another
+    // one could never be opened -- and because initialise() is called with
+    // selectDefaultDeviceOnFailure, it would quietly open the default device
+    // instead and still report success.
     for (auto* type : deviceManager.getAvailableDeviceTypes())
     {
         type->scanForDevices();
-        outputDeviceNames.addArray (type->getDeviceNames (false));  // false = outputs
-    }
 
-    outputDeviceNames.removeDuplicates (false);
+        for (const auto& name : type->getDeviceNames (false))   // false = outputs
+        {
+            if (outputDeviceNames.contains (name))
+                continue;               // same device seen through an earlier type
+
+            outputDeviceNames.add (name);
+            outputDeviceTypes.add (type->getTypeName());
+        }
+    }
 
     for (int i = 0; i < outputDeviceNames.size(); ++i)
         audioDeviceBox.addItem (outputDeviceNames[i], i + 1);
@@ -286,6 +300,7 @@ void MainComponent::startEverything()
 
     // 1. the audio engine (libpd running _main.pd)
     if (auto result = engine.start (deviceManager, outputDeviceNames[deviceIndex],
+                                    outputDeviceTypes[deviceIndex],
                                     numChannels, requestedRate, resourceRoot);
         result.failed())
     {
@@ -467,6 +482,15 @@ void MainComponent::updateRecordButton()
 
 void MainComponent::screenshotClicked()
 {
+    // juce::ChildProcess's destructor neither kills nor reaps the child, so
+    // replacing a live one would leave a zombie behind and put two Playwright
+    // runs on the GUI at once. Wait for the first to finish instead.
+    if (screenshotProc != nullptr && screenshotProc->isRunning())
+    {
+        setStatus ("A screenshot run is already in progress.");
+        return;
+    }
+
     // The script lives in src/tools/ in the repo.  In a development build
     // the resource root IS src/, so tools/ is a direct child.  In a packaged
     // app the resource root is Contents/Resources/ — walk up to the repo root
@@ -506,7 +530,7 @@ void MainComponent::screenshotClicked()
                | juce::FileBrowserComponent::canSelectDirectories;
 
     screenshotChooser->launchAsync (flags,
-        [this, safeThis = juce::Component::SafePointer (this), script]
+        [safeThis = juce::Component::SafePointer (this), script]
         (const juce::FileChooser& chooser)
         {
             if (safeThis == nullptr)
@@ -522,16 +546,16 @@ void MainComponent::screenshotClicked()
 
             dir.createDirectory();
 
-            screenshotProc = std::make_unique<juce::ChildProcess>();
+            safeThis->screenshotProc = std::make_unique<juce::ChildProcess>();
             juce::StringArray args { "python3", script.getFullPathName(),
                                      "-o", dir.getFullPathName() };
 
-            if (screenshotProc->start (args))
+            if (safeThis->screenshotProc->start (args))
                 safeThis->setStatus ("Taking screenshots... saving to " + dir.getFileName());
             else
             {
                 safeThis->setStatus ("Could not run screenshot tool.");
-                screenshotProc.reset();
+                safeThis->screenshotProc.reset();
             }
         });
 }

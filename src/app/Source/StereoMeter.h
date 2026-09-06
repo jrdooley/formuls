@@ -50,21 +50,18 @@ public:
             {
                 const int fillW = juce::jmax (1, (int) (width * level));
 
-                // Green 0-60%, yellow 60-80%, red 80-100%
-                for (int x = 0; x < fillW; ++x)
-                {
-                    const float pos = (float) x / (float) width;
-                    juce::Colour c;
-                    if (pos < 0.6f)
-                        c = juce::Colour (0xff00cc44).interpolatedWith (juce::Colour (0xffcccc00), pos / 0.6f);
-                    else if (pos < 0.8f)
-                        c = juce::Colour (0xffcccc00).interpolatedWith (juce::Colour (0xffcc2200), (pos - 0.6f) / 0.2f);
-                    else
-                        c = juce::Colour (0xffcc2200);
+                // Green 0-60%, yellow 60-80%, red 80-100%. The gradient spans
+                // the FULL bar, not just the filled part, so a colour stays
+                // pinned to its level as the bar grows and shrinks; only the
+                // filled rectangle is painted with it.
+                juce::ColourGradient gradient (juce::Colour (0xff00cc44), (float) bar.getX(),     0.0f,
+                                               juce::Colour (0xffcc2200), (float) bar.getRight(), 0.0f,
+                                               false);
+                gradient.addColour (0.6, juce::Colour (0xffcccc00));
+                gradient.addColour (0.8, juce::Colour (0xffcc2200));
 
-                    g.setColour (c);
-                    g.drawVerticalLine (x, (float) bar.getY(), (float) bar.getBottom());
-                }
+                g.setGradientFill (gradient);
+                g.fillRect (bar.withWidth (fillW));
             }
 
             // Peak hold line

@@ -24,6 +24,7 @@ FormulsEngine::~FormulsEngine()
 //==============================================================================
 juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
                                    const juce::String& outputDeviceName,
+                                   const juce::String& outputDeviceType,
                                    int numOutputChannels,
                                    double sampleRate,
                                    const juce::File& resourceRoot)
@@ -38,6 +39,16 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
                                    + resourceRoot.getFullPathName());
 
     // ----------------------------------------------------------- open device
+    // A device name is only ever matched against the CURRENT device type, so
+    // select the type the name came from first. Without this, a name from a
+    // different type cannot be found, and because initialise() is called with
+    // selectDefaultDeviceOnFailure it would silently open the default device
+    // and still report success. Only matters where more than one type exists
+    // (Linux: ALSA and JACK); macOS has CoreAudio alone.
+    if (outputDeviceType.isNotEmpty()
+        && deviceManager.getCurrentAudioDeviceType() != outputDeviceType)
+        deviceManager.setCurrentAudioDeviceType (outputDeviceType, true);
+
     juce::AudioDeviceManager::AudioDeviceSetup setup;
     setup.outputDeviceName = outputDeviceName;
     setup.inputDeviceName.clear();                       // output only
