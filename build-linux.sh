@@ -78,7 +78,50 @@ make UTIL=true EXTRA=true
 
 # generate the Makefile from formuls.jucer and build the JUCE app
 cd "$ROOT"
+# UNTESTED on Linux -- ported from build-macOS.sh, which is verified.
+#
+# Projucer resolves MODULEPATH relative to the .jucer file, and the committed
+# value (../../../../JUCE/modules) only resolves when the repo sits exactly two
+# levels below home. Rewrite it to an absolute path, resave, then put the file
+# back: the generated Builds/ and JuceLibraryCode/ keep the absolute path,
+# which is all the build needs, and the tracked .jucer is left alone. The trap
+# restores it even if the resave or the build below fails under "set -e".
+# (--set-global-search-path does not override per-project MODULEPATH entries.)
+#
+# Two deliberate differences from build-macOS.sh:
+#   - the rewrite goes through a temp file rather than "sed -i". BSD and GNU
+#     sed disagree about that flag, and src/tools/brand-osc.sh already avoids
+#     it for the same reason. This form needs no in-place support at all, so
+#     it is one less thing that can differ between the two platforms.
+#   - macOS walks up a fixed 4 directories because Projucer.app/Contents/MacOS
+#     is a fixed layout. On Linux the Projucer lives at a depth that depends on
+#     how it was built (6 levels up from the default
+#     extras/Projucer/Builds/LinuxMakefile/build/Projucer), so this searches
+#     upward for the JUCE root instead of counting.
+JUCE_DIR="$(dirname "$PROJUCER")"
+while [[ "$JUCE_DIR" != "/" && ! -d "$JUCE_DIR/modules/juce_core" ]]; do
+    JUCE_DIR="$(dirname "$JUCE_DIR")"
+done
+
+if [[ ! -d "$JUCE_DIR/modules/juce_core" ]]; then
+    echo "Could not find the JUCE modules folder above: $PROJUCER"
+    echo "Set PROJUCER to a Projucer binary inside your JUCE checkout."
+    exit 1
+fi
+
+JUCE_MODULES="$JUCE_DIR/modules"
+cp src/app/formuls.jucer "$ROOT/build/formuls.jucer.orig"
+trap 'cp -f "$ROOT/build/formuls.jucer.orig" "$ROOT/src/app/formuls.jucer" 2>/dev/null || true' EXIT
+sed "s|path=\"[^\"]*JUCE/modules\"|path=\"$JUCE_MODULES\"|g" \
+    src/app/formuls.jucer > "$ROOT/build/formuls.jucer.tmp"
+mv -f "$ROOT/build/formuls.jucer.tmp" src/app/formuls.jucer
 "$PROJUCER" --resave src/app/formuls.jucer
+cp -f "$ROOT/build/formuls.jucer.orig" src/app/formuls.jucer
+rm -f "$ROOT/build/formuls.jucer.orig"
+trap - EXIT
+
+# make reads src/app/Builds/LinuxMakefile, not the .jucer, so restoring the
+# .jucer above does not affect it.
 cd "$ROOT/src/app/Builds/LinuxMakefile"
 make CONFIG=Release
 
