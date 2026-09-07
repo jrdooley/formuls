@@ -195,7 +195,7 @@ correct `~/JUCE/modules`). Pre-existing bug, surfaced during the VU meters build
 
 ---
 
-## 27 January 2026 — repeater and flooper refactor in ffx.lib
+## 5 September 2026 (later) — repeater and flooper refactor in ffx.lib
 
 Review and refactor of two audio effects in `src/faust/ffx.lib`. One commit,
 `07a1248`, pushed to `juce-port`.
@@ -256,7 +256,7 @@ call, negligible at audio rates.
 
 ---
 
-## 27 January 2026 — preset save/load for synth parameters
+## 6 September 2026 (early) — preset save/load for synth parameters
 
 Added Save Preset and Load Preset buttons to the JUCE app window. Branch
 `juce-port-dev` (not yet merged to `juce-port`).
@@ -682,3 +682,185 @@ so the two are **not comparable**.
 
 *(Note on units: watts measure power, kWh measure energy. Energy consumed is the
 kWh rows; the average-power row is the watts equivalent over the session.)*
+
+---
+
+## 7 September 2026 — merges to `main`, preset review, three window changes
+
+Session across `main` and `juce-port-dev`. Two merges, a measured review of the
+preset work, the fixes that came out of it, and three changes to the window.
+
+### Merged `juce-port` into `main` (aab5e4b)
+
+The branches looked badly diverged — 65 ahead, 5 behind — but the divergence was
+cosmetic. `diff(merge-base, origin/main)` is **empty**: `main` contributed no
+content, and two of its five commits (`1be83bc`, `2c95a92`) are duplicates of
+the merge base itself, left by a cherry-pick or rebase. The merge result tree is
+**byte-identical to `juce-port`** (`0edfa84`), so nothing from `main` was
+dropped. A merge commit was required regardless; `--ff-only` cannot apply while
+`main` holds commits of its own, duplicates or not. 90 files, +8,338 / -14,946.
+
+### Merged `main` into `juce-port-dev` (093c4a5)
+
+One conflict, in this file — both branches had appended entries. Both kept, in
+date order. `MainComponent.cpp` and `.h` auto-merged, leaving the preset work as
+the only source difference from `main`.
+
+### What the preset buttons actually do — measured against o-s-c 1.31.0
+
+Run headlessly with the bundled node, driven with hand-built OSC datagrams, and
+watched on udp 9000 with a listener standing in for Pd.
+
+**They are executed by the connected browsers, not by the server.** The docs say
+so ("interpreted by each client connected to the server") and it is literal:
+
+| | `/STATE/SAVE` |
+|---|---|
+| no browser open | **no file, no log line, nothing** |
+| one browser open | 223,555-byte file, `(INFO) State file saved in <path>` |
+
+`/STATE/OPEN` on a missing path is silent in the server log *and* the browser
+console. `/STATE/GET`, which would be the tidy way to ask o-s-c for state and
+write the file ourselves, **returned nothing** — tried against an arbitrary
+listener and against the declared `--send` target, with a client confirmed
+connected. Do not build on it without more digging.
+
+Two things the original commit got right, confirmed rather than assumed: the
+hand-rolled OSC padding (a byte-identical replica was accepted), and port 9001 —
+o-s-c's `--osc-port` **defaults to `--port`**, per the binary's own `--help`.
+
+**A load fires ~8,900 messages at Pd in 1.22 s.** Measured on the wire: 8,927
+packets, 7,036 inside the first second, 6,599 unique addresses, some repeated
+37×. `_main.json` holds 881 widgets and 420 ids, expanded by its 67 `clone`
+widgets. Worth connecting to the crash this file already records under the
+6 September (early) entry — "on first browser connection … `pd_typedmess` →
+`outlet_anything` → `outlet_list` … stack guard page". A first browser
+connection is the same mass broadcast `/STATE/OPEN` triggers, so Load Preset may
+well inherit that crash rather than be innocent of it. **Untested.**
+
+**A "preset" is the whole GUI, not a sound.** 7,417 keys, 223 kB — 2,861 of them
+matching transport/sequencer/record patterns, including `bpm`, `seqon*`,
+`mute*` and `recordglobal`. Loading one mid-performance yanks the tempo, the
+mutes, which sequencers are running and the record button.
+
+### Fixed: the status line told the truth about none of this (e14187e)
+
+Both buttons reported success unconditionally. Saving now records the target's
+modification time, sends, and polls 200 ms × 15 for a file newer than that —
+which catches the no-browser case and a failed write with one mechanism.
+Loading checks the file exists and parses as a JSON object first, then says
+**"sent to the GUI"** rather than "loaded", because a load leaves nothing behind
+to check. `sendOscToOsc` now returns whether the datagram actually went out.
+
+Also from the review of `9cd9e00`: dropped the raw `this` from both chooser
+lambdas (the pattern `b7c7431` had removed from `screenshotClicked`, which the
+merge had put back alongside it); a re-entry guard, since replacing a chooser
+while its dialog is open destroys a live one; a confirmation prompt for the one
+overwrite the file dialog's own warning cannot cover — where `.state` is
+appended *after* the dialog closed, so the warning was about a different file;
+and `updateRecordButton` renamed to `updateButtonStates`, which is what it had
+quietly become.
+
+**The overwrite prompt contained an inverted-button bug of its own, caught by
+reading JUCE rather than by testing.** `AlertWindow::showAsync` documents the
+callback as receiving "the index of the button that was clicked". That holds
+only on the native path, and JUCE does not take it unless native alert windows
+are switched on — they are off by default. `LookAndFeel_V2::createAlertWindow`
+numbers a two-button box **first = 1, second = 0**. `Replace` and `Cancel` would
+have been swapped, so Cancel would have overwritten the file. Now routed through
+`NativeMessageBox::showAsync`, which is unconditionally
+`ResultCodeMappingMode::plainIndex`.
+
+### Window changes (da52815)
+
+**The audio output box opens on the system default.** `populateDeviceList` asks
+the first device type that offers one for its default index and selects that
+row; if none can be identified the box keeps its old empty placeholder.
+
+**Save Preset / Load Preset / Take Screenshot moved into a column above the
+record button**, sharing `recordButtonWidth` so all four right-align by
+construction rather than by three width constants that happened to add up. The
+address panel fills what is left, so it absorbed the extra height and the window
+stayed at 553.
+
+**The VU meters gained L and R labels.** The gutter moves the bars right, which
+the peak-hold line did not allow for — it computed an absolute x from a bar that
+used to start at 0, so every peak would have been drawn 18 px left of its level.
+Now offset by `bar.getX()`. The gradient and fill were already written against
+the bar's own coordinates.
+
+The `FORMULS_AUTOSTART_TEST` hook no longer forces device 1; it falls back to
+that only when nothing is selected, so the test path exercises the same default
+a user gets. All four autostart marker strings confirmed absent from the release
+binary.
+
+### Verified, and not
+
+Verified: the merge trees, by hash. The o-s-c behaviour above, by running it.
+`juce::JSON` accepts real `.state` files (7,417 keys, matching an independent
+strict-JSON count) and rejects a non-preset file and a missing one — checked
+with a small `juce_core` harness, since that gate decides whether loading works
+at all. The window itself, from a snapshot of the running app: the box reads
+*MacBook Pro Speakers*, which `system_profiler` independently reports as
+`Default Output Device: Yes`; the four buttons line up; the labels are in place.
+Clean compile throughout, no new warnings.
+
+**Not verified: every interactive path.** The file dialogs and the overwrite
+prompt were never clicked — driving native macOS panels needs accessibility
+permission this session did not have. So the poll chain, the three-second
+timeout message and the Replace/Cancel wiring are reasoned and compile-checked
+only, and that last one is exactly where the button indices were already found
+inverted. The peak-hold offset was not seen under signal; the meters were idle.
+Load Preset was never pointed at a running patch, so the crash hypothesis above
+stands untested.
+
+### Commits
+
+`aab5e4b` merge `juce-port` into `main` · `093c4a5` merge `main` into
+`juce-port-dev` · `e14187e` preset status honesty and the review tidy-up ·
+`da52815` default output device, stacked buttons, meter labels.
+
+All three branches level with `origin` at the end of the session.
+
+### Session cost and energy
+
+| Metric | Value |
+|---|---|
+| **Cost** | **$55.48** (measured, and still rising — see below) |
+| **Energy — inference** | ~0.3–1.2 kWh (**order-of-magnitude estimate**) |
+| **Energy — local compute** | ~3 Wh (measured build wall-clock × assumed SoC draw) |
+| **Average power** | ~100–450 W over ~140–190 min of active time |
+
+Cost is measured from this session's transcript, deduplicated by `message.id`.
+As on 6 September, assistant messages are logged twice — **354 of 748 usage
+records here** — so summing the raw records double-counts and gives **$106.43**.
+
+The figure is a reading taken while the session was still running, so it
+excludes the turns that wrote this entry: an entry that reports its own cost
+cannot include the cost of reporting it. Expect the true total to land a dollar
+or two higher.
+
+| | tokens | rate /MTok | cost |
+|---|---:|---:|---:|
+| input | 788 | $5.00 | $0.00 |
+| cache write | 1,044,316 | $6.25 | $6.53 |
+| cache read | 81,912,221 | $0.50 | $40.96 |
+| output | 319,838 | $25.00 | $8.00 |
+| | | **total** | **$55.48** |
+
+394 assistant turns on `claude-opus-5`. **Cache reads are 74% of the bill** —
+81.9M tokens of context re-read, up from 49M on 6 September, against output of
+only 14%. The wall-clock span is 1,114 minutes but includes an overnight break;
+active time, summing inter-turn gaps capped at 2–5 minutes, is 139–187 min.
+
+**The energy rows are estimates and should not be quoted as measurements.**
+Local compute is the defensible half: a measured 20.9 s incremental app build
+and 2.4 s `juce_core` test compile, across nine `xcodebuild` runs (two of them
+full), one libpd build and five test compiles — roughly 300–400 s of build
+wall-clock at an assumed ~30 W sustained multicore draw on an Apple M5. The
+inference figure is not measurable client-side; it scales 6 September's generic
+frontier-model figure by this session's prefill (82.9M tokens of cache read plus
+cache write, against 49M) and inherits every weakness of it.
+
+*(Note on units: watts measure power, kWh measure energy. Energy consumed is the
+kWh rows; the average-power row is the watts equivalent over the active time.)*
