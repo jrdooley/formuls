@@ -8,6 +8,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "FormulsLookAndFeel.h"
 #include <array>
 #include <atomic>
 
@@ -31,13 +32,29 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto bounds = getLocalBounds();
+
+        // The L / R labels live in a gutter down the left; the bars take what
+        // is left, so `width` below is the bar width and not the component's.
+        auto labelColumn = bounds.removeFromLeft (style::meterLabelWidth);
+        bounds.removeFromLeft (style::meterLabelGap);
+
         const int barHeight = (bounds.getHeight() - 4) / 2;
         const int width = bounds.getWidth();
+
+        static const char* const channelNames[2] = { "L", "R" };
+
+        g.setFont (juce::FontOptions (style::meterFontHeight));
 
         for (int ch = 0; ch < 2; ++ch)
         {
             auto bar = bounds.removeFromTop (barHeight);
             bounds.removeFromTop (4);
+
+            auto label = labelColumn.removeFromTop (barHeight);
+            labelColumn.removeFromTop (4);
+
+            g.setColour (style::textColour);
+            g.drawText (channelNames[ch], label, juce::Justification::centredRight);
 
             g.setColour (juce::Colour (0xff1a3a1a));
             g.fillRect (bar);
@@ -67,7 +84,10 @@ public:
             // Peak hold line
             if (peakHold[ch] > 0.01f)
             {
-                const int peakX = juce::jlimit (0, width - 1, (int) (width * peakHold[ch]));
+                // Offset by the bar's own left edge: the bars no longer start
+                // at x = 0 now that the labels have a gutter in front of them.
+                const int peakX = bar.getX()
+                                + juce::jlimit (0, width - 1, (int) (width * peakHold[ch]));
                 g.setColour (juce::Colour (0xffffffff));
                 g.drawVerticalLine (peakX, (float) bar.getY(), (float) bar.getBottom());
             }

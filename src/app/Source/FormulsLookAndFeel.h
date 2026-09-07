@@ -93,11 +93,14 @@ namespace style
     constexpr int screenshotButtonWidth = 150; // width of the screenshot button
     constexpr int screenshotButtonHeight = 28; // height of the screenshot button
     constexpr int meterHeight     = 20;    // height of each VU meter bar (stereo = 2x + gap)
+    constexpr int meterLabelWidth = 12;    // gutter on the left holding the L / R labels
+    constexpr int meterLabelGap   = 6;     // gap between a channel label and its bar
 
     // ------------------------------------------------------------------ fonts
     constexpr float labelFontHeight   = 15.0f;
     constexpr float buttonFontHeight  = 16.0f;
     constexpr float addressFontHeight = 13.0f;   // GUI address panel
+    constexpr float meterFontHeight   = 12.0f;   // VU meter L / R channel labels
 } // namespace style
 
 /**
