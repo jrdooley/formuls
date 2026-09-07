@@ -27,6 +27,12 @@ static const juce::String kStopText  { "Stop formuls" };
 static const juce::String kRecordText     { "Record" };
 static const juce::String kStopRecordText { "Stop recording" };
 
+// A preset save is confirmed by watching for the file to appear, because
+// nothing else reports back. 200 ms x 15 gives o-s-c three seconds to write
+// it, against the ~1 s a full 220 kB state file took when measured.
+static constexpr int kPresetPollIntervalMs = 200;
+static constexpr int kPresetSaveAttempts   = 15;
+
 MainComponent::MainComponent()
 {
     setSize (style::windowWidth, style::windowHeight);
@@ -63,7 +69,7 @@ MainComponent::MainComponent()
 
     recordButton.onClick = [this] { recordClicked(); };
     addAndMakeVisible (recordButton);
-    updateRecordButton();
+    updateButtonStates();
 
     // ---------------------------------------------------- take screenshot button
     screenshotButton.setButtonText ("Take Screenshot");
@@ -160,7 +166,7 @@ MainComponent::MainComponent()
                         return;
 
                     safeThis->finishRecording (false);
-                    safeThis->updateRecordButton();
+                    safeThis->updateButtonStates();
                     juce::Logger::writeToLog ("status: "
                                               + safeThis->statusLabel.getText());
                 });
@@ -334,7 +340,7 @@ void MainComponent::startEverything()
     sampleRateBox.setEnabled (false);
 
     updateAddressPanel (oscResult.wasOk());
-    updateRecordButton();
+    updateButtonStates();
 
     // If the device couldn't do the requested rate, say what it's really at.
     const auto actualRate = (int) engine.getActualSampleRate();
@@ -367,7 +373,7 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
     channelsBox.setEnabled (true);
     sampleRateBox.setEnabled (true);
     updateAddressPanel (false);
-    updateRecordButton();
+    updateButtonStates();
 
     // finishRecording() has already put the file's fate in the status line;
     // don't overwrite it with "Stopped."
@@ -383,7 +389,7 @@ void MainComponent::recordClicked()
     else
         startRecording();
 
-    updateRecordButton();
+    updateButtonStates();
 }
 
 void MainComponent::startRecording()
@@ -483,7 +489,7 @@ void MainComponent::finishRecording (bool offerToSaveRecording)
         });
 }
 
-void MainComponent::updateRecordButton()
+void MainComponent::updateButtonStates()
 {
     const bool isRecording = recorder.isRecording();
 
@@ -585,23 +591,34 @@ void MainComponent::savePresetClicked()
         return;
     }
 
-    auto defaultDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
-                          .getChildFile ("formuls").getChildFile ("presets");
+    // launchAsync keeps the chooser alive through the unique_ptr below, so
+    // replacing it while its dialog is open would destroy a live one.
+    if (presetDialogOpen)
+    {
+        setStatus ("A preset dialog is already open.");
+        return;
+    }
+
+    auto defaultDir = presetDirectory();
     defaultDir.createDirectory();
 
     presetSaveChooser = std::make_unique<juce::FileChooser> ("Save preset as...",
-                                                              defaultDir, "*.state");
+                                                             defaultDir, "*.state");
 
     auto flags = juce::FileBrowserComponent::saveMode
                | juce::FileBrowserComponent::canSelectFiles
                | juce::FileBrowserComponent::warnAboutOverwriting;
 
+    presetDialogOpen = true;
+
     presetSaveChooser->launchAsync (flags,
-        [this, safeThis = juce::Component::SafePointer (this)]
+        [safeThis = juce::Component::SafePointer (this)]
         (const juce::FileChooser& chooser)
         {
             if (safeThis == nullptr)
                 return;
+
+            safeThis->presetDialogOpen = false;
 
             auto chosen = chooser.getResult();
 
@@ -611,11 +628,97 @@ void MainComponent::savePresetClicked()
                 return;
             }
 
+            // The dialog's overwrite warning applied to the name as typed. If
+            // the extension has to be added here then that warning was about a
+            // different file from the one about to be written, so ask again
+            // rather than replacing a preset the user was never shown.
             if (! chosen.hasFileExtension ("state"))
+            {
                 chosen = chosen.withFileExtension ("state");
 
-            sendOscToOsc ("/STATE/SAVE", chosen.getFullPathName());
-            safeThis->setStatus ("Preset saved to " + chosen.getFileName());
+                if (chosen.existsAsFile())
+                {
+                    safeThis->confirmOverwriteThenSave (chosen);
+                    return;
+                }
+            }
+
+            safeThis->sendPresetSave (chosen);
+        });
+}
+
+void MainComponent::confirmOverwriteThenSave (const juce::File& file)
+{
+    auto options = juce::MessageBoxOptions()
+                       .withIconType (juce::MessageBoxIconType::WarningIcon)
+                       .withTitle ("Replace preset?")
+                       .withMessage (file.getFileName() + " already exists in "
+                                     + file.getParentDirectory().getFileName()
+                                     + ".\n\nSaving will replace it.")
+                       .withButton ("Replace")
+                       .withButton ("Cancel")
+                       .withAssociatedComponent (this);
+
+    // NativeMessageBox, not AlertWindow::showAsync, because only the native
+    // box promises a plain button index. AlertWindow's own two-button layout
+    // numbers the FIRST button 1 and the second 0 (LookAndFeel_V2::
+    // createAlertWindow), and JUCE picks that path unless native alert windows
+    // have been turned on -- which they are not by default. Going through
+    // AlertWindow here would silently swap Replace and Cancel.
+    juce::NativeMessageBox::showAsync (options,
+        [safeThis = juce::Component::SafePointer (this), file] (int buttonIndex)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            if (buttonIndex == 0)
+                safeThis->sendPresetSave (file);
+            else
+                safeThis->setStatus ("Preset save cancelled.");
+        });
+}
+
+void MainComponent::sendPresetSave (const juce::File& file)
+{
+    // /STATE/SAVE is carried out by the browsers connected to Open Stage
+    // Control, not by the server itself: with no browser showing the GUI it is
+    // a silent no-op, and nothing is reported back either way. The file
+    // arriving on disk is the only confirmation there is, so note what was
+    // there beforehand and then watch for it to change.
+    const auto before = file.existsAsFile() ? file.getLastModificationTime()
+                                            : juce::Time();
+
+    if (! sendOscToOsc ("/STATE/SAVE", file.getFullPathName()))
+    {
+        setStatus ("Could not reach the formuls GUI to save the preset.");
+        return;
+    }
+
+    setStatus ("Saving preset...");
+    awaitPresetSave (file, before, kPresetSaveAttempts);
+}
+
+void MainComponent::awaitPresetSave (const juce::File& file, juce::Time before,
+                                     int attemptsLeft)
+{
+    if (file.existsAsFile() && file.getLastModificationTime() > before)
+    {
+        setStatus ("Preset saved to " + file.getFileName());
+        return;
+    }
+
+    if (attemptsLeft <= 0)
+    {
+        setStatus ("Preset was not written -- open the formuls GUI in a browser, "
+                   "then save again.");
+        return;
+    }
+
+    juce::Timer::callAfterDelay (kPresetPollIntervalMs,
+        [safeThis = juce::Component::SafePointer (this), file, before, attemptsLeft]
+        {
+            if (safeThis != nullptr)
+                safeThis->awaitPresetSave (file, before, attemptsLeft - 1);
         });
 }
 
@@ -627,24 +730,33 @@ void MainComponent::loadPresetClicked()
         return;
     }
 
-    auto defaultDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
-                          .getChildFile ("formuls").getChildFile ("presets");
+    if (presetDialogOpen)
+    {
+        setStatus ("A preset dialog is already open.");
+        return;
+    }
+
+    auto defaultDir = presetDirectory();
 
     if (! defaultDir.isDirectory())
         defaultDir = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
 
     presetLoadChooser = std::make_unique<juce::FileChooser> ("Load preset...",
-                                                              defaultDir, "*.state");
+                                                             defaultDir, "*.state");
 
     auto flags = juce::FileBrowserComponent::openMode
                | juce::FileBrowserComponent::canSelectFiles;
 
+    presetDialogOpen = true;
+
     presetLoadChooser->launchAsync (flags,
-        [this, safeThis = juce::Component::SafePointer (this)]
+        [safeThis = juce::Component::SafePointer (this)]
         (const juce::FileChooser& chooser)
         {
             if (safeThis == nullptr)
                 return;
+
+            safeThis->presetDialogOpen = false;
 
             auto chosen = chooser.getResult();
 
@@ -654,15 +766,50 @@ void MainComponent::loadPresetClicked()
                 return;
             }
 
-            sendOscToOsc ("/STATE/OPEN", chosen.getFullPathName());
-            safeThis->setStatus ("Preset loaded: " + chosen.getFileName());
+            safeThis->sendPresetLoad (chosen);
         });
 }
 
-void MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
+void MainComponent::sendPresetLoad (const juce::File& file)
+{
+    // A bad path is invisible downstream: /STATE/OPEN on a file that is missing
+    // or unreadable prints nothing in the server's log and nothing in the
+    // browser's console. Whatever can be checked has to be checked here.
+    if (! file.existsAsFile())
+    {
+        setStatus ("Preset file not found: " + file.getFileName());
+        return;
+    }
+
+    if (! juce::JSON::parse (file.loadFileAsString()).isObject())
+    {
+        setStatus ("Not a readable preset: " + file.getFileName());
+        return;
+    }
+
+    if (! sendOscToOsc ("/STATE/OPEN", file.getFullPathName()))
+    {
+        setStatus ("Could not reach the formuls GUI to load the preset.");
+        return;
+    }
+
+    // Deliberately not "loaded". Unlike a save, which leaves a file behind to
+    // look at, a load produces no reply, no log line and no file, so whether a
+    // browser was there to act on it cannot be seen from here.
+    setStatus ("Preset sent to the GUI: " + file.getFileName());
+}
+
+juce::File MainComponent::presetDirectory()
+{
+    return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
+               .getChildFile ("formuls").getChildFile ("presets");
+}
+
+bool MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
 {
     // Construct a minimal OSC message: address + ",s" type tag + string value.
-    // Sent as UDP to the O-S-C server's OSC receive port.
+    // Sent as UDP to the O-S-C server's OSC receive port, which is the port the
+    // GUI is served on: o-s-c's --osc-port defaults to --port.
     juce::MemoryBlock msg;
 
     // OSC address (null-terminated, padded to 4-byte boundary)
@@ -685,9 +832,12 @@ void MainComponent::sendOscToOsc (const juce::String& address, const juce::Strin
         msg.append ("\0", 1);
 
     juce::DatagramSocket socket (false);
-    socket.bindToPort (0);   // bind to any available local port
-    socket.write ("127.0.0.1", OpenStageControlProcess::guiPort,
-                  msg.getData(), (int) msg.getSize());
+
+    if (! socket.bindToPort (0))   // bind to any available local port
+        return false;
+
+    return socket.write ("127.0.0.1", OpenStageControlProcess::guiPort,
+                         msg.getData(), (int) msg.getSize()) == (int) msg.getSize();
 }
 
 void MainComponent::setStatus (const juce::String& message)
