@@ -90,16 +90,21 @@ namespace style
     constexpr int recordButtonWidth = 150; // width of the record button, which
                                            // sits to the right of start/stop
     constexpr int buttonGap       = 14;    // horizontal gap between the two buttons
-    constexpr int screenshotButtonWidth = 150; // width of the screenshot button
-    constexpr int screenshotButtonHeight = 28; // height of the screenshot button
-    constexpr int presetButtonWidth = 100;  // width of Save Preset / Load Preset buttons
-    constexpr int presetButtonHeight = 28;  // height of preset buttons (matches screenshot button)
+    // Save Preset, Load Preset and Take Screenshot are stacked in a column
+    // directly above the record button and share its width, so all four
+    // right-align down the same edge.
+    constexpr int stackedButtonWidth  = recordButtonWidth;
+    constexpr int stackedButtonHeight = 28;
+    constexpr int stackedButtonGap    = 6;  // vertical gap between stacked buttons
     constexpr int meterHeight     = 20;    // height of each VU meter bar (stereo = 2x + gap)
+    constexpr int meterLabelWidth = 12;    // gutter on the left holding the L / R labels
+    constexpr int meterLabelGap   = 6;     // gap between a channel label and its bar
 
     // ------------------------------------------------------------------ fonts
     constexpr float labelFontHeight   = 15.0f;
     constexpr float buttonFontHeight  = 16.0f;
     constexpr float addressFontHeight = 13.0f;   // GUI address panel
+    constexpr float meterFontHeight   = 12.0f;   // VU meter L / R channel labels
 } // namespace style
 
 /**

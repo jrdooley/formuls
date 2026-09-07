@@ -129,7 +129,11 @@ MainComponent::MainComponent()
     {
         if (safeThis != nullptr && ! safeThis->engine.isRunning())
         {
-            safeThis->audioDeviceBox.setSelectedId (1);
+            // Only fall back to the first device if populateDeviceList()
+            // could not work out the system default, so the test path
+            // exercises the same selection a user would see.
+            if (safeThis->audioDeviceBox.getSelectedId() <= 0)
+                safeThis->audioDeviceBox.setSelectedId (1);
 
             // FORMULS_TEST_SAMPLERATE / FORMULS_TEST_CHANNELS override the
             // combo boxes, so non-default rates and channel counts can be
@@ -230,13 +234,21 @@ void MainComponent::resized()
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
 
-    // screenshot + preset buttons row: right-align screenshot, left-align presets
-    auto topButtonRow = area.removeFromTop (style::presetButtonHeight);
-    screenshotButton.setBounds (topButtonRow.removeFromRight (style::screenshotButtonWidth));
-    topButtonRow.removeFromRight (style::buttonGap);
-    loadPresetButton.setBounds (topButtonRow.removeFromRight (style::presetButtonWidth));
-    topButtonRow.removeFromRight (style::buttonGap);
-    savePresetButton.setBounds (topButtonRow.removeFromRight (style::presetButtonWidth));
+    // Save Preset, Load Preset and Take Screenshot stack above the record
+    // button and share its width, so the four of them right-align down the
+    // same edge. Taking the height from the top here leaves the address panel
+    // -- which fills whatever is left over -- to absorb the difference.
+    auto stackRow = [&] (juce::Component& button)
+    {
+        auto row = area.removeFromTop (style::stackedButtonHeight);
+        button.setBounds (row.removeFromRight (style::stackedButtonWidth));
+    };
+
+    stackRow (savePresetButton);
+    area.removeFromTop (style::stackedButtonGap);
+    stackRow (loadPresetButton);
+    area.removeFromTop (style::stackedButtonGap);
+    stackRow (screenshotButton);
     area.removeFromTop (style::controlSpacing / 2);
 
     auto buttonRow = area.removeFromTop (style::buttonHeight);
@@ -272,11 +284,26 @@ void MainComponent::populateDeviceList()
     // one could never be opened -- and because initialise() is called with
     // selectDefaultDeviceOnFailure, it would quietly open the default device
     // instead and still report success.
+    // The device the first type calls its default -- on macOS, whatever is
+    // chosen in Sound settings. Taken from the first type that offers one so
+    // that a machine with several (ALSA and JACK, say) still gets an answer.
+    juce::String systemDefaultName;
+
     for (auto* type : deviceManager.getAvailableDeviceTypes())
     {
         type->scanForDevices();
 
-        for (const auto& name : type->getDeviceNames (false))   // false = outputs
+        const auto names = type->getDeviceNames (false);        // false = outputs
+
+        if (systemDefaultName.isEmpty())
+        {
+            const int defaultIndex = type->getDefaultDeviceIndex (false);
+
+            if (juce::isPositiveAndBelow (defaultIndex, names.size()))
+                systemDefaultName = names[defaultIndex];
+        }
+
+        for (const auto& name : names)
         {
             if (outputDeviceNames.contains (name))
                 continue;               // same device seen through an earlier type
@@ -288,6 +315,14 @@ void MainComponent::populateDeviceList()
 
     for (int i = 0; i < outputDeviceNames.size(); ++i)
         audioDeviceBox.addItem (outputDeviceNames[i], i + 1);
+
+    // Open on the system default rather than making the user choose before
+    // anything will start. If it could not be identified the box stays empty
+    // and shows its "Select audio output..." placeholder, as before.
+    const int defaultRow = outputDeviceNames.indexOf (systemDefaultName);
+
+    if (defaultRow >= 0)
+        audioDeviceBox.setSelectedId (defaultRow + 1, juce::dontSendNotification);
 }
 
 void MainComponent::startStopClicked()
