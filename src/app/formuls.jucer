@@ -27,8 +27,8 @@
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
     </GROUP>
     <GROUP id="frmAst" name="Assets">
-      <FILE id="astIc0" name="formuls-app-icon.png" compile="0" resource="1"
-            file="../icons/formuls-app-icon.png"/>
+      <FILE id="astIc0" name="formuls-app-icon-blackwhite.png" compile="0" resource="1"
+            file="../icons/formuls-app-icon-blackwhite.png"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
