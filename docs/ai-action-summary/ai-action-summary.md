@@ -671,6 +671,11 @@ same scripted scenarios. **A clean quit was already working.**
 | Clean quit (Cmd-Q, close button) | server dies | server dies |
 | Force-quit or crash (SIGKILL) | orphan, `ppid 1`, indefinitely | orphan, **swept at next launch** |
 
+**Later the same day the crash itself was found** -- see the next entry. The
+orphaned server was its aftermath, so this entry fixes a symptom. That does
+not make the fix redundant (a stale server no longer blocks the next launch),
+but the disease is one entry down.
+
 This matters for expectations: the leak is the crash / force-quit route, not
 the Stop button or a normal quit. It also fits the evidence — the orphan found
 in the wild had lost its parent. Distinguishing the two cost one extra build
@@ -746,3 +751,140 @@ constrains what a future patch can ask of these externals.
 
 The pre-existing `libpd.dylib` deployment-target warning is still there, as
 recorded in the 6 September entry.
+
+
+---
+
+## 9 September 2026 (later) — the crash behind the orphan: OSC on the audio thread
+
+Reported as: launch formuls, start it, point a browser at 127.0.0.1:9001, the
+GUI loads and the app quits. Fixed on branch `osc-refactor`, commit `f3c9c48`.
+Not merged, not pushed.
+
+### Not a mystery quit — a stack overflow
+
+`~/Library/Logs/DiagnosticReports/` held **nine** crash reports going back to
+6 September, every one the same:
+
+    EXC_BAD_ACCESS (SIGBUS) - KERN_PROTECTION_FAILURE
+    "Could not determine thread index for stack guard region"
+    thread: com.apple.audio.IOThread.client
+      pd_typedmess + 20        <- the function prologue
+      outlet_anything + 192
+      outlet_list + 192
+      sys_domicrosleep + 352
+      juce::AudioDeviceManager::audioDeviceIOCallbackInt
+      CoreAudio HALC_ProxyIOContext::IOWorkLoop
+
+The symbol names in the raw report are nearest-export guesses with huge
+offsets; running them back through `atos` against the shipped
+`libpd.dylib` gives the exact symbols above, and **offset 20 is the tell**.
+That is `pd_typedmess`'s prologue -- the first instruction that moves the
+stack pointer. The function is not crashing on a bad pointer, it is failing
+to *have* a frame. Stack exhaustion.
+
+**The Sep 8 crash is timestamped 19:05:29. The orphaned node found in the
+previous entry started at 19:05:13.** The app started, launched the GUI
+server, and died on GUI connect sixteen seconds later. The lingering-node
+report was this crash's aftermath.
+
+### Why it happens (source, not inference)
+
+Two facts, both read out of the vendored sources rather than guessed:
+
+**libpd services sockets from inside the audio callback.** The `PROCESS`
+macro (`z_libpd.c:185`) -- which *is* the audio callback -- calls
+`sys_pollgui()`, which calls `sys_domicrosleep(0)` (`s_inter.c:1088`), which
+`select()`s over every registered fd and runs each handler inline. So
+`[netreceive]`, `[oscparse]` and the whole message dispatch they set off ran
+on the CoreAudio IO thread, which has a few hundred KB of stack rather than
+the 8 MB Pd normally gets. The app's own audio callback is not implicated --
+its buffers are heap `std::vector`s.
+
+**`oscparse` allocates its parse buffer on that stack** (`x_misc.c`):
+
+    outv = (t_atom *)alloca(outc * sizeof(t_atom));
+
+sized by the incoming packet -- for a blob, roughly one 16-byte atom per
+byte of payload -- and a bundle is parsed by *recursing per element*, with
+every element's `alloca` still held when the next one runs.
+
+Open Stage Control sends its entire state as a bundle when a **fresh** client
+connects. James noticed independently that a run where the browser already had
+the page open did not crash: a reconnect skips the state sync, so no big
+bundle. That observation is the behavioural fingerprint of this mechanism.
+
+Note also `STACKITER 1000` (`m_obj.c:359`), Pd's message-recursion guard. It
+is sized for an 8 MB thread; on the audio thread the stack is gone long
+before it ever fires.
+
+### Fixed (`f3c9c48`)
+
+OSC ingress moves into the app, in a new `OscBridge` (`src/app/Source/`):
+
+- `juce::OSCReceiver` parses on its own thread, onto the heap.
+- Its listener is a `MessageLoopCallback` one, so messages arrive on the
+  **message thread**.
+- `PdBase::finishMessage` reaches `libpd_message()`, which takes `sys_lock()`
+  *itself* and then runs `pd_typedmess()` on the calling thread. Dispatch
+  therefore happens on the message thread's full-size stack while the audio
+  thread does nothing but audio. (Adding a lock around it would have
+  deadlocked -- `sys_lock` is not recursive. Worth checking before writing
+  any code that sends into libpd.)
+- `_main.pd` is fed at exactly the point `[list trim]` used to feed, through a
+  new `[r formuls-osc-in]` into the same `[route pd GET oscmonitor testtone]`,
+  so nothing downstream changed. The `loadbang -> "listen 9000"` connection is
+  removed, so `[netreceive -u -b]` never binds.
+- `juce_osc` added to `formuls.jucer` (module + a `MODULEPATH` per exporter)
+  along with the two new files.
+
+The address mapping reproduces `[oscparse] -> [list trim]` exactly: the first
+path component becomes the message selector, later path components become
+leading symbol arguments, then the OSC arguments, with all integer types
+collapsed to float. Blobs are dropped rather than expanded to one atom per
+byte -- that expansion is precisely what made the old path dangerous.
+
+### Verified
+
+The patch edit was made with a parser, not by eye (`#X text` records occupy
+connection indices): 24 objects before, 26 after, connection count unchanged
+at 20 -- one removed, one added -- with `24:0 -> 21:0` present and
+`2:0 -> 14:0` gone.
+
+End to end, with a real browser against a build identical to the shipped one
+apart from the autostart define:
+
+    OSC bridge listening on udp 9000
+    OSC bridge stopped after 10458 message(s)     <- one connect, no crash
+    quit requested by the Pd patch                <- /pd travelled the chain
+
+The second line is the real test: an OSC `/pd` message went bridge ->
+`[r formuls-osc-in]` -> `[route]` -> `[del 500]` -> `formuls-quit` and quit
+the app, which exercises every link. Patch loads with zero creation failures.
+
+**What was not verified.** The original crash could never be reproduced on
+demand -- six GUI loads before the fix across 2- and 14-channel
+configurations, no failure. A synthetic OSC bundle did not work either: the
+OS caps UDP datagrams around 9 KB, and hand-built packets were rejected by
+`oscparse` as malformed. So this rests on the source-level mechanism plus
+nine identical crash reports, **not** on a before/after crash triggered here.
+Confirmation has to come from the machine that reproduces it reliably.
+
+### Now reproducible: the `undefined` error
+
+`pd: error: /: no method for 'undefined'` appeared during the GUI state sync
+-- the item left open in the 6 September entry, whose note asked for someone
+to catch it in the act. It is a `[/ ]` object receiving the symbol
+`undefined`, consistent with that entry's hypothesis about widgets carrying an
+empty `default` which Open Stage Control serialises as the string
+`"undefined"`. Every GUI message now passes through one function
+(`OscBridge::forward`), so logging the offending address is a few lines
+whenever it is worth chasing.
+
+### Still on the audio thread
+
+`_main.pd` keeps a second `[netreceive -u]` on udp **9009** (FUDI, not OSC)
+feeding `MOD_RECEIVE_`. Nothing in the shipped GUI sends to it -- `_main.json`
+has no reference to 9009 -- so it never dispatches, but it is still polled
+from the audio callback and carries the same structural risk if anything ever
+did. Moving it needs a FUDI parser, which is why it was left.
