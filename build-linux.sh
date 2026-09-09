@@ -7,7 +7,7 @@
 
 set -e
 
-VERSION="0.3.0-beta"
+VERSION="0.3.0"
 ROOT="$(pwd)"
 PROJUCER="${PROJUCER:-$HOME/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer}"
 
