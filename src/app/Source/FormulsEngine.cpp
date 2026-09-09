@@ -3,6 +3,7 @@
  */
 
 #include "FormulsEngine.h"
+#include "OpenStageControlProcess.h"   // patchOscPort
 
 namespace formuls
 {
@@ -98,6 +99,13 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
                                    + patchDir.getChildFile ("_main.pd").getFullPathName());
     }
 
+    // Listen for the GUI's OSC before going live. A failure here is not
+    // fatal -- the engine still makes sound, it just cannot be driven from
+    // the GUI -- so it is reported rather than aborting the start.
+    if (auto oscResult = oscBridge.start (pd, OpenStageControlProcess::patchOscPort);
+        oscResult.failed())
+        juce::Logger::writeToLog (oscResult.getErrorMessage());
+
     // -------------------------------------------------------------- go live
     startTimer (messagePumpIntervalMs);
     deviceManager.addAudioCallback (this);
@@ -122,6 +130,10 @@ void FormulsEngine::stop()
         activeDeviceManager->removeAudioCallback (this);
 
     stopTimer();
+
+    // Before the patch closes: the bridge sends into libpd, so it must not
+    // be able to fire once there is nothing left to send to.
+    oscBridge.stop();
 
     if (patch.isValid())
     {

@@ -43,6 +43,7 @@
 #include <atomic>
 #include "PdBase.hpp"
 #include "AudioRecorder.h"
+#include "OscBridge.h"
 
 namespace formuls
 {
@@ -140,6 +141,12 @@ private:
 
     pd::PdBase pd;
     pd::Patch patch;
+
+    // Receives the control GUI's OSC and feeds it to the patch on the
+    // message thread. Declared after pd so it is destroyed first -- it holds
+    // a pointer to pd for as long as it is listening. See OscBridge.h for
+    // why the patch no longer does this itself.
+    OscBridge oscBridge;
     juce::AudioDeviceManager* activeDeviceManager = nullptr;
 
     int pdOutputChannels = 0;               // channels libpd was initialised with
