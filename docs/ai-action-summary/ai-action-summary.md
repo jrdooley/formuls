@@ -759,7 +759,8 @@ recorded in the 6 September entry.
 
 Reported as: launch formuls, start it, point a browser at 127.0.0.1:9001, the
 GUI loads and the app quits. Fixed on branch `osc-refactor`, commit `f3c9c48`.
-Not merged, not pushed.
+Not merged, not pushed. *(Later the same day: tested clean, merged to `main`,
+branch deleted -- see the entry below.)*
 
 ### Not a mystery quit — a stack overflow
 
@@ -883,8 +884,88 @@ whenever it is worth chasing.
 
 ### Still on the audio thread
 
+*(Resolved later the same day -- both netreceives are gone. See the entry
+below.)*
+
 `_main.pd` keeps a second `[netreceive -u]` on udp **9009** (FUDI, not OSC)
 feeding `MOD_RECEIVE_`. Nothing in the shipped GUI sends to it -- `_main.json`
 has no reference to 9009 -- so it never dispatches, but it is still polled
 from the audio callback and carries the same structural risk if anything ever
 did. Moving it needs a FUDI parser, which is why it was left.
+
+---
+
+## 9 September 2026 (later still) — closing out the OSC refactor
+
+Three follow-up commits on `osc-refactor`, then the branch was merged into
+`main` and deleted. `main` is at `8062dd3`.
+
+### The netreceives came out of the patch
+
+The bridge made the patch's own listeners redundant, and both were removed by
+hand in Pd:
+
+- **udp 9000 (OSC)** — superseded by `OscBridge`. `[r formuls-osc-in]` is the
+  only way OSC now enters the patch.
+- **udp 9009 (FUDI)** — this was the item the previous entry left open as
+  "still on the audio thread". It turned out to be simpler than feared. No
+  FUDI parser was needed, because the traffic never had to leave the process
+  in the first place.
+
+That second one is the interesting half. `MOD_RECEIVE_` was fed by a
+`[netreceive -u]` on 9009, and elsewhere in `_main.pd` a `[netsend -u]` did
+`connect 127.0.0.1 9009` on loadbang and pushed `m-val` into it. The extmod
+values were making a full round trip out through the loopback interface and
+back, purely to cross between two subpatches in the same Pd instance. Both
+ends are gone; `MOD_RECEIVE_` now takes `[r m-val] -> [list trim]` directly
+into the per-channel `dbtorms`/`clip` chains.
+
+So the last object doing socket work inside the audio callback is gone, and
+the routing it existed to perform is now a plain send/receive pair.
+
+### The GUI is served read-only
+
+`--read-only` was added to the Open Stage Control command line, so a browser
+pointed at 9001 can drive the interface but cannot edit the layout or the
+session history underneath a running app.
+
+It was first written as `--readonly`, which is not an option — the real flag
+is hyphenated, the server bundle reads the key `readOnly`, and the launcher
+does not run yargs in strict mode. The app would have started normally, the
+GUI would still have been editable, and nothing would have said so. Caught by
+running the bundled server's own `--help` rather than trusting the spelling.
+Worth the habit for any flag passed to a child process: there is no compiler
+between a string literal and another program's parser.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Patch loads (Pd 0.56-2, headless, all search paths) | zero errors, zero creation failures |
+| `#X connect` indices after the deletions | all resolve; 18 objects in the receive canvas, 27 in `MOD_RECEIVE_` |
+| `9009` / `netreceive` / `netsend` anywhere in `_main.pd` | none |
+| `--read-only` present in the bundled server's CLI | yes; `--readonly` is not |
+| Build and runtime | built, installed and tested by the author — works |
+| Merge to `main` | fast-forward; resulting tree byte-identical to the branch |
+
+The index audit matters more than the clean load. Pd stores connections as
+positional indices, and comments and number boxes occupy indices too, so
+deleting an object silently renumbers everything after it. A patch can parse
+happily while having quietly rewired itself.
+
+### Left alone
+
+- **`MESSAGE_SEND___`** is now an empty subpatch — the canvas and its
+  `#X restore` remain with nothing inside. Loads fine; it is a stub that
+  could be deleted.
+- **`[r o-s-c-messages-DUMMY]`** feeds the multitouch debounce chain, and
+  nothing sends to that symbol, so the chain is silent. Assumed deliberate.
+- **`juce-port-dev`** (preset save/load via the O-S-C state API) is now
+  ~70 commits behind `main`, and `alacarte-prototype` is remote-only. Neither
+  is merged.
+- **The `undefined` error** is still unchased. One log line in
+  `OscBridge::forward` would name the offending address.
+
+No cost and energy section: this session was a short sequence of
+commit-and-push turns rather than an investigation, and the measured-token
+method used in earlier entries needs a full transcript to be worth quoting.
