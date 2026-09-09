@@ -625,3 +625,124 @@ so the two are **not comparable**.
 
 *(Note on units: watts measure power, kWh measure energy. Energy consumed is the
 kWh rows; the average-power row is the watts equivalent over the session.)*
+
+---
+
+## 9 September 2026 — the Open Stage Control server outliving the app
+
+Two pieces of work: `juce-port` was merged into `main` (`aab5e4b`), and the
+node process that survives the app was tracked down and fixed (`3dd18e9`).
+
+### The merge
+
+`main` and `juce-port` had diverged — 65 commits ahead, 5 behind — but the
+divergence was cosmetic. `diff(merge-base, origin/main)` is **empty**: two of
+main's five commits are duplicates of the merge base itself (`1be83bc` against
+`7f37421`, same message), left by a cherry-pick or rebase. So `main`
+contributed no content and nothing was dropped. The merge result tree is
+byte-identical to `juce-port`'s (`0edfa84` both sides), which is also the
+verification — that is the exact tree that had been built and run.
+
+A merge commit was required; `--ff-only` cannot apply while `main` holds
+commits of its own, duplicates or not.
+
+### The bug
+
+Reported as: the node process stays alive when formuls is stopped or quit, and
+reopening then crashes.
+
+Confirmed on the machine before changing anything. A server was still running
+from an app that had exited the previous day:
+
+    PID 57932  PPID 1  elapsed 22:08:08
+      /Applications/formuls-0.3.0-beta.app/.../gui/node .../open-stage-control
+      TCP *:9001 (LISTEN)
+
+`ppid 1` means the parent died and the child was reparented to launchd. The
+listening socket is the crash on reopen: the next server cannot bind 9001.
+
+### What was actually broken — and what was not
+
+The old and new code were built with the same test hook and driven through the
+same scripted scenarios. **A clean quit was already working.**
+
+| Path | before | after |
+|---|---|---|
+| Clean quit (Cmd-Q, close button) | server dies | server dies |
+| Force-quit or crash (SIGKILL) | orphan, `ppid 1`, indefinitely | orphan, **swept at next launch** |
+
+This matters for expectations: the leak is the crash / force-quit route, not
+the Stop button or a normal quit. It also fits the evidence — the orphan found
+in the wild had lost its parent. Distinguishing the two cost one extra build
+and is the difference between fixing the bug and merely appearing to.
+
+### Fixed (`3dd18e9`)
+
+**`killStrayServers()`.** Enumerates the machine's processes — `proc_listpids`
+/ `proc_pidpath` / `KERN_PROCARGS2` on macOS, `/proc` on Linux, since JUCE has
+no API for it — and kills servers left by an earlier run. Swept in
+`MainComponent`'s constructor and again before every `start()`. A crash runs no
+destructors, so cleanup inside the app can never cover it; the *next* launch
+clearing up after the run that died is the only mechanism that works. **This is
+the part that fixes the reported bug.**
+
+**`stop()` no longer gates the kill on `isRunning()`.** JUCE implements that as
+`waitpid(WNOHANG)` (`juce_SharedCode_posix.h`), and a `-1` return leaves the
+status word at `0` — where `WIFEXITED(0)` is *true*. So it can answer "exited
+cleanly" for a live process. Killing an already-dead pid is harmless, so the
+gate only ever cost reliability. `stop()` now also waits for the process to
+finish (which reaps it, so the sweep that follows does not spend its whole
+timeout on our own zombie) and sends SIGTERM before SIGKILL, so o-s-c closes
+its listening socket instead of leaving the kernel to reclaim the port.
+
+Note that `juce::ChildProcess`'s destructor does **not** kill the child — it
+closes pipe handles and nothing else. The old header comment claiming that
+stopping "kills exactly the process this app started" was true only when
+`stop()` both ran and fired.
+
+### The deliberate narrowness of the sweep
+
+`isStrayServer()` matches on the executable path of *this bundle's own* node
+binary, never on the name `node`. A `ps` on this machine found unrelated
+embedded node processes belonging to VS Code, Obsidian, Copilot and Claude —
+the old Python front end's `killall node` would have taken all of them down.
+
+The cost: a server left by a **different** formuls copy (an older bundle, or a
+dev build) is not recognised and keeps port 9001. That was chosen knowingly —
+it fails loudly (`start()` reports the bind failing) whereas killing the wrong
+process fails silently. Widening it later is a two-line change; the comment in
+the source says so.
+
+### Verification
+
+Full `./build-macOS.sh`, installed to `/Applications`, then tested against a
+real orphan on the real port:
+
+- orphan created on 9001 with `ppid 1` → app launched → **orphan gone, port
+  free** → clean quit → **zero node processes from the bundle remaining**.
+- A snapshot of every pid on the machine before and after shows no other
+  casualties. The processes that did vanish were Spotlight `mdworker`s and two
+  AudioToolbox sandbox helpers — transient system XPC services, the Spotlight
+  burst triggered by copying 132 MB into `/Applications` moments earlier. They
+  are unreachable by the sweep in any case: the predicate's first line rejects
+  anything whose executable path is not the bundle's own node.
+- The force-quit path was reproduced end to end: launch → `kill -9` the app →
+  orphan with `ppid 1` → relaunch → swept.
+
+Shipped bundle checked for the autostart test hook (absent) and the sweep code
+(present); `git status` clean afterwards, so the `.jucer` trap held again.
+
+### Found, not fixed
+
+**`-undefined suppress is deprecated`, twelve times.** These come from the
+`faust2puredata` external links (they begin at log line 6, before any JUCE
+compilation). That flag is how Pd externals have always left Pd's symbols to be
+resolved at load time, and Apple has it on a deprecation path — the day it is
+removed, the externals stop building. Worth watching rather than acting on now.
+
+**`building without multi-channel support; requires Pd 0.54 or later`.** Also
+from `faust2puredata`. Harmless for formuls as it stands, but it quietly
+constrains what a future patch can ask of these externals.
+
+The pre-existing `libpd.dylib` deployment-target warning is still there, as
+recorded in the 6 September entry.
