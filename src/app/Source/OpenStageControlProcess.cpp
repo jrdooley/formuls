@@ -258,6 +258,7 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     //   node open-stage-control/ --send 127.0.0.1:9000 --port 9001
     //        --load _main.json --state _formuls-default.state
     //        --client-options framerate=25 hdpi=0
+    // plus --read-only, so the served GUI cannot be edited while the app runs.
     auto state = guiDir.getChildFile ("_formuls-default.state");
 
     juce::StringArray args { node.getFullPathName(),
@@ -267,6 +268,7 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
                              // GUI served on this port
                              "--port", juce::String (guiPort),
                              "--load", layout.getFullPathName(),
+                             "--read-only",
                              "--client-options", "framerate=25", "hdpi=0" };
 
     if (state.existsAsFile())
