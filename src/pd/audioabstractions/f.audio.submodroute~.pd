@@ -48,7 +48,7 @@
 #X obj 39 50 route \$1 reset;
 #X obj 39 79 route 1 2 3 4 5 6 7;
 #X obj 169 116 s \$0-7;
-#X text 361 233 Channel 7's signal path was removed here: [r~ 7-m] -> [*~] -> [throw~ (dollar)0-out] \, with the [r (dollar)0-7] -> [sig~] -> [lop~ 100] gain leg that fed it. "r~ 7-m" was meant to be a mono folddown of the master bus \, but nothing ever sent to that bus -- _main.pd creates f.formuls~ 1 to 6 \, and each of those is what writes s~ <n>-m \, so 7-m had no writer and the branch was silent. It had also been parked as "-r~ 7-m" \, a name Pd cannot create \, which logged "couldn't create" 12 times at startup. The channel 7 control side is left wired -- [route 1 2 3 4 5 6 7] still reaches [s (dollar)0-7] -- so restoring this means re-adding the audio leg and an s~ 7-m to feed it.;
+#X text 354 130 Channel 7's signal path was removed here: [r~ 7-m] -> [*~] -> [throw~ (dollar)0-out] \, with the [r (dollar)0-7] -> [sig~] -> [lop~ 100] gain leg that fed it. "r~ 7-m" was meant to be a mono folddown of the master bus \, but nothing ever sent to that bus -- _main.pd creates f.formuls~ 1 to 6 \, and each of those is what writes s~ <n>-m \, so 7-m had no writer and the branch was silent. It had also been parked as "-r~ 7-m" \, a name Pd cannot create \, which logged "couldn't create" 12 times at startup. The channel 7 control side is left wired -- [route 1 2 3 4 5 6 7] still reaches [s (dollar)0-7] -- so restoring this means re-adding the audio leg and an s~ 7-m to feed it.;
 #X connect 0 0 39 0;
 #X connect 1 0 2 0;
 #X connect 2 0 0 1;
