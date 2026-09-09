@@ -29,6 +29,7 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`efficiency/README.md`](efficiency/README.md) | The Faust + Pd efficiency refactor: findings, results, options left unapplied, harness caveats. |
 | [`efficiency/report.html`](efficiency/report.html) | The same efficiency findings as a presentation-layer report. A **snapshot**, not a live document: measured 3 September 2026 at `e360ce7`, with an inline note on the one table `480cc97` superseded. |
 | [`efficiency/tools/README.md`](efficiency/tools/README.md) | How to re-derive every number above. |
+| [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
 | [`../src/app/README.md`](../src/app/README.md) | The JUCE application: source layout, recording, GUI addresses, styling, building, test harness. |
