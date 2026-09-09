@@ -96,6 +96,18 @@ MainComponent::MainComponent()
     addAndMakeVisible (statusLabel);
     setStatus ("Ready.");
 
+    // A run that crashed or was force-quit never got to stop its Open Stage
+    // Control server, and that server still holds tcp port 9001 -- which is
+    // what makes the *next* launch fail. No destructor can cover that case,
+    // so the cleanup has to happen here, on the way up, before the engine or
+    // a new server is started. See OpenStageControlProcess.h.
+    if (const auto root = findResourceRoot(); root.isDirectory())
+    {
+        if (const auto swept = OpenStageControlProcess::killStrayServers (root); swept > 0)
+            setStatus ("Ready. Cleared " + juce::String (swept)
+                       + (swept == 1 ? " leftover GUI server." : " leftover GUI servers."));
+    }
+
     // The Pd patch can ask the whole app to quit (see FormulsEngine.h).
     engine.onQuitRequested = []
     {
