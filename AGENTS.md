@@ -17,7 +17,8 @@ git clone --recurse-submodules https://github.com/jrdooley/formuls.git
 ```
 ./build-macOS.sh
 ```
-Produces `formuls-0.3.0-beta.app` in the repo root. Steps:
+Produces `formuls-<VERSION>.app` in the repo root, where `VERSION` is set at
+the top of the build script (currently `0.3.0`). Steps:
 1. Compiles 3 Faust externals: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`
 2. Copies **prebuilt** `abl_link~.pd_darwin` (never builds from source on macOS)
 3. Downloads Open Stage Control 1.31.0 + Node 22.17.0

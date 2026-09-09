@@ -3,7 +3,9 @@
 REPO=${REPO:-$(git rev-parse --show-toplevel)}
 SRC="$1"; SECS="${2:-15}"; DSP="${3:-1}"; LABEL="${4:-run}"
 PD=/Applications/Pd-0.56-2.app/Contents/Resources/bin/pd
-EXT="$REPO"/formuls-0.3.0-beta.app/Contents/Resources/pd/externals
+APP="${APP:-$(ls -d "$REPO"/formuls-*.app 2>/dev/null | tail -1)}"
+[ -n "$APP" ] || { echo "no formuls-*.app in $REPO; build one or set APP" >&2; exit 1; }
+EXT="$APP"/Contents/Resources/pd/externals
 W=$(mktemp -d)
 cp -R "$SRC"/. "$W"/ ; mkdir -p "$W/externals"; cp "$EXT"/*.pd_darwin "$W/externals/" 2>/dev/null
 MS=$(( SECS * 1000 ))

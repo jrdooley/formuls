@@ -25,7 +25,7 @@ must not be pointed at while the app is live.
 
 With the app running, matching on one widget's address:
 
-    APP=formuls-0.3.0-beta.app/Contents/Resources
+    APP=$(ls -d formuls-*.app | tail -1)/Contents/Resources
     "$APP/gui/node" docs/gui/tools/ws-watch.js resonantfilterfreqq 9001
 
 Drive the interface, then ctrl-c. Each matching frame prints as
@@ -44,12 +44,16 @@ running — see the caveat about that in `../README.md`. Everything below uses
 **1. Capture what the patch sends.** Copy the patch tree somewhere scratch,
 add the externals from a built bundle, and repoint its two hardcoded ports:
 
-    APP=formuls-0.3.0-beta.app/Contents/Resources
+    APP=$(ls -d formuls-*.app | tail -1)/Contents/Resources
     mkdir -p /tmp/pdtest && cp -R src/pd/* /tmp/pdtest/
     cp -R "$APP/pd/externals" /tmp/pdtest/externals
-    sed -i '' -e 's/listen 9000/listen 19000/' \
-              -e 's/connect 127\.0\.0\.1 9001/connect 127.0.0.1 19001/' \
+    sed -i '' -e 's/connect 127\.0\.0\.1 9001/connect 127.0.0.1 19001/' \
               -e 's/127\.0\.0\.1:9000 root/127.0.0.1:19000 root/' /tmp/pdtest/_main.pd
+
+The `listen 9000` substitution these steps used to need is gone: the patch no
+longer opens its own OSC socket, so a scratch copy receives nothing unless
+something sends to `formuls-osc-in`. See the OSC bridge entry in
+`../../ai-action-summary/ai-action-summary.md`.
 
     python3 docs/gui/tools/osc-sink.py 19001 /tmp/addrs.txt &
     /Applications/Pd-0.56-2.app/Contents/Resources/bin/pd -nogui -noaudio \
