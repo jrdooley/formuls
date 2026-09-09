@@ -966,6 +966,51 @@ happily while having quietly rewired itself.
 - **The `undefined` error** is still unchased. One log line in
   `OscBridge::forward` would name the offending address.
 
-No cost and energy section: this session was a short sequence of
-commit-and-push turns rather than an investigation, and the measured-token
-method used in earlier entries needs a full transcript to be worth quoting.
+### Session cost and energy
+
+**Scope note.** This covers **all three 9 September entries** -- the orphan fix,
+the crash fix, and this one -- not just the closing turns. They share one
+transcript, so they cannot be separated, and the two earlier entries carry no
+cost section of their own.
+
+| Metric | Value |
+|---|---|
+| **Cost** | **$27.79** (measured) |
+| **Turns** | 212 assistant turns on `claude-opus-5` |
+| **Active time** | ~122 minutes (sum of inter-turn gaps under 10 minutes) |
+| **Energy -- inference** | ~0.1-0.4 kWh (**order-of-magnitude estimate**) |
+| **Energy -- local compute** | not measured this time |
+
+| | tokens | rate /MTok | cost |
+|---|---:|---:|---:|
+| input | 424 | $5.00 | $0.00 |
+| cache write | 645,394 | $6.25 | $4.03 |
+| cache read | 37,056,554 | $0.50 | $18.53 |
+| output | 209,232 | $25.00 | $5.23 |
+| | | **total** | **$27.79** |
+
+Same method as the 6 September (later) entry: token counts come from this
+session's own transcript, deduplicated by `message.id` before summing, and
+records whose model is `<synthetic>` are excluded. Skipping the dedupe roughly
+doubles the figure.
+
+**Cache reads are 67% of the bill**, down from 79% on 6 September, and output
+rose to 19% from 14%. That shift is the shape of the work rather than an
+improvement in efficiency: this day had more writing and fewer long
+investigation passes over a large context.
+
+**Two caveats on comparing this with the 6 September figure.**
+
+1. The same transcript's 6 September portion now measures **$36.55 over 249
+   turns**, against the **$30.88 over 221 turns** recorded in that entry. The
+   entry was written before the session ended, so its number is a snapshot
+   taken mid-session, not an error. The larger figure is the complete one.
+2. **Energy is not measured and should not be quoted as if it were.** No
+   per-token energy figure is published for this model, and it is not
+   observable client-side; the range above applies a generic
+   frontier-inference figure to 212 requests dominated by 37M tokens of
+   prefill. Local compute is omitted rather than guessed -- the builds that
+   confirmed this work were run by the author, not from here, and the
+   transcript records no command durations to total up.
+
+*(Units: watts are power, kWh are energy. The kWh rows are what was consumed.)*
