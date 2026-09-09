@@ -39,7 +39,7 @@ Watch the video below introducing formuls:
 
 Listen to music made with formuls (the instrument) by formuls (the artist who made the instrument):
 
-https://formuls.bandcamp.com/
+[https://www.subvert.fm/formuls](https://www.subvert.fm/formuls)
 
 ***
 This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/).
