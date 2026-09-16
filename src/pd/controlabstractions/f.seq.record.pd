@@ -100,7 +100,7 @@
 #X obj 49 618 spigot 1;
 #X obj 48 27 r master-param-update-throttle;
 #X obj 48 62 t b;
-#X text 167 163 The automation playback clock binds the master parameter throttle directly \, instead of having every f.seq.automater relay it through this abstraction's message inlet and route. Nothing sent "paramthrottle" to this abstraction \, so the old (dollar)0-param-throttle receive was removed: that inlet message no longer drives playback.;
+#X text 167 163 The automation playback clock binds the master parameter throttle directly \, instead of having every f.seq.automater relay it through this abstraction's message inlet and route. Nothing sent "paramthrottle" to this abstraction \, so that route selector \, its send and the (dollar)0-param-throttle receive have been removed.;
 #X connect 0 0 1 0;
 #X connect 0 0 11 0;
 #X connect 1 0 0 1;
@@ -265,8 +265,7 @@
 #X obj 352 117 s \$0-seq-value;
 #X obj 266 137 s \$0-seq-play;
 #X obj 452 172 r \$1-reset;
-#X obj 37 53 route record value tempo reverse trigger seqrecord seqstep beat mode seqplay seqtranstime seqreset seqvalue active paramthrottle;
-#X obj 363 98 s \$0-param-throttle;
+#X obj 37 53 route record value tempo reverse trigger seqrecord seqstep beat mode seqplay seqtranstime seqreset seqvalue active;
 #X text 286 409 Currently deactivated;
 #X connect 0 0 32 0;
 #X connect 6 0 2 0;
@@ -294,4 +293,3 @@
 #X connect 32 11 27 0;
 #X connect 32 12 29 0;
 #X connect 32 13 25 0;
-#X connect 32 14 33 0;
