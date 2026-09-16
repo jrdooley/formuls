@@ -23,6 +23,8 @@ This software uses [JUCE](https://juce.com/), [libpd](https://github.com/libpd/l
 ### Running the app
 Currently, there are only Apple Silicon builds for *formuls* and this has only been tested on an M1 processor—YMMV!
 
+An experimental Android build (formuls running on the tablet itself, with a USB-C audio interface as output and the GUI shown in-app or in a browser) lives on the `android-experimental` branch — see [docs/android/README.md](docs/android/README.md).
+
 To run formuls:
 - Launch the formuls app.
 - Select your audio output, the number of output channels (2 is default, though you can isolate each individual synth channel as well as master bus effects), and the sample rate (48 kHz is default; if your audio interface cannot run at the chosen rate, formuls uses the nearest rate it can and tells you).

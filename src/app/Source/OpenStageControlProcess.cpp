@@ -6,6 +6,10 @@
 
 #include "OpenStageControlProcess.h"
 
+#if JUCE_ANDROID
+ #include "AndroidPlatform.h"
+#endif
+
 #include <csignal>
 #include <cstring>
 #include <cerrno>
@@ -20,6 +24,10 @@
 namespace formuls
 {
 
+// On Android the server runs in a process of the app's own, found and
+// stopped by name (see AndroidPlatform.h), so none of the machine-wide
+// process inspection below is needed or compiled there.
+#if ! JUCE_ANDROID
 namespace
 {
 
@@ -220,6 +228,7 @@ bool isStrayServer (const juce::File& ourNodeBinary,
 }
 
 } // anonymous namespace
+#endif // ! JUCE_ANDROID
 
 //==============================================================================
 OpenStageControlProcess::~OpenStageControlProcess()
@@ -227,6 +236,91 @@ OpenStageControlProcess::~OpenStageControlProcess()
     stop();
 }
 
+#if JUCE_ANDROID
+//==============================================================================
+// Android: the same server and the same arguments, but run on nodejs-mobile
+// in the app's ":gui" process instead of as a child process. See
+// GuiServerService.java for the process model.
+
+juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
+{
+    if (androidServerStarted)
+        return juce::Result::ok();
+
+    resourceRoot = newResourceRoot;
+
+    auto guiDir  = resourceRoot.getChildFile ("gui");
+    auto oscDir  = guiDir.getChildFile ("open-stage-control");
+    auto layout  = guiDir.getChildFile ("_main.json");
+    auto state   = guiDir.getChildFile ("_formuls-default.state");
+    auto preload = guiDir.getChildFile ("formuls-android-preload.js");
+
+    if (! oscDir.isDirectory())
+        return juce::Result::fail ("Open Stage Control package not found: "
+                                   + oscDir.getFullPathName());
+    if (! layout.existsAsFile())
+        return juce::Result::fail ("GUI layout not found: " + layout.getFullPathName());
+
+    // A server left over from a crashed run still holds port 9001.
+    if (const auto swept = killStrayServers (resourceRoot); swept > 0)
+        juce::Logger::writeToLog ("Cleared " + juce::String (swept)
+                                  + " leftover Open Stage Control server(s) before starting");
+
+    // The desktop command line, with node's "-r" preload in front: see
+    // src/android/node/formuls-android-preload.js.
+    juce::StringArray args { "node" };
+
+    if (preload.existsAsFile())
+        args.addArray ({ "-r", preload.getFullPathName() });
+
+    args.addArray ({ oscDir.getFullPathName(),
+                     "--send", "127.0.0.1:" + juce::String (patchOscPort),
+                     "--port", juce::String (guiPort),
+                     "--load", layout.getFullPathName(),
+                     "--read-only",
+                     "--client-options", "framerate=25", "hdpi=0" });
+
+    if (state.existsAsFile())
+        args.addArray ({ "--state", state.getFullPathName() });
+
+    // node has no home or temp folder of its own on Android.
+    const auto files = android::getFilesDir();
+    const auto cache = android::getCacheDir();
+
+    juce::StringArray environment { "HOME=" + files.getFullPathName(),
+                                    "TMPDIR=" + cache.getFullPathName(),
+                                    "XDG_CONFIG_HOME=" + files.getChildFile (".config").getFullPathName() };
+
+    if (auto result = android::startGuiServer (args, environment); result.failed())
+        return result;
+
+    androidServerStarted = true;
+    juce::Logger::writeToLog ("Open Stage Control starting on port " + juce::String (guiPort));
+    return juce::Result::ok();
+}
+
+void OpenStageControlProcess::stop()
+{
+    // Not gated on androidServerStarted: this also clears a server that an
+    // earlier, crashed run of the app left behind.
+    android::stopGuiServer (killTimeoutMs);
+    androidServerStarted = false;
+
+    juce::Logger::writeToLog ("Open Stage Control stopped");
+}
+
+bool OpenStageControlProcess::isRunning()
+{
+    return android::isGuiServerRunning();
+}
+
+int OpenStageControlProcess::killStrayServers (const juce::File&)
+{
+    return android::stopGuiServer (killTimeoutMs);
+}
+
+#else
+//==============================================================================
 juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
 {
     if (process.isRunning())
@@ -348,6 +442,7 @@ int OpenStageControlProcess::killStrayServers (const juce::File& resourceRoot)
 
     return killed;
 }
+#endif // JUCE_ANDROID
 
 juce::StringArray OpenStageControlProcess::getBrowserAddresses()
 {

@@ -72,9 +72,21 @@ MainComponent::MainComponent()
     updateButtonStates();
 
     // ---------------------------------------------------- take screenshot button
+   #if JUCE_ANDROID
+    // The screenshot tool needs python and Playwright, which a tablet does
+    // not have. On Android this slot opens the GUI in a browser app instead
+    // -- the engine keeps running in the background while it is used.
+    screenshotButton.setButtonText ("Open in browser");
+    screenshotButton.onClick = []
+    {
+        juce::URL ("http://127.0.0.1:" + juce::String (OpenStageControlProcess::guiPort))
+            .launchInDefaultBrowser();
+    };
+   #else
     screenshotButton.setButtonText ("Take Screenshot");
-    screenshotButton.setEnabled (engine.isRunning());
     screenshotButton.onClick = [this] { screenshotClicked(); };
+   #endif
+    screenshotButton.setEnabled (engine.isRunning());
     addAndMakeVisible (screenshotButton);
 
     // ----------------------------------------------------- preset buttons
@@ -113,17 +125,36 @@ MainComponent::MainComponent()
     addAndMakeVisible (statusLabel);
     setStatus ("Ready.");
 
+   #if JUCE_ANDROID
+    // ------------------------------------------------ embedded control GUI
+    showGuiButton.setButtonText ("Show control GUI");
+    showGuiButton.onClick = [this] { guiPanel.open (OpenStageControlProcess::guiPort); };
+    addAndMakeVisible (showGuiButton);
+
+    guiPanel.onClose = [this] { guiPanel.close(); };
+    addChildComponent (guiPanel);   // added last, so it covers everything else
+   #endif
+
     // A run that crashed or was force-quit never got to stop its Open Stage
     // Control server, and that server still holds tcp port 9001 -- which is
     // what makes the *next* launch fail. No destructor can cover that case,
     // so the cleanup has to happen here, on the way up, before the engine or
     // a new server is started. See OpenStageControlProcess.h.
+   #if JUCE_ANDROID
+    // (On Android the sweep does not need the resources, which may not have
+    // been unpacked yet.)
+    if (const auto swept = OpenStageControlProcess::killStrayServers ({}); swept > 0)
+        juce::Logger::writeToLog ("Cleared " + juce::String (swept) + " leftover GUI server(s)");
+
+    prepareAndroidResources();
+   #else
     if (const auto root = findResourceRoot(); root.isDirectory())
     {
         if (const auto swept = OpenStageControlProcess::killStrayServers (root); swept > 0)
             setStatus ("Ready. Cleared " + juce::String (swept)
                        + (swept == 1 ? " leftover GUI server." : " leftover GUI servers."));
     }
+   #endif
 
     // The Pd patch can ask the whole app to quit (see FormulsEngine.h).
     engine.onQuitRequested = []
@@ -232,7 +263,23 @@ void MainComponent::paint (juce::Graphics& g)
 
 void MainComponent::resized()
 {
+   #if JUCE_ANDROID
+    // Full screen, drawn edge to edge: keep clear of the status and
+    // navigation bars and any display cutout, then centre the desktop-sized
+    // column of controls on what is left.
+    auto screen = getLocalBounds();
+
+    if (auto* display = juce::Desktop::getInstance().getDisplays().getDisplayForRect (getScreenBounds()))
+        screen = display->safeAreaInsets.subtractedFrom (screen);
+
+    guiPanel.setBounds (screen);
+
+    auto area = screen.withSizeKeepingCentre (juce::jmin (screen.getWidth(), style::windowWidth),
+                                              juce::jmin (screen.getHeight(), style::androidPanelHeight))
+                      .reduced (style::margin);
+   #else
     auto area = getLocalBounds().reduced (style::margin);
+   #endif
 
     audioDeviceBox.setBounds (area.removeFromTop (style::controlHeight)
                                   .withWidth (style::comboWidth));
@@ -275,6 +322,11 @@ void MainComponent::resized()
     vuMeter.setBounds (meterArea);
     area.removeFromTop (style::controlSpacing);
 
+   #if JUCE_ANDROID
+    showGuiButton.setBounds (area.removeFromTop (style::buttonHeight));
+    area.removeFromTop (style::controlSpacing);
+   #endif
+
     // status line sits at the bottom; the address panel fills what is left
     statusLabel.setBounds (area.removeFromBottom (style::controlHeight));
     addressPanel.setBounds (area.withTrimmedBottom (style::controlSpacing));
@@ -303,6 +355,15 @@ void MainComponent::populateDeviceList()
 
     for (auto* type : deviceManager.getAvailableDeviceTypes())
     {
+       #if JUCE_ANDROID
+        // Oboe (AAudio) is Android's low-latency audio path, and its list
+        // starts with "System Default (Output)", which follows the system's
+        // routing to a USB audio interface. JUCE's older Java and OpenSL ES
+        // types would only list the same hardware again under other names.
+        if (! type->getTypeName().containsIgnoreCase ("Oboe"))
+            continue;
+       #endif
+
         type->scanForDevices();
 
         const auto names = type->getDeviceNames (false);        // false = outputs
@@ -347,6 +408,14 @@ void MainComponent::startStopClicked()
 
 void MainComponent::startEverything()
 {
+   #if JUCE_ANDROID
+    if (! resourcesReady)
+    {
+        setStatus ("Still preparing formuls -- try again in a moment.");
+        return;
+    }
+   #endif
+
     const auto deviceIndex = audioDeviceBox.getSelectedId() - 1;
 
     if (deviceIndex < 0)
@@ -376,6 +445,13 @@ void MainComponent::startEverything()
         return;
     }
 
+   #if JUCE_ANDROID
+    // Before the GUI server: its process borrows this service's priority,
+    // which is what keeps both running while formuls is in the background.
+    android::requestNotificationPermission();
+    android::startAudioService();
+   #endif
+
     // 2. the Open Stage Control GUI server
     auto oscResult = openStageControl.start (resourceRoot);
 
@@ -401,6 +477,12 @@ void MainComponent::startEverything()
                    + rateNote);
     else
         setStatus ("Running." + rateNote);
+
+   #if JUCE_ANDROID
+    // Go straight to the instrument; "< formuls" comes back here.
+    if (oscResult.wasOk())
+        guiPanel.open (OpenStageControlProcess::guiPort);
+   #endif
 }
 
 void MainComponent::stopEverything (bool offerToSaveRecording)
@@ -414,6 +496,11 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
 
     openStageControl.stop();
     engine.stop();
+
+   #if JUCE_ANDROID
+    guiPanel.discard();
+    android::stopAudioService();
+   #endif
 
     startStopButton.setButtonText (kStartText);
     audioDeviceBox.setEnabled (true);
@@ -491,6 +578,24 @@ void MainComponent::finishRecording (bool offerToSaveRecording)
         return;
     }
 
+   #if JUCE_ANDROID
+    // A save dialog on Android hands back a content:// URI rather than a
+    // file path, so there is nothing to move the take to. Copy it into the
+    // shared Music/formuls folder instead, where file managers, other apps
+    // and USB file transfer can find it.
+    if (const auto published = android::publishRecording (recorded); published.isNotEmpty())
+    {
+        recorded.deleteFile();   // the app's private copy is no longer needed
+        setStatus ("Recording saved to " + published);
+    }
+    else
+    {
+        setStatus ("Recording saved to " + describe (recorded));
+    }
+
+    return;
+   #endif
+
     setStatus ("Recording finished -- choose where to save it.");
 
     saveChooser = std::make_unique<juce::FileChooser> ("Save recording as...",
@@ -542,6 +647,11 @@ void MainComponent::updateButtonStates()
 
     recordButton.setButtonText (isRecording ? kStopRecordText : kRecordText);
     recordButton.setEnabled (engine.isRunning());
+
+   #if JUCE_ANDROID
+    showGuiButton.setEnabled (engine.isRunning());
+    startStopButton.setEnabled (resourcesReady || engine.isRunning());
+   #endif
     recordButton.setColour (juce::TextButton::buttonColourId,
                             isRecording ? style::recordActive : style::widgetFill);
 
@@ -645,6 +755,11 @@ void MainComponent::savePresetClicked()
         setStatus ("A preset dialog is already open.");
         return;
     }
+
+   #if JUCE_ANDROID
+    askForPresetNameThenSave();
+    return;
+   #endif
 
     auto defaultDir = presetDirectory();
     defaultDir.createDirectory();
@@ -783,6 +898,11 @@ void MainComponent::loadPresetClicked()
         return;
     }
 
+   #if JUCE_ANDROID
+    choosePresetToLoad();
+    return;
+   #endif
+
     auto defaultDir = presetDirectory();
 
     if (! defaultDir.isDirectory())
@@ -848,8 +968,13 @@ void MainComponent::sendPresetLoad (const juce::File& file)
 
 juce::File MainComponent::presetDirectory()
 {
+   #if JUCE_ANDROID
+    // Shared with the GUI server process, which is what writes the file.
+    return android::getExternalFilesDir ("presets");
+   #else
     return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
                .getChildFile ("formuls").getChildFile ("presets");
+   #endif
 }
 
 bool MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
@@ -887,6 +1012,137 @@ bool MainComponent::sendOscToOsc (const juce::String& address, const juce::Strin
                          msg.getData(), (int) msg.getSize()) == (int) msg.getSize();
 }
 
+bool MainComponent::handleBackButton()
+{
+   #if JUCE_ANDROID
+    if (guiPanel.isVisible())
+    {
+        guiPanel.close();
+        return true;
+    }
+
+    // Letting Android handle Back would close the activity -- and with it the
+    // app -- in the middle of playing. Behave like Home instead.
+    if (engine.isRunning())
+    {
+        android::moveToBackground();
+        return true;
+    }
+   #endif
+
+    return false;
+}
+
+#if JUCE_ANDROID
+//==============================================================================
+void MainComponent::prepareAndroidResources()
+{
+    resourcesReady = android::areResourcesReady();
+
+    if (resourcesReady)
+    {
+        updateButtonStates();
+        return;
+    }
+
+    setStatus ("Preparing formuls for first use...");
+    updateButtonStates();
+
+    juce::Thread::launch ([safeThis = juce::Component::SafePointer (this)]
+    {
+        const auto result = android::extractResources();
+
+        juce::MessageManager::callAsync ([safeThis, result]
+        {
+            if (safeThis == nullptr)
+                return;
+
+            safeThis->resourcesReady = result.wasOk();
+            safeThis->setStatus (result.wasOk() ? juce::String ("Ready.")
+                                                : "Could not prepare formuls: " + result.getErrorMessage());
+            safeThis->updateButtonStates();
+        });
+    });
+}
+
+void MainComponent::askForPresetNameThenSave()
+{
+    const auto defaultName = "formuls-" + juce::Time::getCurrentTime().formatted ("%Y-%m-%d-%H%M%S");
+
+    // Deleted by the modal manager when dismissed (see enterModalState
+    // below), after the callback has read the name out of it.
+    auto* window = new juce::AlertWindow ("Save preset", "Name for this preset:",
+                                          juce::MessageBoxIconType::NoIcon, this);
+    window->addTextEditor ("name", defaultName);
+    window->addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
+    window->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+
+    presetDialogOpen = true;
+
+    window->enterModalState (true, juce::ModalCallbackFunction::create (
+        [safeThis = juce::Component::SafePointer (this), window] (int result)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            safeThis->presetDialogOpen = false;
+
+            const auto name = juce::File::createLegalFileName (window->getTextEditorContents ("name").trim());
+
+            if (result == 0 || name.isEmpty())
+            {
+                safeThis->setStatus ("Preset save cancelled.");
+                return;
+            }
+
+            const auto dir = presetDirectory();
+            dir.createDirectory();
+
+            const auto file = dir.getChildFile (name).withFileExtension ("state");
+
+            if (file.existsAsFile())
+                safeThis->confirmOverwriteThenSave (file);
+            else
+                safeThis->sendPresetSave (file);
+        }), true);
+}
+
+void MainComponent::choosePresetToLoad()
+{
+    const auto dir = presetDirectory();
+    auto files = dir.findChildFiles (juce::File::findFiles, false, "*.state");
+
+    if (files.isEmpty())
+    {
+        setStatus ("No presets saved yet.");
+        return;
+    }
+
+    files.sort();
+
+    juce::PopupMenu menu;
+
+    for (int i = 0; i < files.size(); ++i)
+        menu.addItem (i + 1, files.getReference (i).getFileNameWithoutExtension());
+
+    presetDialogOpen = true;
+
+    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&loadPresetButton),
+        [safeThis = juce::Component::SafePointer (this), files] (int chosen)
+        {
+            if (safeThis == nullptr)
+                return;
+
+            safeThis->presetDialogOpen = false;
+
+            if (chosen <= 0)
+                safeThis->setStatus ("Preset load cancelled.");
+            else
+                safeThis->sendPresetLoad (files[chosen - 1]);
+        });
+}
+#endif
+
 void MainComponent::setStatus (const juce::String& message)
 {
     statusLabel.setText (message, juce::dontSendNotification);
@@ -906,12 +1162,22 @@ void MainComponent::updateAddressPanel (bool guiIsRunning)
     // followed by this machine's address on each attached network.
     auto addresses = OpenStageControlProcess::getBrowserAddresses();
 
+   #if JUCE_ANDROID
+    juce::StringArray lines { "Open the control GUI:",
+                              "",
+                              "On this tablet:",
+                              "   tap \"Show control GUI\" below, or go to",
+                              "   " + addresses[0] + " in a browser app",
+                              "",
+                              "On another device on the same network:" };
+   #else
     juce::StringArray lines { "Open the control GUI in a web browser:",
                               "",
                               "On this machine:",
                               "   " + addresses[0],
                               "",
                               "On a tablet or phone on the same network:" };
+   #endif
 
     if (addresses.size() > 1)
     {

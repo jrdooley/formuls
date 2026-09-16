@@ -14,11 +14,19 @@
  * src/app/Builds/... -- the locator walks up from the executable until it
  * finds a folder containing pd/_main.pd (which matches the repository's
  * src/ folder), so the app also runs unbundled.
+ *
+ * On Android the resources travel inside the APK and are unpacked into the
+ * app's private storage (see android::extractResources() in
+ * AndroidPlatform.h); this returns that folder once unpacking has finished.
  */
 
 #pragma once
 
 #include <JuceHeader.h>
+
+#if JUCE_ANDROID
+ #include "AndroidPlatform.h"
+#endif
 
 namespace formuls
 {
@@ -32,6 +40,16 @@ inline juce::File findResourceRoot()
     {
         return dir.getChildFile ("pd").getChildFile ("_main.pd").existsAsFile();
     };
+
+   #if JUCE_ANDROID
+    // There is no bundle or source tree to search on Android: only the
+    // folder the APK's resources were extracted to.
+    if (const auto root = android::getResourceRoot();
+        android::areResourcesReady() && containsResources (root))
+        return root;
+
+    return {};
+   #else
 
     // 1. The packaged app bundle: formuls.app/Contents/Resources
     auto appFile = juce::File::getSpecialLocation (juce::File::currentApplicationFile);
@@ -63,6 +81,7 @@ inline juce::File findResourceRoot()
     }
 
     return {};
+   #endif
 }
 
 } // namespace formuls

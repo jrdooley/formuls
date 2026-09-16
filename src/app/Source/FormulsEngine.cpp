@@ -5,6 +5,13 @@
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"   // patchOscPort
 
+#if JUCE_ANDROID
+// Registers the Pd externals linked into the Android build (the Faust
+// objects and abl_link~), which the desktop builds load from pd/externals
+// instead. See src/android/native/formuls_static_externals.c.
+extern "C" void formuls_setup_static_externals (void);
+#endif
+
 namespace formuls
 {
 
@@ -84,6 +91,12 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
     }
 
     pdOutputChannels = numOutputChannels;
+
+   #if JUCE_ANDROID
+    // Must happen after libpd is initialised and before the patch that uses
+    // the externals is opened. Safe to repeat on a restart.
+    formuls_setup_static_externals();
+   #endif
 
     pd.setReceiver (this);
     pd.subscribe (quitReceiverName);   // lets the patch quit the app

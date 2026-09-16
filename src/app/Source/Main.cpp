@@ -15,11 +15,19 @@
  *
  * Styling: window title, size and all colours are defined in
  * FormulsLookAndFeel.h -- edit that file to restyle the app.
+ *
+ * Android: the window fills the screen, and the Back button is offered to
+ * MainComponent first (see MainComponent::handleBackButton), both from
+ * JUCE's own view and from the embedded control GUI.
  */
 
 #include <JuceHeader.h>
 #include "MainComponent.h"
 #include "FormulsLookAndFeel.h"
+
+#if JUCE_ANDROID
+ #include "AndroidPlatform.h"
+#endif
 
 namespace formuls
 {
@@ -37,12 +45,29 @@ public:
     {
         juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
         mainWindow = std::make_unique<MainWindow> (getApplicationName());
+
+       #if JUCE_ANDROID
+        android::onBackButtonFromWebView = [this] { return backButtonPressed(); };
+       #endif
     }
 
     void shutdown() override
     {
+       #if JUCE_ANDROID
+        android::onBackButtonFromWebView = nullptr;
+       #endif
+
         mainWindow = nullptr;   // stops the engine and the o-s-c process
         juce::LookAndFeel::setDefaultLookAndFeel (nullptr);
+    }
+
+    bool backButtonPressed() override
+    {
+        if (mainWindow != nullptr)
+            if (auto* content = dynamic_cast<MainComponent*> (mainWindow->getContentComponent()))
+                return content->handleBackButton();
+
+        return false;
     }
 
     void systemRequestedQuit() override
@@ -62,8 +87,14 @@ private:
         {
             setUsingNativeTitleBar (true);
             setContentOwned (new MainComponent(), true);
+
+           #if JUCE_ANDROID
+            setFullScreen (true);
+           #else
             setResizable (style::windowResizable, style::windowResizable);
             centreWithSize (getWidth(), getHeight());
+           #endif
+
             setVisible (true);
         }
 

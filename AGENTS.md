@@ -29,6 +29,8 @@ the top of the build script (currently `0.3.0`). Steps:
 
 **Linux** (untested): `./build-linux.sh` — same flow, needs Linux Projucer build, produces a directory not `.app`.
 
+**Android** (experimental, `android-experimental` branch): `./build-android.sh [debug|release]` — needs `ANDROID_HOME` with NDK 28.1.13356709, JDK 17, cmake ≥ 3.25. Produces `formuls-<VERSION>-android-<config>.apk`. Externals are linked statically (`src/android/native`), Open Stage Control runs on nodejs-mobile in a separate `:gui` process, all app differences are behind `#if JUCE_ANDROID` (`AndroidPlatform.h`, `ControlGuiPanel.h`, Java in `src/android/java`). Full write-up: `docs/android/README.md`.
+
 **JUCE not at `~/JUCE`?** Set `PROJUCER=/path/to/Projucer` or update the `MODULEPATH` entries in `src/app/formuls.jucer`.
 
 **No incremental build.** Each run does `rm -rf build/` at the end. Comment out cleanup lines to iterate faster.

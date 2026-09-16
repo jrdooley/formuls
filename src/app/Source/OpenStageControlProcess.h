@@ -48,6 +48,15 @@
  * the .cpp. It must never behave like the old Python front end's
  * "killall node", which would take down a user's editor, Obsidian, or any
  * other node process on the machine.
+ *
+ *
+ * Android
+ * -------
+ * Android apps cannot run a node binary. On Android the same server is run
+ * on nodejs-mobile in a separate process belonging to the app (":gui"), with
+ * the same arguments. Stopping kills that process by name, and the stray-
+ * server sweep becomes "kill any :gui process of ours", which is exact
+ * rather than heuristic. See AndroidPlatform.h and GuiServerService.java.
  */
 
 #pragma once
@@ -116,6 +125,10 @@ public:
 
 private:
     juce::ChildProcess process;
+
+    /** Android only: start() has asked for the ":gui" process. There is no
+        child process object to ask there -- see AndroidPlatform.h. */
+    bool androidServerStarted = false;
 
     /** Where this server's node binary and o-s-c package live. Remembered by
         start() so stop() can sweep with the same paths without having to be

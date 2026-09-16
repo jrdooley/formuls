@@ -100,6 +100,16 @@ namespace style
     constexpr int meterLabelWidth = 12;    // gutter on the left holding the L / R labels
     constexpr int meterLabelGap   = 6;     // gap between a channel label and its bar
 
+    // ------------------------------------------------------------------ Android
+    // On Android the window fills the screen. The controls above keep their
+    // desktop sizes in a column centred on it, with one extra full-width
+    // "Show control GUI" button below the meters.
+    constexpr int androidPanelHeight = windowHeight + buttonHeight + controlSpacing;
+    // The bar above the embedded control GUI (back / reload / open in browser).
+    constexpr int guiToolbarHeight   = 44;
+    constexpr int guiToolbarButtonWidth = 150;
+    static const juce::Colour guiBackground { 0xff000000 };   // behind the GUI while it loads
+
     // ------------------------------------------------------------------ fonts
     constexpr float labelFontHeight   = 15.0f;
     constexpr float buttonFontHeight  = 16.0f;

@@ -26,6 +26,14 @@ libpd, generates and builds the Xcode project for the JUCE app, and produces
 a self-contained `formuls-<version>.app` for the native architecture
 (Apple Silicon or Intel) in the repository root.
 
+### Building for Android (experimental)
+Run `./build-android.sh` (or `./build-android.sh release`) on a macOS or Linux
+host. It needs, in addition to JUCE and faust: the Android SDK (`ANDROID_HOME`)
+with NDK 28.1.13356709, a JDK 17, and cmake 3.25 or newer. It produces
+`formuls-<version>-android-debug.apk`, installable with `adb install -r`.
+Android 9 or later. See `docs/android/README.md` for requirements, how the
+Android build works, and what is still untested.
+
 ### Building for Linux
 Run `./build-linux.sh` (untested port of the macOS script). It requires a
 Linux build of Projucer (from `~/JUCE/extras/Projucer`) and JUCE's Linux

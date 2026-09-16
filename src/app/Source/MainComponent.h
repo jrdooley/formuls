@@ -42,6 +42,22 @@
  * Stopping keeps the app (and this window) alive so a different device or
  * channel count can be chosen and the engine started again.
  *
+ * On Android (see AndroidPlatform.h) the window fills the screen and a few
+ * things differ:
+ *   - the device list offers only Oboe devices, starting with "System Default
+ *     (Output)", which is selected by default and follows Android's routing
+ *     -- a USB-C audio interface, when one is plugged in,
+ *   - a "Show control GUI" button opens the GUI inside the app
+ *     (ControlGuiPanel), which also happens automatically on Start; the
+ *     Take Screenshot slot becomes "Open in browser" for a browser app,
+ *   - Start also starts a foreground service, so sound and GUI keep running
+ *     while formuls is in the background,
+ *   - finished recordings are copied to the shared Music/formuls folder
+ *     instead of opening a save dialog, and presets are named and picked
+ *     in-app instead of through file dialogs,
+ *   - Start stays disabled on first launch until the resources have been
+ *     unpacked from the APK.
+ *
  * Layout metrics and all colours/fonts live in FormulsLookAndFeel.h.
  */
 
@@ -52,6 +68,10 @@
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"
 #include "StereoMeter.h"
+
+#if JUCE_ANDROID
+ #include "ControlGuiPanel.h"
+#endif
 
 namespace formuls
 {
@@ -64,6 +84,12 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
+
+    /** The Android Back button. Returns true if it was handled: it closes the
+        embedded GUI if that is showing, and sends formuls to the background
+        (rather than letting Android close it) while the engine is running.
+        Always false on the desktop. */
+    bool handleBackButton();
 
 private:
     void populateDeviceList();
@@ -127,6 +153,17 @@ private:
         running, or a short hint when it is not. */
     void updateAddressPanel (bool guiIsRunning);
 
+   #if JUCE_ANDROID
+    /** Android: unpack the resources from the APK on a background thread,
+        keeping Start disabled until they are ready. */
+    void prepareAndroidResources();
+
+    /** Android replacements for the file dialogs, which cannot hand back a
+        writable file path there. */
+    void askForPresetNameThenSave();
+    void choosePresetToLoad();
+   #endif
+
     juce::AudioDeviceManager deviceManager;
 
     // Declared before the engine so it outlives the engine's recording tap.
@@ -145,6 +182,12 @@ private:
     juce::TextEditor addressPanel;
     StereoMeter vuMeter;
     juce::Label statusLabel;
+
+   #if JUCE_ANDROID
+    juce::TextButton showGuiButton;
+    ControlGuiPanel guiPanel;
+    bool resourcesReady = false;
+   #endif
 
     // Index-aligned: outputDeviceTypes[i] is the AudioIODeviceType that
     // reported outputDeviceNames[i]. Both are rebuilt by populateDeviceList().

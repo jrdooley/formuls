@@ -32,6 +32,7 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
+| [`android/README.md`](android/README.md) | The experimental Android build (`android-experimental` branch): how to build and use it, and how it differs from the desktop app. |
 | [`../src/app/README.md`](../src/app/README.md) | The JUCE application: source layout, recording, GUI addresses, styling, building, test harness. |
 | [`../src/prebuilt/README.md`](../src/prebuilt/README.md) | Why `abl_link~` ships prebuilt and must not be built locally on macOS. |
 | [`../src/tools/README.md`](../src/tools/README.md) | `brand-osc.sh`, `patch-osc-perf.py`, `bpm-probe`. |

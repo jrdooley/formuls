@@ -27,6 +27,12 @@
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
       <FILE id="srcOB0" name="OscBridge.h" compile="0" resource="0" file="Source/OscBridge.h"/>
       <FILE id="srcOB1" name="OscBridge.cpp" compile="1" resource="0" file="Source/OscBridge.cpp"/>
+      <FILE id="srcAP0" name="AndroidPlatform.h" compile="0" resource="0" file="Source/AndroidPlatform.h"/>
+      <FILE id="srcAP1" name="AndroidPlatform.cpp" compile="1" resource="0"
+            file="Source/AndroidPlatform.cpp"/>
+      <FILE id="srcCG0" name="ControlGuiPanel.h" compile="0" resource="0" file="Source/ControlGuiPanel.h"/>
+      <FILE id="srcCG1" name="ControlGuiPanel.cpp" compile="1" resource="0"
+            file="Source/ControlGuiPanel.cpp"/>
     </GROUP>
     <GROUP id="frmAst" name="Assets">
       <FILE id="astIc0" name="formuls-app-icon-blackwhite.png" compile="0" resource="1"
@@ -42,9 +48,10 @@
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_CURL="0"/>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_USE_CURL="0" JUCE_WEB_BROWSER="0"/>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" smallIcon="astIc0" bigIcon="astIc0"
                externalLibraries="pd" extraLinkerFlags="-Wl,-rpath,@executable_path/../Frameworks -Wl,-rpath,@executable_path/../../../../../../../../libs/libpd/libs">
@@ -63,6 +70,7 @@
         <MODULEPATH id="juce_events" path="../../../../JUCE/modules"/>
         <MODULEPATH id="juce_graphics" path="../../../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="../../../../JUCE/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
@@ -82,8 +90,41 @@
         <MODULEPATH id="juce_events" path="../../../../JUCE/modules"/>
         <MODULEPATH id="juce_graphics" path="../../../../JUCE/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../JUCE/modules"/>
         <MODULEPATH id="juce_osc" path="../../../../JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
+    <ANDROIDSTUDIO targetFolder="Builds/Android" smallIcon="astIc0" bigIcon="astIc0"
+                   externalLibraries="formulspd&#10;pd" androidMinimumSDK="28" androidTargetSDK="35"
+                   androidScreenOrientation="landscape" androidInternetNeeded="1"
+                   androidMicNeeded="0" androidCameraNeeded="0" androidBluetoothScanNeeded="0"
+                   androidBluetoothAdvertiseNeeded="0" androidBluetoothConnectNeeded="0"
+                   androidReadMediaAudioPermission="0" androidReadMediaImagesPermission="0"
+                   androidReadMediaVideoPermission="0" androidExternalWriteNeeded="0"
+                   androidAdditionalJavaFolders="../android/java"
+                   androidExtraAssetsFolder="../../build/android/assets"
+                   androidManifestCustomXmlElements="&lt;manifest&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.FOREGROUND_SERVICE&quot;/&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK&quot;/&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.POST_NOTIFICATIONS&quot;/&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.WAKE_LOCK&quot;/&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.ACCESS_NETWORK_STATE&quot;/&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.ACCESS_WIFI_STATE&quot;/&gt;&#10;  &lt;uses-permission android:name=&quot;android.permission.CHANGE_WIFI_MULTICAST_STATE&quot;/&gt;&#10;  &lt;uses-feature android:name=&quot;android.hardware.usb.host&quot; android:required=&quot;false&quot;/&gt;&#10;  &lt;application android:usesCleartextTraffic=&quot;true&quot; android:largeHeap=&quot;true&quot;&gt;&#10;    &lt;service android:name=&quot;net.formuls.android.FormulsAudioService&quot; android:exported=&quot;false&quot;&#10;             android:foregroundServiceType=&quot;mediaPlayback&quot;/&gt;&#10;    &lt;service android:name=&quot;net.formuls.android.GuiServerService&quot; android:exported=&quot;false&quot;&#10;             android:process=&quot;:gui&quot;/&gt;&#10;  &lt;/application&gt;&#10;&lt;/manifest&gt;&#10;"
+                   androidCustomAppBuildGradleContent="    // Native libraries built by build-android.sh: nodejs-mobile's libnode.so&#10;    // and the formuls_node JNI shim, loaded by GuiServerService.&#10;    sourceSets {&#10;        main.jniLibs.srcDirs += [&quot;../../../../../build/android/jniLibs&quot;]&#10;    }&#10;">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="formuls" androidArchitectures="arm64-v8a x86_64"
+                       headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../../build/android/native/${ANDROID_ABI}"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="formuls" androidArchitectures="arm64-v8a x86_64"
+                       headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../../build/android/native/${ANDROID_ABI}"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../../../JUCE/modules"/>
+      </MODULEPATHS>
+    </ANDROIDSTUDIO>
   </EXPORTFORMATS>
 </JUCERPROJECT>

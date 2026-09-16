@@ -4,6 +4,10 @@
 
 #include "AudioRecorder.h"
 
+#if JUCE_ANDROID
+ #include "AndroidPlatform.h"
+#endif
+
 namespace formuls
 {
 
@@ -18,6 +22,15 @@ AudioRecorder::~AudioRecorder()
 //==============================================================================
 juce::File AudioRecorder::getDefaultRecordingDirectory()
 {
+   #if JUCE_ANDROID
+    // The shared Music folder is not writable by apps on current Android.
+    // Record into the app's own Music folder instead; MainComponent copies
+    // each finished take to the shared Music/formuls folder afterwards.
+    if (auto folder = android::getExternalFilesDir ("Music");
+        folder.isDirectory() || folder.createDirectory().wasOk())
+        return folder;
+   #endif
+
     const juce::File candidates[] =
     {
         juce::File::getSpecialLocation (juce::File::userMusicDirectory),
