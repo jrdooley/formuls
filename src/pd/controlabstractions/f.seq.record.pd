@@ -100,7 +100,7 @@
 #X obj 49 618 spigot 1;
 #X obj 48 27 r master-param-update-throttle;
 #X obj 48 62 t b;
-#X text 167 163 The automation playback clock binds the master parameter throttle directly \, instead of having every f.seq.automater relay it through this abstraction's message inlet and route. The (dollar)0-param-throttle receive to the left is kept so the "paramthrottle" inlet message still works for anything else that sends it.;
+#X text 167 163 The automation playback clock binds the master parameter throttle directly \, instead of having every f.seq.automater relay it through this abstraction's message inlet and route. Nothing sent "paramthrottle" to this abstraction \, so the old (dollar)0-param-throttle receive was removed: that inlet message no longer drives playback.;
 #X connect 0 0 1 0;
 #X connect 0 0 11 0;
 #X connect 1 0 0 1;
