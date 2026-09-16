@@ -1,5 +1,8 @@
 # efficiency-dev: what changed, what it bought, and what is left on the table
 
+> Follow-up: `automater-modulation.md` covers the automaters' cost while chaos, LFO
+> and playback are *running*.
+
 Branch: `efficiency-dev`, cut from `juce-port`. Six code commits, each independently
 verified. Nothing here changes what the instrument does — the two changes that
 alter any number at all are quantified below.

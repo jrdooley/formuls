@@ -135,6 +135,7 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 
 - **`src/tools/patch-osc-perf.py`**: Performance patches to vendored Open Stage Control. Serialises OSC once per broadcast (not per client). Opt-in `--batch-ms N` for WebSocket frame coalescing (off by default — adds client load). Both build scripts apply it automatically.
 - **`src/tools/check-reset-coverage.py`**: Verifies every GUI parameter with chaos/LFO/mod sub-widgets is reset by `f.util.reset.pd`. Run after adding a parameter or renaming a widget. Exits non-zero on mismatch.
+- **`src/tools/automater-load-bench.py`**: CPU cost of N automaters with playback/LFO/chaos running, in deterministic `pd -batch`. Use `--rev` to compare against a commit.
 - **`src/tools/automation-probe.py`**: Records a gesture into one automater, reports value discontinuities. Use `--rev` to compare against a specific commit. No audio device or externals needed.
 - **`src/tools/bpm-probe`**: Loads `_main.pd` under libpd, drives BPM over OSC, measures actual beat rate. Needs a built app's externals. Build instructions in `src/tools/README.md`.
 - **`src/tools/brand-osc.sh`**: Rebrands Open Stage Control's header to formuls. Called by build scripts.
