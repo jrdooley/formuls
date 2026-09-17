@@ -194,6 +194,11 @@ the first one), and prints the GUI addresses and status line to the console.
 It works in normal builds, so it is the way to run formuls with no one at the
 window, e.g. on Linux without a display: `xvfb-run -a ./formuls --start`.
 
+If the engine does not come up -- no audio device at all on a headless box,
+or a device that will not open -- the app prints the reason to stderr and
+exits with status 1 instead of sitting at a window nobody can see, so a
+service manager sees the failure.
+
 ### Test autostart
 
 Building with the preprocessor definition `FORMULS_AUTOSTART_TEST=1` makes the

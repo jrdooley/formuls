@@ -343,6 +343,26 @@ void MainComponent::startOnLaunch()
     // the outcome on the console too.
     juce::Logger::writeToLog ("GUI addresses:\n" + addressPanel.getText());
     juce::Logger::writeToLog ("status: " + statusLabel.getText());
+
+    // A start that failed leaves the app sitting at the window with no engine
+    // and no GUI server -- invisible when there is no window to look at. The
+    // usual cause on a headless box is no audio device at all (the status
+    // line then reads "Please select an audio output device first"), but a
+    // device that will not open reports the same way. Exit non-zero so
+    // whatever launched this -- a service manager, a script -- sees the
+    // failure and can restart or report it, rather than treating a dead app
+    // as a running one.
+    if (! engine.isRunning())
+    {
+        std::fprintf (stderr, "formuls: --start failed: %s\n",
+                      statusLabel.getText().toRawUTF8());
+
+        if (auto* app = juce::JUCEApplication::getInstance())
+        {
+            app->setApplicationReturnValue (1);
+            app->quit();
+        }
+    }
 }
 
 void MainComponent::startStopClicked()

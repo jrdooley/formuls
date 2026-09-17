@@ -68,6 +68,9 @@ public:
     /** Starts the engine and GUI server as if Start had been pressed, on the
         selected (system default) output device, falling back to the first
         one. Logs the GUI addresses and the status line to the console.
+        If the engine does not come up -- no audio device on a headless box,
+        or a device that will not open -- the app quits with exit status 1
+        rather than sitting at a window nobody can see.
         Used by the --start command-line option (see Main.cpp). */
     void startOnLaunch();
 
