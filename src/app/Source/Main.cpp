@@ -35,6 +35,25 @@ public:
 
     void initialise (const juce::String&) override
     {
+       #if JUCE_LINUX || JUCE_BSD
+        // JUCE draws through X11 and segfaults while creating the window when
+        // no X display is available (e.g. an OrbStack or SSH shell), so exit
+        // with a readable message instead.
+        auto* display = std::getenv ("DISPLAY");
+
+        if (display == nullptr || *display == '\0')
+        {
+            std::fprintf (stderr,
+                          "formuls: no X display found (DISPLAY is not set).\n"
+                          "Run it from a desktop session, forward X11, or run it "
+                          "headless with:\n"
+                          "    xvfb-run -a ./formuls\n");
+            setApplicationReturnValue (1);
+            quit();
+            return;
+        }
+       #endif
+
         juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
         mainWindow = std::make_unique<MainWindow> (getApplicationName());
     }
