@@ -30,7 +30,7 @@
 #X connect 11 0 9 0;
 #X restore 17 228 pd MUTE_MESSAGE_ASSEMBLE;
 #X obj 108 143 s reverb\$1;
-#X obj 17 164 f.util.oscformat \$0 \$1 panning 0.5;
+#X obj 17 164 f.util.oscformat \$0 \$1 panning 0.5 0 0 1;
 #N canvas 771 87 293 291 VOLUME_TO_FAUST_ACTIVE 0;
 #X obj 74 71 > 0;
 #X obj 121 93 s \$0-volume;
@@ -80,7 +80,7 @@
 #X connect 7 0 6 0;
 #X connect 7 0 5 0;
 #X restore 17 293 pd RESET________________;
-#X obj 17 185 f.util.oscformat \$0 \$1 volume 0 0 2.7;
+#X obj 17 185 f.util.oscformat \$0 \$1 volume 0 0 2.7 1;
 #N canvas 589 279 545 455 envelopesidechain 0;
 #X obj 53 37 inlet;
 #X obj 53 58 route envelopesidechain\$1 envelopesidechainmod\$1 envelopesidechainmoddepth\$1;
