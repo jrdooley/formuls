@@ -187,6 +187,13 @@ module paths (or edit the `MODULEPATH` entries in the file).
 `Builds/LinuxMakefile` exporter and ships `libpd.so` in a `libs/` folder next
 to the binary (matching the `$ORIGIN/libs` rpath set in `formuls.jucer`).
 
+### Starting from the command line
+
+`--start` presses Start on launch, using the system default output device (or
+the first one), and prints the GUI addresses and status line to the console.
+It works in normal builds, so it is the way to run formuls with no one at the
+window, e.g. on Linux without a display: `xvfb-run -a ./formuls --start`.
+
 ### Test autostart
 
 Building with the preprocessor definition `FORMULS_AUTOSTART_TEST=1` makes the

@@ -65,6 +65,12 @@ public:
     void paint (juce::Graphics& g) override;
     void resized() override;
 
+    /** Starts the engine and GUI server as if Start had been pressed, on the
+        selected (system default) output device, falling back to the first
+        one. Logs the GUI addresses and the status line to the console.
+        Used by the --start command-line option (see Main.cpp). */
+    void startOnLaunch();
+
 private:
     void populateDeviceList();
     void startStopClicked();

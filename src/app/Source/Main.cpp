@@ -10,6 +10,8 @@
  *   - Quitting destroys MainComponent, whose destructor stops the audio
  *     engine and kills the Open Stage Control child process, so nothing is
  *     left running behind.
+ *   - Launching with --start presses Start automatically (see
+ *     MainComponent::startOnLaunch), for running without a visible window.
  *   - The Pd patch can also quit the app by sending to "formuls-quit"
  *     (see FormulsEngine.h); that ends up in the exact same code path.
  *
@@ -33,7 +35,7 @@ public:
     const juce::String getApplicationVersion() override    { return ProjectInfo::versionString; }
     bool moreThanOneInstanceAllowed() override             { return false; }
 
-    void initialise (const juce::String&) override
+    void initialise (const juce::String& commandLine) override
     {
        #if JUCE_LINUX || JUCE_BSD
         // JUCE draws through X11 and segfaults while creating the window when
@@ -56,6 +58,18 @@ public:
 
         juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
         mainWindow = std::make_unique<MainWindow> (getApplicationName());
+
+        // --start presses Start on launch, so formuls can run without anyone
+        // at the window (e.g. "xvfb-run -a ./formuls --start").
+        if (juce::StringArray::fromTokens (commandLine, true).contains ("--start"))
+        {
+            juce::MessageManager::callAsync ([this]
+            {
+                if (mainWindow != nullptr)
+                    if (auto* content = dynamic_cast<MainComponent*> (mainWindow->getContentComponent()))
+                        content->startOnLaunch();
+            });
+        }
     }
 
     void shutdown() override

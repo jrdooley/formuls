@@ -32,3 +32,11 @@ Linux Projucer (`~/JUCE/Projucer` from the JUCE download, or one built from
 `~/JUCE/extras/Projucer`) and JUCE's Linux dependencies, and produces a
 `formuls-<version>-linux-<arch>` folder (`x64` or `arm64`) containing the
 binary plus its `pd/`, `gui/` and `libs/` resources.
+
+formuls needs an X display. Without one (an SSH or OrbStack shell, say), run
+it under a virtual display and pass `--start` to press Start automatically,
+then open the control GUI at the address it prints:
+
+```bash
+xvfb-run -a ./formuls --start
+```

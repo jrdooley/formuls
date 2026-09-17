@@ -141,12 +141,6 @@ MainComponent::MainComponent()
     {
         if (safeThis != nullptr && ! safeThis->engine.isRunning())
         {
-            // Only fall back to the first device if populateDeviceList()
-            // could not work out the system default, so the test path
-            // exercises the same selection a user would see.
-            if (safeThis->audioDeviceBox.getSelectedId() <= 0)
-                safeThis->audioDeviceBox.setSelectedId (1);
-
             // FORMULS_TEST_SAMPLERATE / FORMULS_TEST_CHANNELS override the
             // combo boxes, so non-default rates and channel counts can be
             // tested without clicking.
@@ -160,12 +154,7 @@ MainComponent::MainComponent()
                 channels > 0)
                 safeThis->channelsBox.setSelectedId (channels);
 
-            safeThis->startStopClicked();
-
-            juce::Logger::writeToLog ("GUI addresses:\n"
-                                      + safeThis->addressPanel.getText());
-            juce::Logger::writeToLog ("status: "
-                                      + safeThis->statusLabel.getText());
+            safeThis->startOnLaunch();
 
             // FORMULS_TEST_RECORD_SECONDS records for that long and finishes
             // the file without a save dialog, so the recorder can be checked
@@ -335,6 +324,25 @@ void MainComponent::populateDeviceList()
 
     if (defaultRow >= 0)
         audioDeviceBox.setSelectedId (defaultRow + 1, juce::dontSendNotification);
+}
+
+void MainComponent::startOnLaunch()
+{
+    if (engine.isRunning())
+        return;
+
+    // Only fall back to the first device if populateDeviceList() could not
+    // work out the system default, so this starts on the same device a user
+    // would see selected.
+    if (audioDeviceBox.getSelectedId() <= 0 && audioDeviceBox.getNumItems() > 0)
+        audioDeviceBox.setSelectedId (1, juce::dontSendNotification);
+
+    startEverything();
+
+    // Nobody may be looking at the window (e.g. under xvfb-run), so report
+    // the outcome on the console too.
+    juce::Logger::writeToLog ("GUI addresses:\n" + addressPanel.getText());
+    juce::Logger::writeToLog ("status: " + statusLabel.getText());
 }
 
 void MainComponent::startStopClicked()
