@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # Linux build script for the formuls JUCE app.
 # NOTE: untested -- adapted from the macOS build. You need a Linux build of
 # Projucer (see ~/JUCE/extras/Projucer) plus the JUCE Linux dependencies
@@ -8,6 +8,17 @@
 set -e
 
 VERSION="0.3.1"
+
+# Target architecture, named the way Node's downloads name it. Everything
+# else is compiled natively, so it matches too. Used for the Node download
+# and the output folder name. To build x64 on Apple Silicon, run this inside
+# an x64 OrbStack machine (orb create --arch amd64 ...).
+case "$(uname -m)" in
+    x86_64|amd64)  ARCH="x64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+esac
+OUT="formuls-$VERSION-linux-$ARCH"
 ROOT="$(pwd)"
 PROJUCER="${PROJUCER:-$HOME/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer}"
 
@@ -65,12 +76,14 @@ sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION
 # than it saves. Both measured in docs/gui/README.md.
 python3 "$ROOT/src/tools/patch-osc-perf.py" "$ROOT/build/gui/open-stage-control"
 
+NODE_PKG="node-v22.17.0-linux-$ARCH"
+
 cd "$ROOT/build"
-wget https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz
-tar -xf node-v22.17.0-linux-x64.tar.xz
-cp node-v22.17.0-linux-x64/bin/node "$ROOT/build/gui/node"
+wget "https://nodejs.org/dist/v22.17.0/$NODE_PKG.tar.xz"
+tar -xf "$NODE_PKG.tar.xz"
+cp "$NODE_PKG/bin/node" "$ROOT/build/gui/node"
 chmod +x "$ROOT/build/gui/node"
-rm -rf node-v22.17.0-linux-x64*
+rm -rf "$NODE_PKG"*
 
 # build libpd (the shared library the JUCE app links against)
 cd "$ROOT/src/libs/libpd"
@@ -128,12 +141,12 @@ make CONFIG=Release
 # assemble the distributable folder; libpd.so sits in libs/ next to the
 # binary, matching the $ORIGIN/libs rpath set in formuls.jucer
 cd "$ROOT"
-rm -rf "formuls-$VERSION-linux"
-mkdir -p "formuls-$VERSION-linux/libs"
-cp src/app/Builds/LinuxMakefile/build/formuls "formuls-$VERSION-linux/"
-cp -r build/pd "formuls-$VERSION-linux/pd"
-cp -r build/gui "formuls-$VERSION-linux/gui"
-cp src/libs/libpd/libs/libpd.so "formuls-$VERSION-linux/libs/"
+rm -rf "$OUT"
+mkdir -p "$OUT/libs"
+cp src/app/Builds/LinuxMakefile/build/formuls "$OUT/"
+cp -r build/pd "$OUT/pd"
+cp -r build/gui "$OUT/gui"
+cp src/libs/libpd/libs/libpd.so "$OUT/libs/"
 
 # clean up build files
 rm -rf build/
@@ -145,5 +158,5 @@ rm -f libs/libpd.so
 cd "$ROOT/src/libs/abl_link/external"
 make clean
 
-echo "Done: $ROOT/formuls-$VERSION-linux"
+echo "Done: $ROOT/$OUT"
 exit 0

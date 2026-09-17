@@ -29,5 +29,5 @@ a self-contained `formuls-<version>.app` for the native architecture
 ### Building for Linux
 Run `./build-linux.sh` (untested port of the macOS script). It requires a
 Linux build of Projucer (from `~/JUCE/extras/Projucer`) and JUCE's Linux
-dependencies, and produces a `formuls-<version>-linux` folder containing the
+dependencies, and produces a `formuls-<version>-linux-<arch>` folder (`x64` or `arm64`) containing the
 binary plus its `pd/`, `gui/` and `libs/` resources.

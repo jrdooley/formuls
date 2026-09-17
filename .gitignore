@@ -7,7 +7,7 @@ build/
 
 # Packaged applications produced by the build scripts
 /formuls-*.app/
-/formuls-*-linux/
+/formuls-*-linux-*/
 *.app/
 
 # JUCE: Projucer regenerates both of these from src/app/formuls.jucer
