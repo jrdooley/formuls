@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Linux build script for the formuls JUCE app.
-# NOTE: untested -- adapted from the macOS build. You need a Linux build of
-# Projucer (see ~/JUCE/extras/Projucer) plus the JUCE Linux dependencies
-# (see JUCE/docs/Linux Dependencies.md), faust, wget, and python3.
+# NOTE: untested -- adapted from the macOS build. You need JUCE at ~/JUCE
+# (its Projucer binary, or one built from extras/Projucer) plus the JUCE
+# Linux dependencies (see JUCE/docs/Linux Dependencies.md), faust, wget,
+# and python3.
 # Run from the repository root:  ./build-linux.sh
 
 set -e
@@ -20,11 +21,24 @@ case "$(uname -m)" in
 esac
 OUT="formuls-$VERSION-linux-$ARCH"
 ROOT="$(pwd)"
-PROJUCER="${PROJUCER:-$HOME/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer}"
+# The JUCE download ships a ready-made Projucer at ~/JUCE/Projucer; a Projucer
+# built from source lands under extras/. Use the first that exists, unless
+# PROJUCER is set.
+if [[ -z "$PROJUCER" ]]; then
+    for candidate in \
+        "$HOME/JUCE/Projucer" \
+        "$HOME/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer"; do
+        if [[ -x "$candidate" ]]; then
+            PROJUCER="$candidate"
+            break
+        fi
+    done
+fi
 
 if [[ ! -x "$PROJUCER" ]]; then
-    echo "Projucer not found at: $PROJUCER"
-    echo "Build it from ~/JUCE/extras/Projucer, or set PROJUCER to your Projucer binary."
+    echo "Projucer not found at ~/JUCE/Projucer or"
+    echo "~/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer."
+    echo "Install JUCE at ~/JUCE, or set PROJUCER to your Projucer binary."
     exit 1
 fi
 
@@ -52,8 +66,10 @@ faust2puredata -vec -lv 0 -vs 4 -clang f_repeater.dsp f_reverb.dsp formuls.dsp
 mv *.pd_linux ../../build/pd/externals
 
 # build ableton link (abl_link~) pd external
+# pd-lib-builder only looks for Pd's headers (m_pd.h) in system locations
+# such as /usr/include/pd, so point it at the Pd source bundled with libpd.
 cd "$ROOT/src/libs/abl_link/external"
-make
+make pdincludepath="$ROOT/src/libs/libpd/pure-data/src"
 mv abl_link~.pd_linux "$ROOT/build/pd/externals"
 
 # Download open stage control and nodejs into build/, not into src/gui/:
