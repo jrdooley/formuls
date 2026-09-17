@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="frmls0" name="formuls" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.3.0"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.3.1"
               companyName="formuls" bundleIdentifier="net.formuls.formuls"
               cppLanguageStandard="17" projectLineFeed="&#10;">
   <MAINGROUP id="frmlsG" name="formuls">
