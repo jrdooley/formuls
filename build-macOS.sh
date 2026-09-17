@@ -8,7 +8,7 @@
 
 set -e
 
-VERSION="0.3.0"
+VERSION="0.3.1"
 ROOT="$(pwd)"
 PROJUCER="${PROJUCER:-$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer}"
 

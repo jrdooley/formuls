@@ -242,3 +242,17 @@ silently changing the result.
   `VALUE_READ_EVOLUTION_SEND` only ever receives bare floats, so it passes them
   straight through; whether a step is audible depends entirely on whether the
   Faust parameter carries `si.smoo`.
+
+## automater-load-bench.py
+
+Measures what N `f.seq.automater` instances cost while they modulate (automation
+playback, LFO, chaos, in any combination), plus the number of values each one
+sends towards Faust per second. It runs Pd in `-batch` mode, so the figures are
+deterministic, and needs no audio device or built app:
+
+```bash
+python3 src/tools/automater-load-bench.py -n 400 --modes playback lfo chaos
+python3 src/tools/automater-load-bench.py -n 400 --modes chaos --rev HEAD~1
+```
+
+See `docs/efficiency/automater-modulation.md` for the results it produced.
