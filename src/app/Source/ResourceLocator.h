@@ -33,12 +33,19 @@ inline juce::File findResourceRoot()
         return dir.getChildFile ("pd").getChildFile ("_main.pd").existsAsFile();
     };
 
-    // 1. The packaged app bundle: formuls.app/Contents/Resources
+    // 1a. macOS packaged app bundle: formuls.app/Contents/Resources
     auto appFile = juce::File::getSpecialLocation (juce::File::currentApplicationFile);
     auto bundleResources = appFile.getChildFile ("Contents").getChildFile ("Resources");
 
     if (containsResources (bundleResources))
         return bundleResources;
+
+    // 1b. Windows / Linux flat layout: resources sit next to the executable.
+    auto exeDir = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+                      .getParentDirectory();
+
+    if (containsResources (exeDir))
+        return exeDir;
 
     // 2. Development fallback: walk up from the executable looking for the
     //    resources directly (e.g. a "build" staging folder) or inside a
