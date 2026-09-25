@@ -26277,7 +26277,7 @@
                   0
                 ],
                 "autoClear": true,
-                "continuous": false,
+                "continuous": true,
                 "comments": "",
                 "address": "auto",
                 "preArgs": "",
