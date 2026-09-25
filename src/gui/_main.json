@@ -25767,7 +25767,7 @@
                 "lock": false,
                 "borderRadius": "auto",
                 "onTouch": "if (event.type == 'start') { set('this', 1) } else if (event.type == 'stop') { set('this', 0) }",
-                "onDraw": "if (typeof context == 'undefined') return; context.fillStyle = value[0] ? 'rgba(255,119,0,1)' : 'rgba(255,119,0,0.35)'; context.fillRect(0, 0, width, height); context.strokeStyle = 'rgba(255,119,0,1)'; context.lineWidth = 5; context.strokeRect(2.5, 2.5, width-5, height-5)"
+                "onDraw": "if (typeof ctx == 'undefined') return; ctx.fillStyle = value[0] ? 'rgba(255,119,0,1)' : 'rgba(255,119,0,0.35)'; ctx.fillRect(0, 0, width, height); ctx.strokeStyle = 'rgba(255,119,0,1)'; ctx.lineWidth = 5; ctx.strokeRect(2.5, 2.5, width-5, height-5)"
               },
               {
                 "type": "button",
