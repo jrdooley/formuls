@@ -15070,7 +15070,7 @@
                         "wrap": false,
                         "on": 1,
                         "off": 0,
-                        "mode": "push",
+                        "mode": "toggle",
                         "comments": "",
                         "onValue": "",
                         "onCreate": "",
