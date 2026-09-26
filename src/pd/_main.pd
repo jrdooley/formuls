@@ -1,8 +1,8 @@
-#N canvas 31 501 211 209 10;
+#N canvas 39 491 211 209 10;
 #X declare -path controlabstractions;
 #X declare -path externals;
 #X declare -path audioabstractions;
-#N canvas 260 398 268 182 CONTROL_TRIPES_ 0;
+#N canvas 265 496 268 182 CONTROL_TRIPES_ 0;
 #N canvas 693 424 550 427 OPEN_STAGE_CONTROL_RECEIVE_ 0;
 #X msg 36 328 \; formuls-quit bang;
 #X obj 36 305 del 500;
@@ -124,7 +124,7 @@
 #X obj 78 122 f.formuls \$0 5;
 #X obj 78 142 f.formuls \$0 6;
 #X restore 28 105 pd FORMULS_MESSAGES___________;
-#N canvas 794 594 452 360 O-S-C_&_FORMULS_SEND_______ 0;
+#N canvas 674 480 452 360 O-S-C_&_FORMULS_SEND_______ 0;
 #X obj 33 24 r to-o-s-c-interface;
 #X obj 33 73 list prepend send;
 #X obj 33 94 list trim;
@@ -1202,8 +1202,8 @@
 #X msg 125 302 bpm \$1;
 #X obj 47 58 route seqonglobal bpm bpmhold bpmhalftime pitchroot;
 #X obj 107 211 / 240;
-#X msg 288 222 110;
 #X obj 288 201 r resetglobal;
+#X msg 288 222 110;
 #X connect 1 0 2 0;
 #X connect 2 0 0 0;
 #X connect 2 0 3 0;
@@ -1220,8 +1220,8 @@
 #X connect 16 4 8 0;
 #X connect 16 5 7 0;
 #X connect 17 0 4 0;
-#X connect 18 0 17 0;
-#X connect 19 0 18 0;
+#X connect 18 0 19 0;
+#X connect 19 0 17 0;
 #X restore 63 134 pd TEMPO_&_PITCH________;
 #X obj 78 106 print OSC-Received;
 #X connect 1 0 8 0;
