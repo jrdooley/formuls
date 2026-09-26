@@ -496,8 +496,8 @@
 #X obj 163 232 r \$0-reset;
 #X obj 15 44 spigot 1;
 #X obj 60 22 == 0;
-#X obj 60 0 r \$0-record;
-#X text 180 40 The clockin gate: no beat reaches playback while record is on. Otherwise the first beat during a take starts the read head underneath it \, and releasing record switches the parameter onto that head mid-gesture - an audible click whose size depends on when record was pressed. With the gate the parameter holds its last live value until the next beat after release \, then playback starts from the beginning of the take.;
+#X obj 60 0 r \$0-record-on-off;
+#X text 180 40 The clockin gate: no beat reaches playback while THIS parameter is taking a gesture (record-on-off \, not the global record arm - every automater receives that \, so gating on it stopped every other playing automation). Otherwise the first beat during a take starts the read head underneath it \, and releasing record switches the parameter onto that head mid-gesture - an audible click whose size depends on when record was pressed. With the gate the parameter holds its last live value until the next beat after release \, then playback starts from the beginning of the take.;
 #X connect 0 0 24 0;
 #X connect 1 0 0 1;
 #X connect 2 0 3 0;
