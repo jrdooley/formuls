@@ -238,13 +238,13 @@
 #X obj 756 248 oscformat seqtimebasemultiply\$1;
 #X obj 672 62 route timebase timebasemultiply seqlength seqrandomadd seqcycle;
 #X obj 911 106 oscformat seqcycle\$1;
-#N canvas 0 38 318 447 SEQ_STEP_CLEAR____ 0;
+#N canvas 0 38 482 447 SEQ_STEP_CLEAR____ 0;
 #X obj 41 38 inlet;
-#X obj 66 337 s to-o-s-c-interface;
-#X obj 66 211 unpack f f;
-#X obj 123 231 pack f \$1;
-#X obj 66 316 oscformat;
-#X obj 66 189 r \$2-seq-clear-\$1;
+#X obj 76 337 s to-o-s-c-interface;
+#X obj 76 211 unpack f f;
+#X obj 133 239 pack f \$1;
+#X obj 76 316 oscformat;
+#X obj 76 189 r \$2-seq-clear-\$1;
 #X obj 41 117 until;
 #X obj 41 138 i;
 #X obj 84 138 + 1;
@@ -252,8 +252,13 @@
 #X msg 79 113 0;
 #X obj 41 159 t b f;
 #X msg 41 180 0;
-#X msg 122 252 set seqwrite\$2-\$1;
+#X msg 132 260 set seqwrite\$2-\$1;
 #X msg 41 72 128;
+#X obj 276 250 pack f \$1;
+#X obj 249 308 oscformat;
+#X obj 249 200 t b f;
+#X msg 249 221 0;
+#X msg 275 271 set seqwriteoff\$2-\$1;
 #X connect 0 0 14 0;
 #X connect 2 0 4 0;
 #X connect 2 1 3 0;
@@ -263,6 +268,7 @@
 #X connect 6 0 7 0;
 #X connect 7 0 11 0;
 #X connect 7 0 8 0;
+#X connect 7 0 17 0;
 #X connect 8 0 7 1;
 #X connect 9 0 6 0;
 #X connect 9 1 10 0;
@@ -272,6 +278,12 @@
 #X connect 12 0 4 0;
 #X connect 13 0 4 0;
 #X connect 14 0 9 0;
+#X connect 15 0 19 0;
+#X connect 16 0 1 0;
+#X connect 17 0 18 0;
+#X connect 17 1 15 0;
+#X connect 18 0 16 0;
+#X connect 19 0 16 0;
 #X restore 566 168 pd SEQ_STEP_CLEAR____;
 #N canvas 0 38 318 363 SEQ_ACTIVE_CLEAR___ 0;
 #X obj 41 38 inlet;
@@ -461,18 +473,14 @@
 #X connect 41 0 12 0;
 #X connect 42 0 32 0;
 #X connect 43 0 23 0;
-#X connect 45 0 24 0;
 #X connect 44 0 43 0;
+#X connect 45 0 24 0;
 #X restore 33 126 pd FX________;
 #X text 141 78 \$3 = formuls;
 #X text 141 94 \$4 = flooper;
 #N canvas 1061 86 640 900 LFO_MOD_CHAOS 0;
 #X obj 20 20 inlet;
-#X text 20 44 One line per parameter that carries chaos \, LFO and mod
-sub-widgets in the interface. The name must match the widget name in
-gui/_main.json exactly \, and the third argument says whether that widget
-has a mod matrix. src/tools/check-reset-coverage.py checks both against
-the interface file \, so drift here is caught rather than shipped.;
+#X text 20 44 One line per parameter that carries chaos \, LFO and mod sub-widgets in the interface. The name must match the widget name in gui/_main.json exactly \, and the third argument says whether that widget has a mod matrix. src/tools/check-reset-coverage.py checks both against the interface file \, so drift here is caught rather than shipped.;
 #X text 20 140 sliders and splits -- fader chaos/LFO \, 6-way mod matrix;
 #X obj 40 162 f.util.lfoguireset \$1 amwave 1;
 #X obj 40 182 f.util.lfoguireset \$1 attack 1;

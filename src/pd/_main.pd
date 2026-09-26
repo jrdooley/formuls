@@ -1,9 +1,9 @@
-#N canvas 39 491 211 209 10;
+#N canvas 39 589 211 209 10;
 #X declare -path controlabstractions;
 #X declare -path externals;
 #X declare -path audioabstractions;
-#N canvas 265 496 268 182 CONTROL_TRIPES_ 0;
-#N canvas 693 424 550 427 OPEN_STAGE_CONTROL_RECEIVE_ 0;
+#N canvas 265 594 268 182 CONTROL_TRIPES_ 0;
+#N canvas 693 522 550 427 OPEN_STAGE_CONTROL_RECEIVE_ 0;
 #X msg 36 328 \; formuls-quit bang;
 #X obj 36 305 del 500;
 #X msg 49 263 pd quit;
