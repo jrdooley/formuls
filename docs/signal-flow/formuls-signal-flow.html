@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>formuls Signal Flow</title>
+<style>
+:root{--bg:#fff;--fg:#1c1c1e;--mute:#6b6b70;--line:#8a8a90;--panel:#f4f4f6;
+--c-syn:#e3ecff;--c-syn-s:#3b6fd4;--c-env:#fff0d9;--c-env-s:#c47a00;--c-fx:#e6f5e0;--c-fx-s:#3f8f2f;--c-ctl:#f0e6fa;--c-ctl-s:#7d4bb0;--c-mod:#ffe3e3;--c-mod-s:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#161618;--fg:#ececf0;--mute:#a0a0a8;--line:#77777f;--panel:#212125;
+--c-syn:#1f2f52;--c-syn-s:#7aa2ff;--c-env:#4a3510;--c-env-s:#f0b04d;--c-fx:#1f3a1b;--c-fx-s:#7fd06a;--c-ctl:#36254a;--c-ctl-s:#c39bf0;--c-mod:#4a2222;--c-mod-s:#ff8f85}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 -apple-system,system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:26px;margin:0 0 4px}h2{font-size:19px;margin:40px 0 8px}
+p,li{max-width:74ch}.sub{color:var(--mute);margin:0 0 20px}
+code{background:var(--panel);padding:1px 5px;border-radius:4px;font-size:.9em}
+svg{width:100%;height:auto;display:block;margin:12px 0;background:var(--panel);border-radius:8px}
+svg text{fill:var(--fg);font:11px -apple-system,system-ui,sans-serif}
+svg .s{fill:var(--mute);font-size:9.5px}svg .b{font-weight:600}svg .h{font-size:13px;font-weight:700}
+.bx{stroke-width:1.5}.syn{fill:var(--c-syn);stroke:var(--c-syn-s)}.env{fill:var(--c-env);stroke:var(--c-env-s)}
+.fx{fill:var(--c-fx);stroke:var(--c-fx-s)}.ctl{fill:var(--c-ctl);stroke:var(--c-ctl-s)}.mod{fill:var(--c-mod);stroke:var(--c-mod-s)}
+.ln{stroke:var(--line);stroke-width:1.6;fill:none;marker-end:url(#a)}
+.lm{stroke:var(--c-mod-s);stroke-width:1.6;fill:none;stroke-dasharray:5 3;marker-end:url(#am)}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.note{background:var(--panel);border-left:4px solid var(--c-env-s);padding:8px 14px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+<h1>formuls signal flow</h1>
+<p class="sub">Audio network of <code>src/faust/formuls.dsp</code> (compiled to the Pd external <code>formuls~</code>) and how six instances are wired in <code>src/pd/</code>. Derived from <code>formuls.dsp</code>, <code>fsynth.lib</code>, <code>ffx.lib</code>, <code>_main.pd</code>, <code>f.formuls~.pd</code> and <code>f.audio.*modroute~.pd</code>.</p>
+
+<h2>Summary</h2>
+<ul>
+<li><b>One instance is a complete voice bank:</b> a 20-voice round-robin FM oscillator bank (carrier plus an internal sine modulator, per-voice ADSR), then a 9-stage effects chain, envelope follower, volume, pan and mute. That is the whole of <code>process(mod, env)</code>.</li>
+<li><b>Two audio inputs:</b> <code>mod</code> frequency-modulates the oscillators; <code>env</code> drives the envelope follower / sidechain that scales the instance output.</li>
+<li><b>Six instances are not a fixed serial chain.</b> Each wrapper (<code>f.formuls~</code>) contains two routing matrices (<code>f.audio.modroute~</code>) that let every instance pick which of the six instances (or none) feeds its <code>mod</code> input and which feeds its <code>env</code> input. The <code>connect</code> chain 1&rarr;2&rarr;&hellip;&rarr;6 in <code>AUDIO_TRIPES</code> is the control-message pass-through, not audio.</li>
+<li><b>Master bus</b> (per AGENTS.md, only reverb and repeater are compiled): instance outputs go to a reverb send, the rolling freezer/repeater, and the DAC.</li>
+<li><b>Modulation is multiplicative on frequency:</b> the external input scales the instantaneous frequency by <code>(1 + input &times; extmodulation)</code>, and the internal modulator adds a relative sine term.</li>
+</ul>
+
+<h2>1. System level: six instances and the routing matrices</h2>
+<svg viewBox="0 0 960 400" role="img" aria-label="Six formuls~ instances with modulation and envelope routing matrices, feeding a master bus">
+<defs>
+<marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="var(--line)"/></marker>
+<marker id="am" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="var(--c-mod-s)"/></marker>
+</defs>
+<text class="h" x="16" y="24">Control: OSC from GUI (port 9000) &rarr; Pd &rarr; per-instance messages (formulsN prefix)</text>
+<rect class="bx ctl" x="16" y="36" width="928" height="30" rx="5"/>
+<text x="480" y="56" text-anchor="middle">route formulsN &rarr; sliders on formuls~ N (volume, fxsend, oscfreq, adsr, fx&hellip;) &nbsp;|&nbsp; triggerx via f.trig &nbsp;|&nbsp; extmodulationsource / envsidesource select matrix routing</text>
+
+<g class="b">
+<rect class="bx syn" x="16"  y="120" width="130" height="90" rx="6"/><text x="81"  y="150" text-anchor="middle">formuls~ 1</text>
+<rect class="bx syn" x="166" y="120" width="130" height="90" rx="6"/><text x="231" y="150" text-anchor="middle">formuls~ 2</text>
+<rect class="bx syn" x="316" y="120" width="130" height="90" rx="6"/><text x="381" y="150" text-anchor="middle">formuls~ 3</text>
+<rect class="bx syn" x="466" y="120" width="130" height="90" rx="6"/><text x="531" y="150" text-anchor="middle">formuls~ 4</text>
+<rect class="bx syn" x="616" y="120" width="130" height="90" rx="6"/><text x="681" y="150" text-anchor="middle">formuls~ 5</text>
+<rect class="bx syn" x="766" y="120" width="130" height="90" rx="6"/><text x="831" y="150" text-anchor="middle">formuls~ 6</text>
+</g>
+<g class="s" text-anchor="middle">
+<text x="81" y="170">in1 mod &middot; in2 env</text><text x="81" y="186">out: L R + mod copy</text>
+<text x="231" y="170">in1 mod &middot; in2 env</text><text x="231" y="186">out: L R + mod copy</text>
+<text x="381" y="170">in1 mod &middot; in2 env</text><text x="381" y="186">out: L R + mod copy</text>
+<text x="531" y="170">in1 mod &middot; in2 env</text><text x="531" y="186">out: L R + mod copy</text>
+<text x="681" y="170">in1 mod &middot; in2 env</text><text x="681" y="186">out: L R + mod copy</text>
+<text x="831" y="170">in1 mod &middot; in2 env</text><text x="831" y="186">out: L R + mod copy</text>
+</g>
+
+<rect class="bx mod" x="16" y="82" width="880" height="26" rx="5"/>
+<text x="456" y="99" text-anchor="middle" class="b">Routing matrices (f.audio.modroute~): each instance picks 1 of 6 mod-copy signals (r~ N-m) for in1, and independently 1 of 6 for in2 (or none)</text>
+<path class="lm" d="M81 108V120"/><path class="lm" d="M231 108V120"/><path class="lm" d="M381 108V120"/>
+<path class="lm" d="M531 108V120"/><path class="lm" d="M681 108V120"/><path class="lm" d="M831 108V120"/>
+
+<path class="ln" d="M81 210V250"/><path class="ln" d="M231 210V250"/><path class="ln" d="M381 210V250"/>
+<path class="ln" d="M531 210V250"/><path class="ln" d="M681 210V250"/><path class="ln" d="M831 210V250"/>
+<path class="lm" d="M40 210V232H10V108" style="stroke-dasharray:2 4"/>
+<text x="16" y="228" class="s">mod copies (N-m) back to matrix</text>
+
+<text class="h" x="16" y="244">Master bus (in _main.pd: MASTER_BUS_FX_+_AUDIO_OUT)</text>
+<rect class="bx fx" x="16"  y="256" width="220" height="60" rx="6"/><text x="126" y="280" text-anchor="middle" class="b">Reverb send</text><text x="126" y="298" text-anchor="middle" class="s">rev-l / rev-r (f_reverb)</text>
+<rect class="bx fx" x="256" y="256" width="260" height="60" rx="6"/><text x="386" y="280" text-anchor="middle" class="b">Rolling freezer + repeater</text><text x="386" y="298" text-anchor="middle" class="s">input select from N-m-l / N-m-r</text>
+<rect class="bx fx" x="536" y="256" width="200" height="60" rx="6"/><text x="636" y="280" text-anchor="middle" class="b">Limiter buses + safety</text><text x="636" y="298" text-anchor="middle" class="s">sums dry, freezer, repeater, reverb</text>
+<rect class="bx ctl" x="756" y="256" width="188" height="60" rx="6"/><text x="850" y="280" text-anchor="middle" class="b">DAC (2 or 14 ch)</text><text x="850" y="298" text-anchor="middle" class="s">1-8 mix + stems; 9-14 per-synth mono</text>
+<path class="ln" d="M236 286H256"/><path class="ln" d="M516 286H536"/><path class="ln" d="M736 286H756"/>
+<text x="16" y="350" class="s">Legend: blue = synth instance, red dashed = modulation audio routing, green = effects / bus, purple = control / output.</text>
+<text x="16" y="366" class="s">Signal names and the freezer/repeater/reverb wiring are detailed in section 4.</text>
+</svg>
+
+<h2>2. Inside one instance: <code>process(mod, env)</code></h2>
+<p><code>process(mod,env) = fs.synth(mod) : fx.fx : *(env : fx.envelopefollower) : volume &lt;: fx.panner &lt;: *(mute),*(mute),_,_</code></p>
+<svg viewBox="0 0 960 470" role="img" aria-label="Signal flow inside one formuls~ instance">
+<text class="h" x="16" y="22">A. Synth core (fsynth.lib &rarr; synth)</text>
+<rect class="bx mod" x="16" y="40" width="110" height="54" rx="6"/><text x="71" y="62" text-anchor="middle" class="b">mod in</text><text x="71" y="78" text-anchor="middle" class="s">&times; extmodulation (&times;16, smoothed)</text>
+<rect class="bx syn" x="156" y="34" width="360" height="130" rx="6"/>
+<text x="336" y="52" text-anchor="middle" class="b">20 parallel voices (par i, POLYPHONY)</text>
+<rect class="bx syn" x="170" y="62" width="110" height="46" rx="5"/><text x="225" y="82" text-anchor="middle" class="b">fmosc</text><text x="225" y="98" text-anchor="middle" class="s">FM carrier + waveform</text>
+<rect class="bx env" x="296" y="62" width="84" height="46" rx="5"/><text x="338" y="82" text-anchor="middle" class="b">&times; ADSR</text><text x="338" y="98" text-anchor="middle" class="s">dx7env^2.7</text>
+<rect class="bx env" x="392" y="62" width="112" height="46" rx="5"/><text x="448" y="82" text-anchor="middle" class="b">&times; velocity &times; poly</text><text x="448" y="98" text-anchor="middle" class="s">gate for voice i</text>
+<text x="336" y="132" text-anchor="middle" class="s">voice select: counter c advances on trigger; per-voice params latched by sample&amp;hold when i==c</text>
+<text x="336" y="148" text-anchor="middle" class="s">adsron=0: sustained tone (no ADSR, crossfaded by 4800-sample line)</text>
+<path class="ln" d="M126 67H170"/><path class="ln" d="M280 85H296"/><path class="ln" d="M380 85H392"/>
+<rect class="bx syn" x="546" y="62" width="90" height="46" rx="5"/><text x="591" y="82" text-anchor="middle" class="b">sum (:&gt; _)</text><text x="591" y="98" text-anchor="middle" class="s">20 &rarr; 1</text>
+<path class="ln" d="M504 85H546"/>
+
+<text class="h" x="16" y="196">B. Effects chain (ffx.lib &rarr; fx), each stage has its own wet/mix control</text>
+<rect class="bx fx" x="16" y="208" width="60" height="44" rx="5"/><text x="46" y="228" text-anchor="middle" class="b">split</text><text x="46" y="242" text-anchor="middle" class="s">dry / wet</text>
+<g class="b" text-anchor="middle">
+<rect class="bx fx" x="96"  y="208" width="72" height="44" rx="5"/><text x="132" y="228">AM</text><text x="132" y="242" class="s">LFO depth</text>
+<rect class="bx fx" x="176" y="208" width="72" height="44" rx="5"/><text x="212" y="228">Pitch</text><text x="212" y="242" class="s">&plusmn;24 st</text>
+<rect class="bx fx" x="256" y="208" width="72" height="44" rx="5"/><text x="292" y="228">Saturate</text><text x="292" y="242" class="s">tanh</text>
+<rect class="bx fx" x="336" y="208" width="72" height="44" rx="5"/><text x="372" y="228">Bitcrush</text><text x="372" y="242" class="s">bit depth</text>
+<rect class="bx fx" x="416" y="208" width="72" height="44" rx="5"/><text x="452" y="228">Chorus</text><text x="452" y="242" class="s">mod delay</text>
+<rect class="bx fx" x="496" y="208" width="72" height="44" rx="5"/><text x="532" y="228">Phaser</text><text x="532" y="242" class="s">4 notch</text>
+<rect class="bx fx" x="576" y="208" width="72" height="44" rx="5"/><text x="612" y="228">Filter</text><text x="612" y="242" class="s">HP &rarr; LP</text>
+<rect class="bx fx" x="656" y="208" width="72" height="44" rx="5"/><text x="692" y="228">Gate</text><text x="692" y="242" class="s">thresh</text>
+<rect class="bx fx" x="736" y="208" width="72" height="44" rx="5"/><text x="772" y="228">Delay</text><text x="772" y="242" class="s">+ reverse</text>
+</g>
+<rect class="bx fx" x="828" y="208" width="116" height="44" rx="5"/><text x="886" y="228" text-anchor="middle" class="b">fxsend mix</text><text x="886" y="242" text-anchor="middle" class="s">interpolate(dry, wet)</text>
+<path class="ln" d="M76 230H96"/><path class="ln" d="M168 230H176"/><path class="ln" d="M248 230H256"/><path class="ln" d="M328 230H336"/><path class="ln" d="M408 230H416"/><path class="ln" d="M488 230H496"/><path class="ln" d="M568 230H576"/><path class="ln" d="M648 230H656"/><path class="ln" d="M728 230H736"/><path class="ln" d="M808 230H828"/>
+<path class="ln" d="M591 108V180H46V208"/>
+<path class="ln" d="M46 252V270H886V252" style="stroke-dasharray:4 4;marker-end:none"/><text x="466" y="284" text-anchor="middle" class="s">dry path bypasses the whole wet chain (fxsend=0 &rarr; dry only)</text>
+
+<text class="h" x="16" y="322">C. Output stage</text>
+<rect class="bx env" x="16"  y="334" width="170" height="64" rx="6"/><text x="101" y="356" text-anchor="middle" class="b">&times; envelope follower</text><text x="101" y="372" text-anchor="middle" class="s">from env in; follow (1&minus;d+d&middot;e)</text><text x="101" y="386" text-anchor="middle" class="s">or sidechain (1&minus;d&middot;e)</text>
+<rect class="bx mod" x="16" y="410" width="110" height="40" rx="6"/><text x="71" y="428" text-anchor="middle" class="b">env in</text><text x="71" y="442" text-anchor="middle" class="s">10 ms attack, set release</text>
+<path class="lm" d="M71 410V398"/>
+<rect class="bx ctl" x="216" y="334" width="110" height="64" rx="6"/><text x="271" y="362" text-anchor="middle" class="b">volume</text><text x="271" y="378" text-anchor="middle" class="s">smoothed gain</text>
+<rect class="bx ctl" x="356" y="334" width="110" height="64" rx="6"/><text x="411" y="362" text-anchor="middle" class="b">panner</text><text x="411" y="378" text-anchor="middle" class="s">sp.panner &rarr; L, R</text>
+<rect class="bx ctl" x="496" y="334" width="150" height="64" rx="6"/><text x="571" y="356" text-anchor="middle" class="b">split &times; mute</text><text x="571" y="372" text-anchor="middle" class="s">4 outs: L&middot;(1&minus;mute), R&middot;(1&minus;mute),</text><text x="571" y="386" text-anchor="middle" class="s">L, R (unaffected by mute)</text>
+<path class="ln" d="M186 366H216"/><path class="ln" d="M326 366H356"/><path class="ln" d="M466 366H496"/>
+<path class="ln" d="M886 252V318H101V334" />
+<rect class="bx ctl" x="676" y="334" width="268" height="64" rx="6"/><text x="810" y="358" text-anchor="middle" class="b">Outputs to Pd wrapper</text><text x="810" y="376" text-anchor="middle" class="s">N-l, N-r (audible) | N-m (mono mod) | N-m-l/r</text><text x="810" y="390" text-anchor="middle" class="s">see section 4 for exact mapping</text>
+<path class="ln" d="M646 366H676"/>
+</svg>
+
+<h2>3. Parameter control and modulation detail</h2>
+<svg viewBox="0 0 960 400" role="img" aria-label="Frequency computation inside fmosc and per-voice parameter latching">
+<defs>
+<marker id="a2" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="var(--line)"/></marker>
+</defs>
+<text class="h" x="16" y="22">fmosc: frequency computation (per voice, per sample)</text>
+<rect class="bx ctl" x="16" y="40" width="110" height="46" rx="5"/><text x="71" y="60" text-anchor="middle" class="b">oscfreq</text><text x="71" y="76" text-anchor="middle" class="s">o1f (latched when ADSR on)</text>
+<rect class="bx env" x="146" y="40" width="130" height="46" rx="5"/><text x="211" y="60" text-anchor="middle" class="b">slide envelope</text><text x="211" y="76" text-anchor="middle" class="s">en.ar(0, slidetime, trig)^2.7</text>
+<rect class="bx ctl" x="296" y="40" width="110" height="46" rx="5"/><text x="351" y="60" text-anchor="middle" class="b">&times; 2^sliderange</text><text x="351" y="76" text-anchor="middle" class="s">latched on trigger</text>
+<rect class="bx syn" x="426" y="40" width="150" height="46" rx="5"/><text x="501" y="60" text-anchor="middle" class="b">cf = f + f&middot;slide</text><text x="501" y="76" text-anchor="middle" class="s">min(22050)</text>
+<path class="ln" d="M126 63H146" style="marker-end:url(#a2)"/><path class="ln" d="M276 63H296"/><path class="ln" d="M406 63H426"/>
+
+<rect class="bx mod" x="16" y="120" width="200" height="60" rx="5"/><text x="116" y="142" text-anchor="middle" class="b">Internal modulator (op2)</text><text x="116" y="158" text-anchor="middle" class="s">sin(cf &middot; fmfreq) &middot; cf &middot; fmdepth</text><text x="116" y="172" text-anchor="middle" class="s">fmfreq, fmdepth latched per voice</text>
+<rect class="bx mod" x="236" y="120" width="140" height="60" rx="5"/><text x="306" y="142" text-anchor="middle" class="b">Noise</text><text x="306" y="158" text-anchor="middle" class="s">noise &times; white, lowpass</text><text x="306" y="172" text-anchor="middle" class="s">added to frequency</text>
+<rect class="bx syn" x="426" y="120" width="230" height="60" rx="5"/><text x="541" y="142" text-anchor="middle" class="b">freqcontrol = cf + noise + op2</text><text x="541" y="160" text-anchor="middle" class="s">= instantaneous carrier frequency in Hz</text>
+<path class="ln" d="M501 86V120"/><path class="ln" d="M216 150H236"/><path class="ln" d="M376 150H426"/><path class="ln" d="M216 118V110H501" style="marker-end:none"/>
+
+<rect class="bx mod" x="686" y="120" width="258" height="60" rx="5"/><text x="815" y="142" text-anchor="middle" class="b">External mod in (post-extmodulation)</text><text x="815" y="158" text-anchor="middle" class="s">freqset = mod &middot; freqcontrol + freqcontrol</text><text x="815" y="172" text-anchor="middle" class="s">= freqcontrol &middot; (1 + mod): multiplicative FM</text>
+<path class="ln" d="M656 150H686"/>
+
+<rect class="bx syn" x="686" y="210" width="258" height="60" rx="5"/><text x="815" y="232" text-anchor="middle" class="b">fo.multiwave4(waveshape, phase reset)</text><text x="815" y="248" text-anchor="middle" class="s">sine &rarr; square &rarr; saw &rarr; impulse</text><text x="815" y="262" text-anchor="middle" class="s">waveshape 0..3, smoothed; reset on trigger</text>
+<path class="ln" d="M815 180V210"/>
+
+<text class="h" x="16" y="228">Per-voice parameter latching</text>
+<rect class="bx ctl" x="16" y="240" width="640" height="130" rx="6"/>
+<text x="30" y="262" class="b">Counter c = ba.counter(trigger) mod 20; c2 = c+1</text>
+<text x="30" y="282" class="s">&bull; trigger: edge detect on triggerx (button vs. itself delayed 2 samples), impulsified to 1 sample</text>
+<text x="30" y="298" class="s">&bull; voice i gets new fmfreq, fmdepth, waveshape, velocity via ba.sAndH when i==c (waveshape: i==c and i!=c2)</text>
+<text x="30" y="314" class="s">&bull; ADSR times/sustain are sampled on trigger (attack, decay, sustain, release, each 0..~20 s)</text>
+<text x="30" y="330" class="s">&bull; voice c2 (next in line) is silenced to make room for the next note (steal-oldest)</text>
+<text x="30" y="346" class="s">&bull; polyphonic checkbox: off = only voice c sounds; on = all latched voices ring</text>
+<text x="30" y="362" class="s">&bull; smoothed globals (si.smoo): extmodulation, volume, mute, fxsend, most fx amounts</text>
+</svg>
+
+<h2>Parameter reference</h2>
+<table>
+<tr><th>Block</th><th>Parameters (slider names)</th></tr>
+<tr><td>Oscillator</td><td><code>oscfreq</code>, <code>oscsliderange</code>, <code>oscslidetime</code>, <code>fmfreq</code>, <code>fmdepth</code>, <code>waveshape</code>, <code>noise</code>, <code>noisefilterfreq</code>, <code>extmodulation</code></td></tr>
+<tr><td>Voice / envelope</td><td><code>adsron</code>, <code>polyphonic</code>, <code>triggerx</code>, <code>attack</code>, <code>decay</code>, <code>sustain</code>, <code>release</code>, <code>velocity</code></td></tr>
+<tr><td>Effects (in order)</td><td>AM (<code>amwave amfreq amdepth amphasereset</code>) &rarr; pitch (<code>pitchshift pitchshiftmix</code>) &rarr; saturation (<code>saturation</code>) &rarr; bitcrush (<code>bitcrush</code> + wrapper-set <code>bit</code>, <code>downsamplingfactor</code>) &rarr; chorus (<code>chorus</code>) &rarr; phaser (<code>phaserspeed phaserdepth phaserfeedback</code>) &rarr; filter (<code>highpass lowpass</code> + resonances) &rarr; gate (<code>gatethresh gateattack gatehold gaterelease</code>) &rarr; delay (<code>delaysend delaytime delayfeedback delayreverse</code>); overall <code>fxsend</code></td></tr>
+<tr><td>Output</td><td><code>enveloperelease envelopedepth envelopeside</code>, <code>volume</code>, <code>panning</code>, <code>mute</code></td></tr>
+</table>
+
+<h2>4. Output pair mapping, freezer and master bus (traced)</h2>
+<p>Inside <code>f.formuls~</code> (canvas <code>AUDIO_ROUTINGS</code>) the external's four signal outputs plus the smoothed <code>output-amp</code> signal are recombined. The external's leftmost outlet is a message outlet and is unconnected.</p>
+<table>
+<tr><th>Signal (send~)</th><th>Built from</th><th>Consumed by</th></tr>
+<tr><td><code>N-l</code>, <code>N-r</code></td><td>outs 1-2 (L, R &times; (1&minus;mute)) &times; output-amp</td><td>reverb send, master mix, per-synth DAC outputs 9-14</td></tr>
+<tr><td><code>N-m</code></td><td>(out 3 + out 4) &times; output-amp: mono sum of the <i>unmuted</i> L/R; also drives an <code>env~</code> level meter (<code>N-m-val</code>)</td><td>mod / env routing matrices (<code>f.audio.submodroute~</code>)</td></tr>
+<tr><td><code>N-m-l</code>, <code>N-m-r</code></td><td>outs 3, 4 (unmuted L, R) &times; output-amp</td><td>rolling freezer input select, repeater input select</td></tr>
+</table>
+<p>So the "m" signals are <b>mute-independent taps</b>: muting an instance silences it in the mix but it still modulates other instances and can still be frozen or repeated. The env input of every instance is also multiplied by 10 in the wrapper before it reaches <code>formuls~</code>.</p>
+
+<svg viewBox="0 0 960 430" role="img" aria-label="Master bus: input select, rolling freezer, repeater, reverb, limiter buses, DAC">
+<defs>
+<marker id="a3" markerWidth="9" markerHeight="9" refX="8" refY="4" orient="auto"><path d="M0 0L9 4L0 8z" fill="var(--line)"/></marker>
+</defs>
+<text class="h" x="16" y="22">Master bus (MASTER_BUS_FX_+_AUDIO_OUT in _main.pd)</text>
+<rect class="bx syn" x="16" y="40" width="150" height="60" rx="6"/><text x="91" y="64" text-anchor="middle" class="b">6 &times; formuls~</text><text x="91" y="82" text-anchor="middle" class="s">N-l/r, N-m-l/r</text>
+<rect class="bx ctl" x="196" y="40" width="150" height="60" rx="6"/><text x="271" y="62" text-anchor="middle" class="b">AUDIO_RECEIVES</text><text x="271" y="78" text-anchor="middle" class="s">sum of N-l, N-r (L, R buses)</text><text x="271" y="91" text-anchor="middle" class="s">also dac 9-14: (N-l+N-r) each</text>
+<path class="ln" d="M166 70H196" style="marker-end:url(#a3)"/>
+
+<rect class="bx fx" x="376" y="40" width="290" height="150" rx="6"/>
+<text x="521" y="58" text-anchor="middle" class="b">ROLLINGFREEZER (L and R instances)</text>
+<rect class="bx env" x="390" y="68" width="120" height="44" rx="5"/><text x="450" y="86" text-anchor="middle" class="b">input select</text><text x="450" y="101" text-anchor="middle" class="s">N-m-l/r &times; gate, summed</text>
+<rect class="bx fx" x="522" y="68" width="130" height="44" rx="5"/><text x="587" y="86" text-anchor="middle" class="b">capture + FFT hold</text><text x="587" y="101" text-anchor="middle" class="s">see below</text>
+<path class="ln" d="M510 90H522"/>
+<text x="521" y="134" text-anchor="middle" class="s">outputs: dry L/R (dry-level), wet L/R (wet-level)</text>
+<text x="521" y="150" text-anchor="middle" class="s">wet L/R also sent to repeater as fre-rep-l/r</text>
+<text x="521" y="166" text-anchor="middle" class="s">control: transpose, freeze, level, feedback, input</text>
+<text x="521" y="182" text-anchor="middle" class="s">the main mix also feeds through here (dry path)</text>
+<path class="ln" d="M346 70H376"/>
+
+<rect class="bx fx" x="696" y="40" width="248" height="60" rx="6"/><text x="820" y="62" text-anchor="middle" class="b">REPEATER (f_repeater~)</text><text x="820" y="78" text-anchor="middle" class="s">input select 0-5 (N-m-l/r); hip~ 5 Hz</text><text x="820" y="91" text-anchor="middle" class="s">stereo out, bpm-synced glitch</text>
+<rect class="bx fx" x="696" y="116" width="248" height="60" rx="6"/><text x="820" y="138" text-anchor="middle" class="b">REVERB (f_reverb~)</text><text x="820" y="154" text-anchor="middle" class="s">catch~ rev-l/r (per-synth send)</text><text x="820" y="167" text-anchor="middle" class="s">lop~ 6000, stereo out</text>
+<path class="ln" d="M666 70H696" style="stroke-dasharray:0"/>
+
+<rect class="bx ctl" x="16" y="230" width="928" height="56" rx="6"/>
+<text x="480" y="252" text-anchor="middle" class="b">Limiter buses (throw~/catch~ $0-limiter-l / -r)</text>
+<text x="480" y="270" text-anchor="middle" class="s">sum of: dry mix (hip~ 5) + freezer wet + repeater + reverb</text>
+<path class="ln" d="M521 190V230"/><path class="ln" d="M820 176V230"/><path class="ln" d="M820 100V116" style="marker-end:none"/>
+<rect class="bx ctl" x="16" y="316" width="440" height="50" rx="6"/><text x="236" y="338" text-anchor="middle" class="b">AUDIO_SAFETY (8 channels)</text><text x="236" y="354" text-anchor="middle" class="s">mix L/R + stems (reverb, repeater, dry L/R)</text>
+<rect class="bx ctl" x="486" y="316" width="458" height="50" rx="6"/><text x="715" y="338" text-anchor="middle" class="b">dac~ 1-8, plus dac~ 9-14</text><text x="715" y="354" text-anchor="middle" class="s">stereo output mode uses 1-2</text>
+<path class="ln" d="M480 286V316" style="stroke-dasharray:0"/><path class="ln" d="M456 341H486"/>
+<text x="16" y="396" class="s">Order of the eight stems on dac 1-8 is set by outlet x-position in the patch and was not resolved; the limiter-bus mix is the first pair.</text>
+<text x="16" y="412" class="s">The limiter buses are summing points (throw~/catch~); no compressor object was found on them in this trace.</text>
+</svg>
+
+<h3>Rolling freezer internals (<code>f.audio.rollingfreezer~</code>, one per channel)</h3>
+<ol>
+<li><b>Band-limit:</b> <code>hip~ 50</code> then <code>lop~ 14000</code>.</li>
+<li><b>Capture:</b> the audio goes through <code>f.audio.spectralpitchshift~</code> (the <code>transpose</code> control, semitones &times; 100) and is written continuously into a 192000-sample table (about 4 s at 48 kHz) and a 4000 ms <code>delwrite~</code>. A delayed read of that delay line is fed back into the write, controlled by <code>feedback</code>.</li>
+<li><b>Freeze:</b> <code>WRITE_TIMER</code> stops table writes while <code>freeze=1</code>, so the last ~4 s of audio is held. On unfreeze there is a 4 s guard (<code>pipe 4000</code>) before the level can rise, so stale audio is not heard.</li>
+<li><b>Resynthesis:</b> <code>ROLLING_FREEZER_FFT_</code> uses <code>block~ 65536 4 1</code> (overlap 4), a Hann window, <code>rfft~</code> and <code>rifft~</code>, with <code>noise~</code> passed through <code>cos~</code> into the inverse-FFT inputs. That structure is consistent with phase-randomised spectral hold (Paulstretch-style); I inferred that from the objects rather than from a comment.</li>
+<li><b>Level:</b> <code>level</code> is squared (<code>pow 2</code>) and slewed; below 0.01 the DSP is switched off (<code>switch~</code>) to save CPU.</li>
+</ol>
+<h2>Notes on interpretation</h2>
+<p class="note">Verified from source: effect order, multiplicative external modulation, the 20-voice round-robin, the routing matrices, the output-signal mapping and the master-bus wiring. Inferred: phase-randomised FFT freeze (from the object structure), and the eight-stem DAC order (not resolved).</p>
+</main>
+</body>
+</html>
