@@ -431,6 +431,17 @@
 #X obj 139 278 oscformat resonantfilterfreqq\$1;
 #X msg 104 86 0 1 1 0;
 #X obj 163 226 oscformat filterpitchtrack\$1;
+#X obj 560 330 r \$1-reset;
+#X msg 560 354 0 1 2 3 4 5 6 7 8 1 1 1 1 1 1 1 1 1;
+#X obj 560 378 oscformat fxstate\$1;
+#X obj 560 402 s to-o-s-c-interface;
+#X msg 760 354 fxorder 0 1 2 3 4 5 6 7 8;
+#X obj 760 378 s formuls\$1;
+#X connect 46 0 47 0;
+#X connect 47 0 48 0;
+#X connect 48 0 49 0;
+#X connect 46 0 50 0;
+#X connect 50 0 51 0;
 #X connect 1 0 3 0;
 #X connect 3 0 2 0;
 #X connect 5 0 1 0;
