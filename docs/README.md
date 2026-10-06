@@ -15,6 +15,7 @@ development and is not covered here.
 | **`juce-port`** | The live line of development. Everything in this document. Will become `main`. |
 | `main` / `development` | The Python-era instrument plus four bug fixes. Superseded — `juce-port` carries content-equivalent copies of all four. |
 | `alacarte-prototype` | A discarded experiment. **Nothing was ever merged from it.** Three fixes were *authored* there and re-made independently on the other branches (different SHAs, same change): the chorus fix, the Link tempo readout, and the prebuilt `abl_link~`. |
+| `fxorder-crossbar` | Reorderable/bypassable effects chain, five commits on `main` at `43fd1d3`. Not merged. See [`fxorder/README.md`](fxorder/README.md). |
 
 Because those four `main` commits (`1be83bc`, `2c95a92`, `7de1b8a`, `40e5a28`) are
 duplicates of work `juce-port` already has rather than ancestors of it, **`git log
@@ -32,6 +33,7 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
+| [`fxorder/README.md`](fxorder/README.md) | The reorderable, bypassable effects chain (`fxorder-crossbar` branch): the Faust crossbar, live-change duck and debounce, the modal chain strip, reset behaviour, the Feedback slider, measurements and known limits. |
 | [`../src/app/README.md`](../src/app/README.md) | The JUCE application: source layout, recording, GUI addresses, styling, building, test harness. |
 | [`../src/prebuilt/README.md`](../src/prebuilt/README.md) | Why `abl_link~` ships prebuilt and must not be built locally on macOS. |
 | [`../src/tools/README.md`](../src/tools/README.md) | `brand-osc.sh`, `patch-osc-perf.py`, `bpm-probe`. |
