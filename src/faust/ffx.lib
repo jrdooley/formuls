@@ -12,7 +12,98 @@ exp27 = pow(2.7);
 
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
-fx = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
+// Fixed-order reference chain: the default order of fxchain. Not used by
+// formuls.dsp; kept so a null test can compare against it. (Before the chain
+// became reorderable, and until the default changed, gate came before delay.)
+fxfixed = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : delay : gate) : si.interpolate(fxsend);
+
+// The effects chain with a user-selectable order. fxchain adds FXLAT samples of
+// delay however many slots are used, so the dry path is delayed to match.
+fx = _ <: @(FXLAT), fxchain : si.interpolate(fxsend);
+
+//------REORDERABLE CHAIN (feedback crossbar)------//
+/* Nine slots, nine effects. Slot j holds the effect whose index is fxslotj:
+     0 am, 1 pitchshift, 2 saturation, 3 bitcrush2, 4 chorus,
+     5 phaser, 6 filter, 7 gate, 8 delay; 9 (or more) = slot empty.
+   Each effect is instantiated once. Its input is picked from the slot signals
+   (routing is a selectn, so nothing is mixed), and each slot output picks the
+   effect assigned to it, or passes its own input through when empty.
+   Any order needs every effect able to read every slot, which is a cycle, so
+   the slot signals go back through ~ and pick up one sample of delay per hop.
+   Total delay is always FXN-1 samples whatever the order (0.17 ms at 48 kHz).
+   A slot whose effect an earlier slot already holds is treated as empty, so a
+   half-updated order can never put one effect in two places (that would route
+   it through itself). The defaults reproduce the fixed order of fxfixed.
+
+   Changing the order makes every effect see a different signal at once, which
+   pops. So a change is not applied straight away: once the sliders have been
+   still for FXQUIET, the wet path ducks to zero over FXDOWN, the new order is
+   latched while it is silent, and the wet path comes back over FXUP. Changes
+   are applied at most once per FXCOOL; whatever the sliders hold when the
+   hold-off ends is applied then. Latching only after the sliders go quiet
+   also makes the update atomic however the nine values arrive. The dry path
+   is not ducked. */
+FXN = 9;
+FXLAT = FXN - 1;
+
+fxchain = ((body ~ si.bus(FXN-1)) : (par(i, FXN-1, !), _)) : *(duck)
+with {
+  N = FXN;
+  efx(0) = am;
+  efx(1) = pitchshift;
+  efx(2) = saturation;
+  efx(3) = bitcrush2;
+  efx(4) = chorus;
+  efx(5) = phaser;
+  efx(6) = filter;
+  efx(7) = delay;
+  efx(8) = gate;
+
+  raw(j) = hslider("fxslot%j", j, 0, N, 1) : int;
+
+  // --- change handling: quiet period, hold-off, duck, latch ---
+  // ctl outputs (since, latched slot 0..N-1); since counts samples from the
+  // start of the last change and is BIG when nothing is happening.
+  FXQUIET = int(ma.SR * 0.003);
+  FXDOWN  = int(ma.SR * 0.005);
+  FXHOLD  = int(ma.SR * 0.002);
+  FXUP    = int(ma.SR * 0.010);
+  FXCOOL  = int(ma.SR * 0.200);
+  BIG     = 1000000;
+  first   = 1 - 1';
+  moving  = sum(j, N, raw(j) != raw(j)') > 0;
+  still   = loopq ~ _ with { loopq(prev) = select2(moving, min(BIG, prev + 1), 0); };
+  ctl     = cbody ~ si.bus(N+1)
+  with {
+    cbody(ps,p0,p1,p2,p3,p4,p5,p6,p7,p8) = ns, par(j, N, select2(lt, ba.take(j+1, (p0,p1,p2,p3,p4,p5,p6,p7,p8)), raw(j)))
+    with {
+      pend = sum(j, N, raw(j) != ba.take(j+1, (p0,p1,p2,p3,p4,p5,p6,p7,p8))) > 0;
+      st   = pend & (still >= FXQUIET) & (ps >= FXCOOL);
+      ns   = select2(first, select2(st, min(BIG, ps + 1), 0), BIG);
+      lt   = (ns == FXDOWN) | first;
+    };
+  };
+  since   = ctl : ba.selector(0, N+1);
+  slot(j) = ctl : ba.selector(j+1, N+1);
+  duck    = select2(since < FXDOWN,
+              select2(since < FXDOWN + FXHOLD,
+                select2(since < FXDOWN + FXHOLD + FXUP, 1, (since - FXDOWN - FXHOLD) / FXUP),
+                0),
+              1 - since / FXDOWN);
+  used(j) = sum(k, N, (k < j) * (slot(k) == slot(j)));
+  pick(j) = ba.if((slot(j) < N) & (used(j) == 0), slot(j), N);
+  pos(e)  = sum(j, N, (pick(j) == e) * (j + 1));
+
+  // p0..p7 are the previous-sample outputs of slots 0..7; x is the chain input.
+  body(p0,p1,p2,p3,p4,p5,p6,p7,x) = par(j, N, s(j))
+  with {
+    taps = x,p0,p1,p2,p3,p4,p5,p6,p7;
+    tap(j) = ba.take(j+1, taps);
+    out(e) = (0, taps) : ba.selectn(N+1, pos(e)) : efx(e);
+    outs = par(e, N, out(e));
+    s(j) = (outs, tap(j)) : ba.selectn(N+1, pick(j));
+  };
+};
 
 fxsend = fxs
 with {
