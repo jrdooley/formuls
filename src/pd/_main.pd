@@ -103,6 +103,7 @@
 #X obj 36 59 r formuls-osc-in;
 #X text 144 54 <- OSC now arrives from the app (see OscBridge.h). The patch no longer listens on udp 9000 itself \, because oscparse ran on the audio thread and alloca-ed a buffer sized by the incoming packet;
 #X obj 305 292 r o-s-c-messages-DUMMY;
+#X obj 105 21 f.util.netreceive;
 #X connect 1 0 0 0;
 #X connect 2 0 3 0;
 #X connect 4 0 5 0;
@@ -115,6 +116,7 @@
 #X connect 13 4 7 0;
 #X connect 15 0 13 0;
 #X connect 17 0 11 0;
+#X connect 18 0 13 0;
 #X restore 28 38 pd OPEN_STAGE_CONTROL_RECEIVE_;
 #N canvas 252 691 251 178 FORMULS_MESSAGES___________ 0;
 #X obj 78 42 f.formuls \$0 1;
@@ -124,7 +126,7 @@
 #X obj 78 122 f.formuls \$0 5;
 #X obj 78 142 f.formuls \$0 6;
 #X restore 28 105 pd FORMULS_MESSAGES___________;
-#N canvas 674 480 452 360 O-S-C_&_FORMULS_SEND_______ 0;
+#N canvas 674 480 430 360 O-S-C_&_FORMULS_SEND_______ 0;
 #X obj 33 24 r to-o-s-c-interface;
 #X obj 33 73 list prepend send;
 #X obj 33 94 list trim;
