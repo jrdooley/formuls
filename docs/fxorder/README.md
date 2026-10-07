@@ -77,30 +77,59 @@ The dry path is not ducked.
 
 ### GUI (`src/gui/_main.json`)
 
-Each synth tab has an **FX ORDER** modal button at the top of the
-effects column. It opens the chain strip:
+The lower half of every synth tab (48% of its height, the left 75%) is the
+**effects dock**. It replaces the nine effect panels that used to share the
+upper part of the tab, and the FX ORDER modal.
 
-- Nine blocks, `in > out`, left to right, with an **arrow** between each pair showing the
-  signal flow. The arrows belong to the slots, not the effects, so they stay put while
-  blocks move. The popup is 90% of the view width, with an opaque background, and the
-  strip canvas has no outline.
-- **Tap** an effect to bypass it. It is dimmed in place and keeps its slot, so
-  reinstating it returns it to the position it had.
-- **Drag** a block to reorder. A dashed outline shows where it will land.
-- **RESET** restores the default order with everything active.
+```
+chain strip   AM > PITCH > SAT > CRUSH > CHORUS > PHASER > FILTER > DELAY > GATE   RESET
+editor        the selected effect, plus any pinned ones, side by side
+```
 
-The strip is a canvas (`fxstate<n>`, 18 values: order[9] then on[9]). Its
+**Chain strip.** Nine tiles in signal order with a fixed arrow between each pair
+(the arrows belong to the slots, so they stay put while tiles move). Each tile
+has three separate touch zones, with dead space between them, so a finger never
+does the wrong thing:
+
+| zone | gesture | does |
+|---|---|---|
+| top band, dots (grip) | drag | moves the effect, inserting it between two others; a bar shows where it lands |
+| middle band (name, with a mini view of the effect's main control) | tap | selects the effect for the editor below |
+| bottom band, left half (LED, `ON`/`BYP`) | tap | bypasses the effect; it is dimmed in place and keeps its slot |
+| bottom band, right half (`PIN`) | tap | keeps the effect in the editor while another is selected (at most two pinned) |
+
+The mini view is a dot at the pad's x/y for an xy effect, or a bar for a
+single-slider effect, so an effect's state is visible without selecting it.
+Tile colours group the effects: tone/dynamics (SAT, CRUSH, FILTER, GATE),
+modulation (AM, PITCH, CHORUS, PHASER), time (DELAY). **RESET** at the right end
+restores the default order with everything active, as before.
+
+**Editor.** The effects are the same widgets as before, moved into one panel
+(`fxeditor<n>`) under the strip. Each one is positioned and shown by a
+property expression that reads the chain state: shown if it is the selected
+effect or pinned; its column is its rank among the shown effects, in chain
+order, and each gets an equal share of the width. Single-slider effects
+(Saturation, Bitcrush, Chorus, Phaser) sit at mid-height instead of filling it.
+
+**State.** One canvas, `fxstate<n>`, now holds 28 values: order[9], on[9],
+selected effect, pinned[9]. The first 18 are exactly what they were. Its
 `onValue` computes the slot list — active effects in order, padded with `9` —
 and `set()`s a hidden sender canvas (`fxorder<n>`), which is what reaches Pd as
-`/fxorder<n>`. Bypass state lives in the GUI only; Faust just sees fewer
-occupied slots.
+`/fxorder<n>`; it only sends when that list changes, so selecting or pinning an
+effect is silent on the audio side. Selection and pins live in the GUI only. A
+reset from Pd still sends 18 values to `fxstate<n>`; the missing ones read as
+"first effect selected, nothing pinned". `/fxstate<n>` is still swallowed by Pd.
+`fxview<n>` is a second canvas, non-interactive, that draws the strip from a
+computed value (the state plus each effect's main control) and redraws every
+frame, because a computed value does not redraw a canvas by itself;
+`fxstate<n>` sits on top, transparent, and takes the touches and draws the drag
+ghost.
 
-Synth-tab layout: column 1 (top to bottom) is Velocity, Osc Slide
-Range/Time, **Feedback**, FM Frequency/Depth, Noise Frequency/Depth. Column 2
-starts with the **FX ORDER** modal, then the amplitude-modulation panel, the
-pitchshift pad, and four sliders: **Saturation, Bitcrush, Chorus, Phaser**.
-Freq Snap, Osc Frequency/Wave and Velocity did not move. All modal text is
-white. The ADSR panel's three buttons are exact thirds of its height.
+Synth-tab layout, upper 52%: Osc Frequency/Wave (30% wide), then the Osc Slide,
+FM and Noise pads side by side (45%); below them the Envelope/Pan/Reverb panel,
+and a column of Velocity, Feedback and Master Volume with Mute. The sequencer
+column on the right is unchanged and still runs the full height. The ADSR
+panel's three buttons are exact thirds of its height.
 
 ### Saturation/bitcrush and chorus/phaser are sliders
 
