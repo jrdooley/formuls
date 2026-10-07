@@ -78,19 +78,50 @@ The dry path is not ducked.
 ### GUI (`src/gui/_main.json`)
 
 Each synth tab has an **FX ORDER** modal button at the top of the
-effects column. It opens the chain strip:
+effects column. It opens a popup showing all nine effects **live**, in chain order, on **three rows of
+three**. Signal flows left to right and wraps from the end of each row to the start of
+the next; `RESET` sits top right (half the width and twice the height of the old one):
 
-- Nine blocks, `in > out`, left to right.
-- **Tap** an effect to bypass it. It is dimmed in place and keeps its slot, so
-  reinstating it returns it to the position it had.
-- **Drag** a block to reorder. A dashed outline shows where it will land.
+- Each effect is a working copy of its controls (pads, sliders, chaos/LFO/mod layers).
+  The copies use the **same widget ids** as the ones in the synth tab, which Open Stage
+  Control treats as clones: they mirror each other's values and only the widget you touch
+  sends OSC. Nothing changes in Pd, and the synth tab is untouched.
+- **Sizes** (at 1024x768): the five XY effects (AM, pitchshift, filter, delay, gate) are
+  **identical**, 148 x 158 px, 15% taller than the tallest XY effect of the previous
+  version; the four slider effects (saturation, bitcrush, chorus, phaser) are identical,
+  148 x 37 px, 15% taller than before. Effects are centred vertically in their row.
+- **Arrows** run only in lanes with no widget in them: to the right of a panel (up to
+  4 px short of the next grip), down the right-hand lane and along the gap between rows,
+  and up the left margin into the first grip of the next row; `IN` and `OUT` arrows
+  mark the ends. They are one static canvas (`fxarrows<n>`, no interaction) and belong
+  to the slots, not the effects, so they never move.
+- A **grip**, a solid block 32 px wide, sits at the left side of every effect. **Drag** it
+  to insert the effect between two others: the slot under your finger is where it lands
+  (a dashed outline and a white bar mark it) and the effects in between shift along.
+  **Tap** the grip to bypass the effect: the grip dims, the panel is dimmed but stays
+  usable and keeps its slot, so reinstating it returns it to the position it had.
 - **RESET** restores the default order with everything active.
 
-The strip is a canvas (`fxstate<n>`, 18 values: order[9] then on[9]). Its
-`onValue` computes the slot list — active effects in order, padded with `9` —
-and `set()`s a hidden sender canvas (`fxorder<n>`), which is what reaches Pd as
-`/fxorder<n>`. Bypass state lives in the GUI only; Faust just sees fewer
-occupied slots.
+Touch notes (these were the cause of unreliable touchscreen drags in the first two-row
+version):
+
+- The modal has `traversing: false`. With traversing on, Open Stage Control emits a
+  synthetic `stop` as soon as a pressed **touch** leaves the widget it started on (mouse
+  drags are not affected), which ended every grip drag the moment the finger left the
+  grip. That is also why moving between rows failed.
+- Each grip is 32 px wide (the whole block is the touch area) and has `touch-action: none`.
+- Drag tracking uses absolute `clientX/Y` change since the touch began. `offsetX/Y` are
+  relative to whichever widget is under the pointer, so they are wrong mid-drag.
+
+The order lives in a canvas (`fxstate<n>`, 18 values: order[9] then on[9]). It is
+now only the state holder and sender: it no longer draws or handles touch. The grips
+(`fxgrip<e>_<n>`) and a dimming/insert overlay (`fxdrop<n>`) share its value through a
+`linkId`, so setting a grip's value runs `fxstate`'s `onValue`, which computes the slot
+list - active effects in order, padded with `9` - and `set()`s the hidden sender
+(`fxorder<n>`) that reaches Pd as `/fxorder<n>`. Each effect's `left`/`top`/`width`/`height` is a
+`JS{{ }}` expression of the order (slot -> row and column), so reordering moves the real
+widgets. The grips read the frame size from `globals.fxframe`, published by the overlays. Bypass state
+lives in the GUI only; Faust just sees fewer occupied slots.
 
 Synth-tab layout: column 1 (top to bottom) is Velocity, Osc Slide
 Range/Time, **Feedback**, FM Frequency/Depth, Noise Frequency/Depth. Column 2
