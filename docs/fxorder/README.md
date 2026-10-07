@@ -103,8 +103,13 @@ single-slider effect, so an effect's state is visible without selecting it.
 The tiles use the synth tab's own colour (the widget colour every other control
 uses): a dark face, an outline in that colour, a grip band tinted with it, and
 `ON` / `PIN` buttons drawn like the GUI's other buttons (dark face, coloured
-outline, tinted when lit). The selected tile has a white outline. **Chain Reset**
-at the right end restores the default order with everything active, as before.
+outline, tinted when lit). Nothing is padded: the grip band and the two buttons
+run edge to edge inside the rounded tile, and `ON` and `PIN` are exact, equal
+halves of the bottom band. The selected tile has a white outline. **Chain Reset**
+(restores the default order with everything active) is **hidden for now**: the
+widget is still in `_main.json` with `visible: false`; to bring it back, set
+`visible` to `true` and narrow `fxstate` and `fxview` to 94% wide, because the
+strip now uses the full width.
 
 **Editor.** The effects are the same widgets as before, moved into one panel
 (`fxeditor<n>`) under the strip. Each one is positioned and shown by a
@@ -132,11 +137,17 @@ ghost.
 
 Synth-tab layout, upper 52% (left 75%; the sequencer column on the right is
 unchanged and still runs the full height). Osc Frequency/Wave keeps its original
-size (50% wide, 23% tall). The column to its right (25%) is Feedback, FM
-Frequency/Depth and Noise Frequency/Depth. Under Osc Frequency/Wave, three
-columns: Velocity over Envelope/Sidechain; Panning, Reverb and Master Volume
-with Mute; and the Osc Slide Range/Time pad. The ADSR panel's three buttons are
+size (50% wide, 23% tall). The column to its right (25%) is Feedback (16.2% of
+the column, 10% shorter than it was), then FM Frequency/Depth and Noise
+Frequency/Depth at their old height, moved up. Directly under Osc Frequency/Wave,
+two columns: Velocity over Osc Slide Range/Time; and Envelope/Sidechain, Panning,
+Reverb and Master Volume with Mute, stacked. The ADSR panel's three buttons are
 exact thirds of its height.
+
+**Rounded corners.** Every widget now has the same 6 px radius as the strip
+tiles: `borderRadius: 6` on all widgets that have the property (root and tab
+excepted), and the few widgets that set the radius in CSS (`5pt`, `10px`) now use
+`6px`. This includes the sequencer step panels and matrices, which were square.
 
 ### Saturation/bitcrush and chorus/phaser are sliders
 
