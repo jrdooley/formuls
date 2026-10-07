@@ -12,9 +12,10 @@ exp27 = pow(2.7);
 
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
-// Fixed-order reference chain (the order fx had before it became reorderable).
-// Not used by formuls.dsp; kept so a null test can compare against it.
-fxfixed = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
+// Fixed-order reference chain: the default order of fxchain. Not used by
+// formuls.dsp; kept so a null test can compare against it. (Before the chain
+// became reorderable, and until the default changed, gate came before delay.)
+fxfixed = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : delay : gate) : si.interpolate(fxsend);
 
 // The effects chain with a user-selectable order. fxchain adds FXLAT samples of
 // delay however many slots are used, so the dry path is delayed to match.
@@ -55,8 +56,8 @@ with {
   efx(4) = chorus;
   efx(5) = phaser;
   efx(6) = filter;
-  efx(7) = gate;
-  efx(8) = delay;
+  efx(7) = delay;
+  efx(8) = gate;
 
   raw(j) = hslider("fxslot%j", j, 0, N, 1) : int;
 

@@ -5,6 +5,8 @@ The nine effects after the oscillator — AM, pitchshift, saturation, bitcrush2,
 chorus, phaser, filter, gate, delay — used to be wired in one fixed order inside
 `fx` in `src/faust/ffx.lib`. They can now be **reordered** and **bypassed** per
 synth from the touchscreen, live, without rebuilding anything.
+The default order now puts **delay before gate** (originally gate came first), so the
+GUI column and the signal path read the same way.
 
 | commit | what |
 |---|---|
