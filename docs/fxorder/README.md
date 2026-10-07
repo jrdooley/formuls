@@ -99,6 +99,38 @@ pitchshift pad, and four sliders: **Saturation, Bitcrush, Chorus, Phaser**.
 Freq Snap, Osc Frequency/Wave and Velocity did not move. All modal text is
 white. The ADSR panel's three buttons are exact thirds of its height.
 
+### Draggable panels (`draggable-fx`)
+
+The effect panels themselves can be dragged to reorder the chain, without opening
+the FX ORDER modal. Each panel has a column of dots (a grip) down its right edge:
+
+- **Drag** a grip onto another panel to **swap** the two effects' places. A dashed
+  outline marks the drop target and a ghost outline follows the finger.
+- **Tap** a grip to bypass the effect (same as tapping its block in the strip);
+  bypassed panels are dimmed but stay usable.
+
+How it is built (`src/gui/_main.json`, synth tab template `formuls0`):
+
+- The nine effect panels moved out of `fxa`/`fxb` into one container,
+  `fxchain<n>`, so they share a coordinate frame. The container is
+  `pointer-events: none`; its children opt back in.
+- Nine fixed **slot** rectangles reproduce the old layout. The panel for effect *e*
+  takes the rectangle of slot `order.indexOf(e)`, computed by a `JS{{ }}` block in
+  each of its `left/top/width/height` properties from the `fxstate` value.
+  Slot *p* is chain position *p*, so layout and signal path always agree.
+- `fxgrip<e>_<n>` canvases (and `fxdrop<n>`, which draws the dimming and drop
+  outline) share `fxstate`'s value through a `linkId`; setting a grip's value
+  therefore fires `fxstate`'s `onValue`, which sends `/fxorder<n>` as before.
+  No Pd or Faust changes. Synth reset restores the layout via the default `fxstate`.
+- Because a swap exchanges **rectangles**, a tall panel (AM, filter, delay) landing
+  in a slim slider slot is cramped, and a slider in a tall slot is stretched.
+
+Verified in a real Open Stage Control 1.31.1 server: default layout matches the old
+one; dragging Phaser onto Delay gave `/fxorder` `0 1 2 3 4 7 6 5 8` and moved both
+panels; tapping a grip bypassed Gate (`9` padded, panel dimmed); the default
+`fxstate` restored layout and order. Not verified: touchscreen/multitouch drags,
+other synth tabs, and by ear.
+
 ### Saturation/bitcrush and chorus/phaser are sliders
 
 These were two xy pads (`saturationbitcrush`, `chorusphaser`) driven by
