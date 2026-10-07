@@ -1,6 +1,6 @@
 # Reorderable, bypassable effects chain
 
-Branch **`fxorder-crossbar`** (five commits on top of `main` at `43fd1d3`).
+Branch **`fxorder-crossbar`** (commits on top of `main` at `43fd1d3`, listed below).
 The nine effects after the oscillator — AM, pitchshift, saturation, bitcrush2,
 chorus, phaser, filter, gate, delay — used to be wired in one fixed order inside
 `fx` in `src/faust/ffx.lib`. They can now be **reordered** and **bypassed** per
@@ -15,6 +15,14 @@ GUI column and the signal path read the same way.
 | `aeef792` | strip embedded in the synth panels as a modal, synth tab re-laid out |
 | `f610c8e` | Feedback slider, shorter FX ORDER button, white modal text |
 | `9096ca6` | synth and global reset restore the default order |
+| `c642bcb` | this document |
+| `c9d8d34`, `1415d12`, `b567bbe`, `b817d8c` | a four-column synth-tab layout, tried and then **reverted** (`cfcf3c5`); kept in history only |
+| `cfcf3c5` | revert of the four-column layout; interface back to `c642bcb` |
+| `90dff37` | FX ORDER at the top of the effects column; saturation/bitcrush and chorus/phaser xy pads become four sliders (Pd `oscformatxy` -> `oscformat`, reset, modpack, default state) |
+| `21dd203` | equal slider rows in the effects column; xy pads match column 1 |
+| `530b3c1` | Feedback, Saturation, Bitcrush, Chorus and Phaser grey out at zero (the Reverb overlay pattern) |
+| `2c81307` | column 2 sliders 8.5%; pitchshift pad shrinks, AM xy unchanged |
+| `10d935f` | default order puts delay before gate (Faust slot swap); gate pad follows delay in the GUI |
 
 ## How it works
 
