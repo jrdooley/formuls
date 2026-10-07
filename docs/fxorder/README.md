@@ -95,21 +95,26 @@ does the wrong thing:
 |---|---|---|
 | top band, dots (grip) | drag | moves the effect, inserting it between two others; a bar shows where it lands |
 | middle band (name, with a mini view of the effect's main control) | tap | selects the effect for the editor below |
-| bottom band, left half (LED, `ON`/`BYP`) | tap | bypasses the effect; it is dimmed in place and keeps its slot |
-| bottom band, right half (`PIN`) | tap | keeps the effect in the editor while another is selected (at most two pinned) |
+| bottom band, left button (`ON` / `BYP`) | tap | bypasses the effect; it is dimmed in place and keeps its slot |
+| bottom band, right button (`PIN`) | tap | keeps the effect in the editor while another is selected (at most two pinned columns) |
 
 The mini view is a dot at the pad's x/y for an xy effect, or a bar for a
 single-slider effect, so an effect's state is visible without selecting it.
-Tile colours group the effects: tone/dynamics (SAT, CRUSH, FILTER, GATE),
-modulation (AM, PITCH, CHORUS, PHASER), time (DELAY). **RESET** at the right end
-restores the default order with everything active, as before.
+The tiles use the synth tab's own colour (the widget colour every other control
+uses): a dark face, an outline in that colour, a grip band tinted with it, and
+`ON` / `PIN` buttons drawn like the GUI's other buttons (dark face, coloured
+outline, tinted when lit). The selected tile has a white outline. **Chain Reset**
+at the right end restores the default order with everything active, as before.
 
 **Editor.** The effects are the same widgets as before, moved into one panel
 (`fxeditor<n>`) under the strip. Each one is positioned and shown by a
 property expression that reads the chain state: shown if it is the selected
 effect or pinned; its column is its rank among the shown effects, in chain
-order, and each gets an equal share of the width. Single-slider effects
-(Saturation, Bitcrush, Chorus, Phaser) sit at mid-height instead of filling it.
+order, and each gets an equal share of the width, at most three columns.
+**The four slider effects (Saturation, Bitcrush, Chorus, Phaser) share one column,
+stacked vertically in chain order, never side by side.** Selecting or pinning any
+of them shows all four; pinning one pins all four (the pin buttons on the four
+tiles move together), and the stack counts as one column against the limit.
 
 **State.** One canvas, `fxstate<n>`, now holds 28 values: order[9], on[9],
 selected effect, pinned[9]. The first 18 are exactly what they were. Its
@@ -125,11 +130,13 @@ frame, because a computed value does not redraw a canvas by itself;
 `fxstate<n>` sits on top, transparent, and takes the touches and draws the drag
 ghost.
 
-Synth-tab layout, upper 52%: Osc Frequency/Wave (30% wide), then the Osc Slide,
-FM and Noise pads side by side (45%); below them the Envelope/Pan/Reverb panel,
-and a column of Velocity, Feedback and Master Volume with Mute. The sequencer
-column on the right is unchanged and still runs the full height. The ADSR
-panel's three buttons are exact thirds of its height.
+Synth-tab layout, upper 52% (left 75%; the sequencer column on the right is
+unchanged and still runs the full height). Osc Frequency/Wave keeps its original
+size (50% wide, 23% tall). The column to its right (25%) is Feedback, FM
+Frequency/Depth and Noise Frequency/Depth. Under Osc Frequency/Wave, three
+columns: Velocity over Envelope/Sidechain; Panning, Reverb and Master Volume
+with Mute; and the Osc Slide Range/Time pad. The ADSR panel's three buttons are
+exact thirds of its height.
 
 ### Saturation/bitcrush and chorus/phaser are sliders
 
