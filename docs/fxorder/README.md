@@ -144,11 +144,6 @@ two columns: Velocity over Osc Slide Range/Time; and Envelope/Sidechain, Panning
 Reverb and Master Volume with Mute, stacked. The ADSR panel's three buttons are
 exact thirds of its height.
 
-**Rounded corners.** Every widget now has the same 4 px radius as the strip
-tiles: `borderRadius: 4` on all widgets that have the property (root and tab
-excepted), and the few widgets that set the radius in CSS (`5pt`, `10px`) now use
-`4px`. This includes the sequencer step panels and matrices, which were square.
-
 ### Saturation/bitcrush and chorus/phaser are sliders
 
 These were two xy pads (`saturationbitcrush`, `chorusphaser`) driven by
