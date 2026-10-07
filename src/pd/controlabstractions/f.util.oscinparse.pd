@@ -651,9 +651,9 @@
 #X restore 17 108 pd PITCHSHIFT_PITCHSHIFT_MIX_____;
 #X obj 180 491 f.util.oscformat \$0 \$1 gateattack 0 0 3;
 #X obj 180 470 f.util.oscformat \$0 \$1 gatehold 0 0 0.1;
-#X obj 17 134 f.util.oscformatxy \$0 \$1 saturationbitcrush saturation 0 0 1 bitcrush 0 0 1;
+#X obj 17 134 f.util.oscformat \$0 \$1 saturation 0 0 1;
 #X obj 192 231 f.util.oscformat \$0 \$1 filtertype 0 0 1;
-#X obj 17 166 f.util.oscformatxy \$0 \$1 chorusphaser chorus 0 0 2.7 phaser 0 0 1;
+#X obj 17 166 f.util.oscformat \$0 \$1 chorus 0 0 2.7;
 #X obj 17 293 f.util.oscformatxy \$0 \$1 gatethreshrelease gatethresh 0 0 1 gaterelease 0 0 3;
 #N canvas 76 370 450 300 FILTER_PITCH_TRACK__ 0;
 #X obj 77 47 inlet;
@@ -678,6 +678,8 @@
 #X obj 300 50 list prepend formuls\$1 fxorder;
 #X obj 300 80 list trim;
 #X obj 300 110 s to-faust-\$1;
+#X obj 100 150 f.util.oscformat \$0 \$1 bitcrush 0 0 1;
+#X obj 100 182 f.util.oscformat \$0 \$1 phaser 0 0 1;
 #X connect 0 0 2 0;
 #X connect 2 0 7 0;
 #X connect 3 0 20 0;
@@ -690,8 +692,10 @@
 #X connect 9 2 10 0;
 #X connect 11 0 14 0;
 #X connect 13 0 12 0;
-#X connect 14 0 16 0;
-#X connect 16 0 5 0;
+#X connect 14 0 24 0;
+#X connect 24 0 16 0;
+#X connect 16 0 25 0;
+#X connect 25 0 5 0;
 #X connect 17 0 9 0;
 #X connect 18 0 17 0;
 #X connect 20 2 1 0;
