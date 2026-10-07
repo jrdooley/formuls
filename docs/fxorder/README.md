@@ -80,7 +80,10 @@ The dry path is not ducked.
 Each synth tab has an **FX ORDER** modal button at the top of the
 effects column. It opens the chain strip:
 
-- Nine blocks, `in > out`, left to right.
+- Nine blocks, `in > out`, left to right, with an **arrow** between each pair showing the
+  signal flow. The arrows belong to the slots, not the effects, so they stay put while
+  blocks move. The popup is 90% of the view width, with an opaque background, and the
+  strip canvas has no outline.
 - **Tap** an effect to bypass it. It is dimmed in place and keeps its slot, so
   reinstating it returns it to the position it had.
 - **Drag** a block to reorder. A dashed outline shows where it will land.
