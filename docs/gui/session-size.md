@@ -298,7 +298,8 @@ It is the largest saving available and the largest change.
 
 1. **A** (done): no visual change, verified, 3× faster load, −28% per message, which also
    helps the disconnects in `README.md`.
-2. **The tab-show patch**: one line, −17% tab switch.
+2. **The tab-show patch** (done, on `gui-compounds`): one line, −17% tab switch. Now
+   applied always by `src/tools/patch-osc-perf.py`.
 3. **The sequencer as one canvas** (C without B): the largest further cut per unit
    of work, and it halves per-message cost on its own.
 4. **Slider/xy/menu compounds**, as canvases or multixy with the point patch. This is

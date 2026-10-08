@@ -167,6 +167,18 @@ CLIENT_LOOKUP_NEW = (
 )
 
 
+# Tab.show() re-attaches a tab and calls check(widget, true): the `true` forces
+# every canvas on the tab to resize -- reallocate its backing store and redraw --
+# even when its size has not changed. With false, only canvases whose size
+# changed while the tab was hidden are resized. A canvas updated while its tab
+# was hidden is still drawn up to date on show: batchDraw runs regardless of
+# attachment (checked by comparing the shown bitmap with a fresh draw(), with a
+# negative control). Synth-tab switch 58.6 -> 48.7 ms on an M5, measured in
+# docs/gui/session-size.md. Applied always.
+TAB_SHOW_OLD = 'this.detached=!1,this.setVisibility(),check(this.widget,!0))}'
+TAB_SHOW_NEW = 'this.detached=!1,this.setVisibility(),check(this.widget,!1))}'
+
+
 def fail(*lines):
     for line in lines:
         print(line, file=sys.stderr)
@@ -241,6 +253,12 @@ def main():
     if MARKER in open(server, encoding="utf8", errors="replace").read():
         print("Open Stage Control already patched; leaving it alone")
         return
+
+    index = os.path.join(a.osc_dir, "client", "index.js")
+    edit(index, [(TAB_SHOW_OLD, TAB_SHOW_NEW)])
+    if TAB_SHOW_NEW not in open(index, encoding="utf8", errors="replace").read():
+        fail(f"ERROR: tab-show patch did not take effect in {index}")
+    print("patched Open Stage Control: tab show resizes only canvases whose size changed")
 
     if a.batch_ms > 0:
         ipc_new = IPC_SEND_BATCH.replace("{BATCH_MS}", str(a.batch_ms))

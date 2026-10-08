@@ -137,7 +137,7 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 ## Diagnostic tools
 
 - **`src/tools/flatten-session.py`**: Writes the shipped, flattened session (clones inlined, static `@{}` resolved). Both build scripts run it. Fails the build on anything it does not model.
-- **`src/tools/patch-osc-perf.py`**: Performance patches to vendored Open Stage Control. Serialises OSC once per broadcast (not per client). Opt-in `--batch-ms N` for WebSocket frame coalescing (off by default — adds client load). Both build scripts apply it automatically.
+- **`src/tools/patch-osc-perf.py`**: Performance patches to vendored Open Stage Control. Serialises OSC once per broadcast (not per client), and makes tab show resize only canvases whose size changed. Opt-in `--batch-ms N` for WebSocket frame coalescing (off by default — adds client load). Both build scripts apply it automatically.
 - **`src/tools/check-reset-coverage.py`**: Verifies every GUI parameter with chaos/LFO/mod sub-widgets is reset by `f.util.reset.pd`. Run after adding a parameter or renaming a widget. Exits non-zero on mismatch.
 - **`src/tools/automater-load-bench.py`**: CPU cost of N automaters with playback/LFO/chaos running, in deterministic `pd -batch`. Use `--rev` to compare against a commit.
 - **`src/tools/automation-probe.py`**: Records a gesture into one automater, reports value discontinuities. Use `--rev` to compare against a specific commit. No audio device or externals needed.
