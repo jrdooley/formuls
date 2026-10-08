@@ -111,7 +111,10 @@ widget is still in `_main.json` with `visible: false`; to bring it back, set
 strip uses the full width.
 
 **Editor.** The effects are the same widgets as before, moved into one panel
-(`fxeditor<n>`) under the strip. Each one is positioned and shown by a
+(`fxeditor<n>`) under the strip. The dock panel behind it (`fxa<n>`) is the synth tab's own colour at 20%
+opacity, so the space between the effects takes the tab's hue (the editor itself
+is transparent). The 0.2 is `DIM` in the generator and the `rgba(...)` in `fxa`'s
+`colorBg`; it reads the tab's `colour` variable, which only `fxa` can see. Each one is positioned and shown by a
 property expression that reads the chain state: shown if it is the selected
 effect or pinned; its column is its rank among the shown effects, in chain
 order, and each gets an equal share of the width, at most three columns.
