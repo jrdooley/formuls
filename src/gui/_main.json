@@ -8977,7 +8977,7 @@
                                 "id": "filtertype",
                                 "visible": false,
                                 "interaction": false,
-                                "width": "JS{{ var st=@{fxstate@{parent.variables}}; if (!Array.isArray(st)) st=[0,1,2,3,4,5,6,7,8,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0]; st=st.slice(0,28); while(st.length<28) st.push(0); var o=st.slice(0,9), sel=st[18], pin=st.slice(19,28), SL=[2,3,4,5], cols=[], rows=[], p, q, k; for (p=0; p<9; p++) { q=o[p]; k=SL.indexOf(q)>=0 ? -1 : q; if ((q===sel || pin[q]) && cols.indexOf(k)<0) cols.push(k); if (k===-1) rows.push(q); } var k=cols.length||1; var b=533.33/(100/k); return (100-b)+'%'; }}",
+                                "width": "100%",
                                 "height": "27%",
                                 "expand": true,
                                 "css": "",
@@ -8997,7 +8997,7 @@
                                 "visible": true,
                                 "interaction": true,
                                 "comments": "",
-                                "width": "JS{{ var st=@{fxstate@{parent.variables}}; if (!Array.isArray(st)) st=[0,1,2,3,4,5,6,7,8,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0]; st=st.slice(0,28); while(st.length<28) st.push(0); var o=st.slice(0,9), sel=st[18], pin=st.slice(19,28), SL=[2,3,4,5], cols=[], rows=[], p, q, k; for (p=0; p<9; p++) { q=o[p]; k=SL.indexOf(q)>=0 ? -1 : q; if ((q===sel || pin[q]) && cols.indexOf(k)<0) cols.push(k); if (k===-1) rows.push(q); } var k=cols.length||1; var b=533.33/(100/k); return (100-b)+'%'; }}",
+                                "width": "100%",
                                 "height": "100%",
                                 "expand": true,
                                 "css": "",
@@ -10055,7 +10055,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "40%",
+                        "top": "19%",
                         "left": "0%",
                         "id": "seqonpanel",
                         "visible": true,
@@ -11513,7 +11513,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "0%",
+                        "top": "65%",
                         "left": "0%",
                         "id": "chaosslewevoltime@{parent.variables.n}",
                         "visible": true,
@@ -12204,7 +12204,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "8%",
+                        "top": "33%",
                         "left": "0%",
                         "lock": false,
                         "id": "seqrhythmcontrols",
@@ -12387,7 +12387,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "0%",
+                        "top": "33%",
                         "left": "50%",
                         "id": "freqgen@{parent.variables.n}",
                         "visible": true,
@@ -12757,7 +12757,7 @@
                       },
                       {
                         "type": "modal",
-                        "top": "47%",
+                        "top": "26%",
                         "left": "0%",
                         "lock": false,
                         "id": "sequencer@{parent.variables.n}",
@@ -15387,7 +15387,7 @@
                       },
                       {
                         "type": "button",
-                        "top": "47%",
+                        "top": "26%",
                         "left": "75%",
                         "id": "sequencerstep@{parent.variables.n}",
                         "visible": true,
@@ -15435,7 +15435,7 @@
                       },
                       {
                         "type": "clone",
-                        "top": "54%",
+                        "top": "0%",
                         "left": "0%",
                         "id": "seqrandomadddrop",
                         "visible": true,

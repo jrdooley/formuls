@@ -123,10 +123,11 @@ most three columns.
 stacked vertically in chain order, never side by side.** Selecting or pinning any
 of them shows all four; pinning one pins all four (the pin buttons on the four
 tiles move together), and the stack counts as one column against the limit.
-**Filter Pitch Track** now lives in the filter column, as a tall button to the
-right of the Filter Frequency, Q pad. It is about as wide as the Freq Snap button
-(4% of the view, 5.33% of the editor) however many columns are on show, so with
-three columns it takes about 16% of the filter column.
+**Filter Pitch Track** now lives in the filter column, as a tall button laid over
+the right-hand edge of the Filter Frequency, Q pad (the pad keeps its full width
+underneath). It is about as wide as the Freq Snap button (4% of the view, 5.33% of
+the editor) however many columns are on show, so with three columns it takes
+about 16% of the filter column.
 
 **State.** One canvas, `fxstate<n>`, now holds 28 values: order[9], on[9],
 selected effect, pinned[9]. The first 18 are exactly what they were. Its
@@ -148,12 +149,12 @@ Slide Range/Time. The column to the right (25%) is Feedback (16.2% of the column
 FM Frequency/Depth and Noise Frequency/Depth, with Noise running down to the dock
 so nothing is left between it and the strip.
 
-Sequencer column (right 25%, full height), top to bottom: the **Master Volume
-column** (Envelope/Sidechain, Panning, Reverb, Master Volume with Mute, in its
-own panel `mixcol<n>`) is at the **foot**. Above it, from the top: the Chaos Slew /
-Evolve Time buttons, rhythm controls and frequency generator; the panel with
-**Sequencer On** and **Asynchronous** (sharing it equally); the STEP SEQUENCER
-modal and button; and the Sequencer Add, Drop pad.
+Sequencer column (right 25%, full height), top to bottom: the Sequencer Add, Drop
+pad; the panel with **Sequencer On** and **Asynchronous** (sharing it equally); the
+STEP SEQUENCER modal and button; the rhythm controls (left) and frequency
+generator (right), with the **Chaos Slew / Evolve Time** buttons under the rhythm
+controls; and, at the foot, the **Master Volume column** (Envelope/Sidechain,
+Panning, Reverb, Master Volume with Mute, in its own panel `mixcol<n>`).
 
 ### Saturation/bitcrush and chorus/phaser are sliders
 
