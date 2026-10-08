@@ -24,7 +24,7 @@ fi
 # build/gui behind, and "cp -r src/gui build/gui" would then copy INTO it
 # rather than replacing it.
 #
-# Only the two files the app actually reads from src/gui are copied. Copying
+# Only the two files the app actually reads from src/gui are staged. Copying
 # all of src/gui also picks up open-stage-control/ and node/ left behind by
 # earlier runs -- both gitignored, so invisible in "git status". The fresh
 # download below would then nest inside the stale tree, brand-osc.sh would
@@ -32,7 +32,7 @@ fi
 # old GUI plus tens of MB of dead weight.
 rm -rf build
 mkdir -p build/gui
-cp src/gui/_main.json src/gui/_formuls-default.state build/gui/
+cp src/gui/_formuls-default.state build/gui/   # _main.json is flattened in below
 cp -r src/pd build/pd
 mkdir -p build/pd/externals
 
@@ -77,6 +77,17 @@ sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION
 # frame; that is off by default because it costs the tablet more work
 # than it saves. Both measured in docs/gui/README.md.
 python3 "$ROOT/src/tools/patch-osc-perf.py" "$ROOT/build/gui/open-stage-control"
+
+# Ship the session flattened: clones inlined, every @{parent.variables...} that
+# cannot change after load resolved, template tabs emptied (kept in place: Pd
+# reads the selected synth from the tab index). src/gui/_main.json stays the
+# clone-based file you edit. Load drops from 10.9 s to 3.6 s on an M5; see
+# docs/gui/session-size.md. Hard failure on anything it does not understand,
+# including an o-s-c version the defaults table was not taken from.
+python3 "$ROOT/src/tools/flatten-session.py" "$ROOT/src/gui/_main.json" "$ROOT/build/gui/_main.json" \
+    --defaults "$ROOT/src/tools/osc-defaults-1.31.0.json" \
+    --osc-package "$ROOT/build/gui/open-stage-control" \
+    --template-tab formuls0 --template-tab Widgets
 
 cd "$ROOT/build"
 NODE_ARCH=$(uname -m | sed 's/x86_64/x64/')

@@ -12,12 +12,13 @@ of the app's Open Stage Control package, never the app's own, and on ports 9020+
 | `bench.js` | In-page: `benchTabs` (switch time to second frame, discarding any switch during which the page was hidden), `msgCost` / `msgCostArr` (one `setValue(…, {sync:true})`, which is what an incoming message costs), `drawCost` (synchronous `draw()`), `census`. |
 | `tabrun.js` | Waits for the build marker, settles, then runs `benchTabs` on synth tabs 1–3. |
 | `modeprobe.js` + `oscsend.py` | Arms a long-task and `widget-created` counter, then a real OSC message is sent over UDP (`oscsend.py PORT /lfofreq1 1`). |
-| `flatten.js` | In-page reference flattener: resolves static `@{…}` with o-s-c's own `resolveProp`, inlines clones, and keeps template tabs as empty placeholders so tab indices are unchanged. `__flatten({templateTabs: ['formuls0', 'Widgets']})`. |
+| `flatten.js` | The first, in-browser flattener (the build uses `src/tools/flatten-session.py`, a Python port that needs no browser): resolves static `@{…}` with o-s-c's own `resolveProp`, inlines clones, and keeps template tabs as empty placeholders so tab indices are unchanged. `__flatten({templateTabs: ['formuls0', 'Widgets']})`. |
 | `receiver.py PORT DIR` | POST sink, used to get large JSON out of the page. |
 | `fingerprint.js` + `compare_fp.py` | Equivalence check: every widget's resolved props, value, geometry and computed style, compared between two sessions. |
 | `modalgeom.js` + `compare_modal.py` | The same for every popup on synth 1, opened in turn. |
 | `gen_tabs.py`, `gen_canvas.py` | Session variants: fewer synth tabs; slider compounds and/or sequencer panels as one canvas. |
 | `census.py` | Authored vs expanded widget counts per tab, and clone templates. |
+| `extract-defaults.js` | Regenerates `src/tools/osc-defaults-<version>.json` from a live client running the clone-based session. Needed when the vendored o-s-c version changes. |
 | `patch-experiments.py` | `--tab-show-unforced`, `--multixy-point-interaction`. Anchored and idempotent. Not applied by the build. |
 
 ## Outline

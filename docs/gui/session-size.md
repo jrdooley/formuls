@@ -95,7 +95,11 @@ number of canvases:
 (15 switches each, any switch during which the page was hidden discarded. The
 measurement's own floor, two animation frames with nothing to do, is 3.8 ms.)
 
-## Option A — flatten the session at build time
+## Option A — flatten the session at build time (implemented)
+
+**Shipped as a build step:** `src/tools/flatten-session.py`, run by both build
+scripts after `patch-osc-perf.py`, writes the bundle's `_main.json`. Usage,
+failure modes and the defaults table are in `src/tools/README.md`.
 
 Resolve every **static** reference (`@{parent.variables…}`,
 `@{this.variables…}`, `@{this.id}`) once, replace each clone with the widget it
@@ -108,10 +112,11 @@ and the build ships the flattened file.
 *index* (the `/GET root` poll, see `README.md`). `formuls0` sits at index 1, so it
 is replaced by an empty hidden tab rather than deleted.
 
-The reference implementation is `tools/session/flatten.js`. It runs inside a
-loaded client and resolves each reference with o-s-c's own `resolveProp`, so its
-semantics are o-s-c's rather than a reimplementation. Three subtleties it handles,
-each found by the equivalence check failing first:
+The first version was `tools/session/flatten.js`, which runs inside a loaded
+client and resolves each reference with o-s-c's own `resolveProp`. The build
+step is a Python port of `resolveProp`, `balancedReplace` and `balanced-match`
+themselves, so it needs no browser. Three subtleties both handle, each found by
+the equivalence check failing first:
 
 - A static prop that resolves to an object is written back as a **JSON string**.
   o-s-c coerces strings inside object literals (`"true"` → `true`) but not inside a
@@ -122,6 +127,8 @@ each found by the equivalence check failing first:
   container. They are moved onto the inlined widget, and `css` is joined with a `;`.
 
 ### Verified
+
+All of the following were run on the Python build step's output.
 
 - **Every widget, every prop:** `fingerprint.js` + `compare_fp.py` over all
   10,692 widgets of both sessions compared the resolved value of every prop
@@ -139,18 +146,54 @@ each found by the equivalence check failing first:
   so it is inert either way. If it is ever switched on, it needs re-checking, since
   flattening removes one wrapper level.
 
+- **Listeners and load:** the same 10,694 widgets, 1,961 `widget-created` and
+  1,768 `value-changed` listeners as the browser version.
+- **The build:** `./build-macOS.sh` runs it and completes. The bundle's
+  `_main.json` is byte-identical to a standalone run of the same command.
+
+### What porting it turned up
+
+Each of these was found by a comparison failing, not by reading:
+
+- **o-s-c's parser deletes every prop the widget type does not define.**
+  `for (k in data) if (defaults[k] === undefined) delete data[k]`. So a prop the
+  type doesn't define is invisible to `@{}`, and the flattener drops it as well.
+- **Inside `OSC{}`, arguments are split on `,` before values are substituted.**
+  Splicing a value in as text changes the split if the value contains a comma,
+  so such references are left for o-s-c to resolve. The browser `flatten.js` got
+  this wrong: it spliced with `String()`, which the fingerprint could not see,
+  because no message ever arrives on either address. The Python port matches the
+  live client's receiver address exactly.
+- **A clone `props` override that does not parse never applies.** It is spread as
+  a string, and the parser deletes the character keys. The flattener reproduces
+  this and prints a note.
+
+Three overrides in the session never take effect today for these reasons, and
+flattening keeps them exactly as they behave now:
+
+- `bpmglobal` (mixer): its `"n": @{parent.variables.n}` is `undefined` there, so
+  the override is not JSON.
+- `modepanelparent` and `modepanelseq`: they override `n`, which panels don't
+  define, so it is deleted.
+
+And one bug that matters more:
+
+- **The keyboard panel's velocity slider gets the whole variables object as its
+  `n`.** Its ids come out as `velocity{"n":1,"colour":"#e53db8"}` instead of
+  `velocity1`, its address with them, and its mode layers listen on
+  `/chaos{"n":1,…}`, which nothing sends. This is how it behaves in today's build.
+  The clone override presumably wants `@{parent.variables.n}`.
+
 ### Not verified
 
 - Anything with Pd running.
 - Multi-client sync.
 - Saving state from the GUI. Ids are unchanged, so the state format is too, but this
   wasn't exercised.
+- The Linux build script: it gets the same step, but only the macOS build was run.
 
-The production version needs a build step that does not need a browser: a port of
-`flatten.js`, with `compare_fp.py` as its regression test. The flattened file is
-2.5 MB against 1.7 MB, because the template text is now repeated per instance;
-dropping the resolved `variables` objects that nothing reads would recover some of
-that.
+The flattened file is 2.5 MB against 1.7 MB, because the template text is now
+repeated per instance.
 
 ## Option B/C — bespoke canvas compounds
 
@@ -253,7 +296,7 @@ It is the largest saving available and the largest change.
 
 ## Suggested order
 
-1. **A**: no visual change, verified, 3× faster load, −28% per message, which also
+1. **A** (done): no visual change, verified, 3× faster load, −28% per message, which also
    helps the disconnects in `README.md`.
 2. **The tab-show patch**: one line, −17% tab switch.
 3. **The sequencer as one canvas** (C without B): the largest further cut per unit
