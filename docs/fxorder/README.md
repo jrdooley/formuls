@@ -87,13 +87,12 @@ editor        the selected effect, plus any pinned ones, side by side
 ```
 
 **Chain strip.** Nine tiles in signal order that tessellate: no gaps, one 2px seam
-between neighbours, rounded only at the strip's outer corners. The signal-flow
-arrow is in each tile's grip band (it points right, so the chain reads left to
-right). Each tile is split into three equal bands, each its own touch zone:
+between neighbours, rounded only at the strip's outer corners. Each tile is split
+into three equal bands, each its own touch zone:
 
 | zone | gesture | does |
 |---|---|---|
-| top third, dots and arrow (grip) | drag | moves the effect, inserting it between two others; a bar shows where it lands |
+| top third, dots (grip) | drag | moves the effect, inserting it between two others; a bar shows where it lands |
 | middle third (name, with a mini view of the effect's main control) | tap | selects the effect for the editor below |
 | bottom third, left button (`ON` / `BYP`) | tap | bypasses the effect; it is dimmed in place and keeps its slot |
 | bottom third, right button (`PIN`) | tap | keeps the effect in the editor while another is selected (at most two pinned columns) |
@@ -101,7 +100,8 @@ right). Each tile is split into three equal bands, each its own touch zone:
 The mini view is a dot at the pad's x/y for an xy effect, or a bar for a
 single-slider effect, so an effect's state is visible without selecting it.
 The tiles use the synth tab's own colour (the widget colour every other control
-uses): a dark face, an outline in that colour, a grip band tinted with it, and
+uses): a dark face, an outline in that colour, a grip band tinted with it whose
+dots, like the mini view, are drawn in the full outline colour, and
 `ON` / `PIN` buttons drawn like the GUI's other buttons (dark face, coloured
 outline, tinted when lit). Nothing is padded: the grip band and the two buttons
 run edge to edge, and `ON` and `PIN` are exact, equal halves of the bottom third. The selected tile has a white outline. **Chain Reset**
@@ -112,12 +112,13 @@ strip uses the full width.
 
 **Editor.** The effects are the same widgets as before, moved into one panel
 (`fxeditor<n>`) under the strip. The dock panel behind it (`fxa<n>`) is the synth tab's own colour at 20%
-opacity, so the space between the effects takes the tab's hue (the editor itself
-is transparent). The 0.2 is `DIM` in the generator and the `rgba(...)` in `fxa`'s
+opacity, which shows wherever the editor has room to spare (the editor itself is
+transparent). The 0.2 is `DIM` in the generator and the `rgba(...)` in `fxa`'s
 `colorBg`; it reads the tab's `colour` variable, which only `fxa` can see. Each one is positioned and shown by a
 property expression that reads the chain state: shown if it is the selected
 effect or pinned; its column is its rank among the shown effects, in chain
-order, and each gets an equal share of the width, at most three columns.
+order, and each gets an equal share of the width, end to end with no gaps, at
+most three columns.
 **The four slider effects (Saturation, Bitcrush, Chorus, Phaser) share one column,
 stacked vertically in chain order, never side by side.** Selecting or pinning any
 of them shows all four; pinning one pins all four (the pin buttons on the four
@@ -149,10 +150,10 @@ so nothing is left between it and the strip.
 
 Sequencer column (right 25%, full height), top to bottom: the **Master Volume
 column** (Envelope/Sidechain, Panning, Reverb, Master Volume with Mute, in its
-own panel `mixcol<n>`) where ADSR used to be; the Chaos Slew / Evolve Time buttons,
-rhythm controls and frequency generator, moved up 7%; the panel with **Sequencer
-On** and **Asynchronous** (now sharing it equally) directly above the STEP
-SEQUENCER modal and button; and the Sequencer Add, Drop pad at the foot.
+own panel `mixcol<n>`) is at the **foot**. Above it, from the top: the Chaos Slew /
+Evolve Time buttons, rhythm controls and frequency generator; the panel with
+**Sequencer On** and **Asynchronous** (sharing it equally); the STEP SEQUENCER
+modal and button; and the Sequencer Add, Drop pad.
 
 ### Saturation/bitcrush and chorus/phaser are sliders
 
