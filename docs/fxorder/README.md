@@ -86,17 +86,17 @@ chain strip   AM > PITCH > SAT > CRUSH > CHORUS > PHASER > FILTER > DELAY > GATE
 editor        the selected effect, plus any pinned ones, side by side
 ```
 
-**Chain strip.** Nine tiles in signal order with a fixed arrow between each pair
-(the arrows belong to the slots, so they stay put while tiles move). Each tile
-has three separate touch zones, with dead space between them, so a finger never
-does the wrong thing:
+**Chain strip.** Nine tiles in signal order that tessellate: no gaps, one 2px seam
+between neighbours, rounded only at the strip's outer corners. The signal-flow
+arrow is in each tile's grip band (it points right, so the chain reads left to
+right). Each tile is split into three equal bands, each its own touch zone:
 
 | zone | gesture | does |
 |---|---|---|
-| top band, dots (grip) | drag | moves the effect, inserting it between two others; a bar shows where it lands |
-| middle band (name, with a mini view of the effect's main control) | tap | selects the effect for the editor below |
-| bottom band, left button (`ON` / `BYP`) | tap | bypasses the effect; it is dimmed in place and keeps its slot |
-| bottom band, right button (`PIN`) | tap | keeps the effect in the editor while another is selected (at most two pinned columns) |
+| top third, dots and arrow (grip) | drag | moves the effect, inserting it between two others; a bar shows where it lands |
+| middle third (name, with a mini view of the effect's main control) | tap | selects the effect for the editor below |
+| bottom third, left button (`ON` / `BYP`) | tap | bypasses the effect; it is dimmed in place and keeps its slot |
+| bottom third, right button (`PIN`) | tap | keeps the effect in the editor while another is selected (at most two pinned columns) |
 
 The mini view is a dot at the pad's x/y for an xy effect, or a bar for a
 single-slider effect, so an effect's state is visible without selecting it.
@@ -104,12 +104,11 @@ The tiles use the synth tab's own colour (the widget colour every other control
 uses): a dark face, an outline in that colour, a grip band tinted with it, and
 `ON` / `PIN` buttons drawn like the GUI's other buttons (dark face, coloured
 outline, tinted when lit). Nothing is padded: the grip band and the two buttons
-run edge to edge inside the rounded tile, and `ON` and `PIN` are exact, equal
-halves of the bottom band. The selected tile has a white outline. **Chain Reset**
+run edge to edge, and `ON` and `PIN` are exact, equal halves of the bottom third. The selected tile has a white outline. **Chain Reset**
 (restores the default order with everything active) is **hidden for now**: the
 widget is still in `_main.json` with `visible: false`; to bring it back, set
 `visible` to `true` and narrow `fxstate` and `fxview` to 94% wide, because the
-strip now uses the full width.
+strip uses the full width.
 
 **Editor.** The effects are the same widgets as before, moved into one panel
 (`fxeditor<n>`) under the strip. Each one is positioned and shown by a
@@ -120,6 +119,10 @@ order, and each gets an equal share of the width, at most three columns.
 stacked vertically in chain order, never side by side.** Selecting or pinning any
 of them shows all four; pinning one pins all four (the pin buttons on the four
 tiles move together), and the stack counts as one column against the limit.
+**Filter Pitch Track** now lives in the filter column, as a tall button to the
+right of the Filter Frequency, Q pad. It is about as wide as the Freq Snap button
+(4% of the view, 5.33% of the editor) however many columns are on show, so with
+three columns it takes about 16% of the filter column.
 
 **State.** One canvas, `fxstate<n>`, now holds 28 values: order[9], on[9],
 selected effect, pinned[9]. The first 18 are exactly what they were. Its
@@ -135,14 +138,18 @@ frame, because a computed value does not redraw a canvas by itself;
 `fxstate<n>` sits on top, transparent, and takes the touches and draws the drag
 ghost.
 
-Synth-tab layout, upper 52% (left 75%; the sequencer column on the right is
-unchanged and still runs the full height). Osc Frequency/Wave keeps its original
-size (50% wide, 23% tall). The column to its right (25%) is Feedback (16.2% of
-the column, 10% shorter than it was), then FM Frequency/Depth and Noise
-Frequency/Depth at their old height, moved up. Directly under Osc Frequency/Wave,
-two columns: Velocity over Osc Slide Range/Time; and Envelope/Sidechain, Panning,
-Reverb and Master Volume with Mute, stacked. The ADSR panel's three buttons are
-exact thirds of its height.
+Synth-tab layout. Upper 52% of the left 75%: Osc Frequency/Wave keeps its original
+size (50% wide, 23% tall). Under it, two columns: **ADSR**, then Velocity over Osc
+Slide Range/Time. The column to the right (25%) is Feedback (16.2% of the column),
+FM Frequency/Depth and Noise Frequency/Depth, with Noise running down to the dock
+so nothing is left between it and the strip.
+
+Sequencer column (right 25%, full height), top to bottom: the **Master Volume
+column** (Envelope/Sidechain, Panning, Reverb, Master Volume with Mute, in its
+own panel `mixcol<n>`) where ADSR used to be; the Chaos Slew / Evolve Time buttons,
+rhythm controls and frequency generator, moved up 7%; the panel with **Sequencer
+On** and **Asynchronous** (now sharing it equally) directly above the STEP
+SEQUENCER modal and button; and the Sequencer Add, Drop pad at the foot.
 
 ### Saturation/bitcrush and chorus/phaser are sliders
 
