@@ -10055,7 +10055,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "19%",
+                        "top": "0%",
                         "left": "0%",
                         "id": "seqonpanel",
                         "visible": true,
@@ -12757,7 +12757,7 @@
                       },
                       {
                         "type": "modal",
-                        "top": "26%",
+                        "top": "7%",
                         "left": "0%",
                         "lock": false,
                         "id": "sequencer@{parent.variables.n}",
@@ -15387,7 +15387,7 @@
                       },
                       {
                         "type": "button",
-                        "top": "26%",
+                        "top": "7%",
                         "left": "75%",
                         "id": "sequencerstep@{parent.variables.n}",
                         "visible": true,
@@ -15435,7 +15435,7 @@
                       },
                       {
                         "type": "clone",
-                        "top": "0%",
+                        "top": "14%",
                         "left": "0%",
                         "id": "seqrandomadddrop",
                         "visible": true,

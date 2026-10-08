@@ -149,9 +149,10 @@ Slide Range/Time. The column to the right (25%) is Feedback (16.2% of the column
 FM Frequency/Depth and Noise Frequency/Depth, with Noise running down to the dock
 so nothing is left between it and the strip.
 
-Sequencer column (right 25%, full height), top to bottom: the Sequencer Add, Drop
-pad; the panel with **Sequencer On** and **Asynchronous** (sharing it equally); the
-STEP SEQUENCER modal and button; the rhythm controls (left) and frequency
+Sequencer column (right 25%, full height), top to bottom: the panel with
+**Sequencer On** and **Asynchronous** (sharing it equally); the STEP SEQUENCER
+modal and button; the Sequencer Add, Drop pad immediately below it; the rhythm
+controls (left) and frequency
 generator (right), with the **Chaos Slew / Evolve Time** buttons under the rhythm
 controls; and, at the foot, the **Master Volume column** (Envelope/Sidechain,
 Panning, Reverb, Master Volume with Mute, in its own panel `mixcol<n>`).
