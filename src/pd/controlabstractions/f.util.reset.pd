@@ -432,10 +432,10 @@
 #X msg 104 86 0 1 1 0;
 #X obj 163 226 oscformat filterpitchtrack\$1;
 #X obj 560 330 r \$1-reset;
-#X msg 560 354 0 1 2 3 4 5 6 7 8 1 1 1 1 1 1 1 1 1;
+#X msg 560 354 0 1 2 3 4 5 6 8 7 1 1 1 1 1 1 1 1 1;
 #X obj 560 378 oscformat fxstate\$1;
 #X obj 560 402 s to-o-s-c-interface;
-#X msg 760 354 fxorder 0 1 2 3 4 5 6 7 8;
+#X msg 760 354 fxorder 0 1 2 3 4 5 6 8 7;
 #X obj 760 378 s formuls\$1;
 #X obj 330 466 oscformat bitcrush\$1;
 #X obj 330 489 s to-o-s-c-interface;

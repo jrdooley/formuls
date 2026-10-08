@@ -13,9 +13,9 @@ exp27 = pow(2.7);
 //--- places all the fx below into a signal chain. This is formuls specific.
 // fx = _ <: _,(am : chorus : bitcrush : saturation : filter : gate : delay) : si.interpolate(fxsend);
 // Fixed-order reference chain: the default order of fxchain. Not used by
-// formuls.dsp; kept so a null test can compare against it. (Before the chain
-// became reorderable, and until the default changed, gate came before delay.)
-fxfixed = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : delay : gate) : si.interpolate(fxsend);
+// formuls.dsp; kept so a null test can compare against it. (Gate comes before
+// delay, the original order and the default again.)
+fxfixed = _ <: _,(am : pitchshift : saturation : bitcrush2 : chorus : phaser : filter : gate : delay) : si.interpolate(fxsend);
 
 // The effects chain with a user-selectable order. fxchain adds FXLAT samples of
 // delay however many slots are used, so the dry path is delayed to match.
@@ -24,7 +24,7 @@ fx = _ <: @(FXLAT), fxchain : si.interpolate(fxsend);
 //------REORDERABLE CHAIN (feedback crossbar)------//
 /* Nine slots, nine effects. Slot j holds the effect whose index is fxslotj:
      0 am, 1 pitchshift, 2 saturation, 3 bitcrush2, 4 chorus,
-     5 phaser, 6 filter, 7 gate, 8 delay; 9 (or more) = slot empty.
+     5 phaser, 6 filter, 7 delay, 8 gate; 9 (or more) = slot empty.
    Each effect is instantiated once. Its input is picked from the slot signals
    (routing is a selectn, so nothing is mixed), and each slot output picks the
    effect assigned to it, or passes its own input through when empty.
@@ -33,7 +33,8 @@ fx = _ <: @(FXLAT), fxchain : si.interpolate(fxsend);
    Total delay is always FXN-1 samples whatever the order (0.17 ms at 48 kHz).
    A slot whose effect an earlier slot already holds is treated as empty, so a
    half-updated order can never put one effect in two places (that would route
-   it through itself). The defaults reproduce the fixed order of fxfixed.
+   it through itself). The defaults reproduce the fixed order of fxfixed
+   (gate before delay, so slots 7 and 8 default to effects 8 and 7).
 
    Changing the order makes every effect see a different signal at once, which
    pops. So a change is not applied straight away: once the sliders have been
@@ -59,7 +60,11 @@ with {
   efx(7) = delay;
   efx(8) = gate;
 
-  raw(j) = hslider("fxslot%j", j, 0, N, 1) : int;
+  // default order: effect indices in slot order, with gate (8) ahead of delay (7)
+  dflt(7) = 8;
+  dflt(8) = 7;
+  dflt(j) = j;
+  raw(j) = hslider("fxslot%j", dflt(j), 0, N, 1) : int;
 
   // --- change handling: quiet period, hold-off, duck, latch ---
   // ctl outputs (since, latched slot 0..N-1); since counts samples from the

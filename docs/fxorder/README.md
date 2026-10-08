@@ -5,8 +5,8 @@ The nine effects after the oscillator — AM, pitchshift, saturation, bitcrush2,
 chorus, phaser, filter, gate, delay — used to be wired in one fixed order inside
 `fx` in `src/faust/ffx.lib`. They can now be **reordered** and **bypassed** per
 synth from the touchscreen, live, without rebuilding anything.
-The default order now puts **delay before gate** (originally gate came first), so the
-GUI column and the signal path read the same way.
+The default order puts **gate before delay** (as in the original fixed chain). It was
+briefly delay before gate (`10d935f`); gate-before-delay is the default again.
 
 | commit | what |
 |---|---|
@@ -40,7 +40,9 @@ recursive state machine, `body ~ si.bus(FXN-1)`, so each hop costs one sample.
   empty, so a half-updated or malformed slot list can never put one effect in two
   places (that would route it through itself).
 - **Defaults reproduce the old order.** `fxfixed` (the original chain) is kept
-  in the file as the reference the null tests compare against.
+  in the file as the reference the null tests compare against. Effect indices
+  are 7 = delay and 8 = gate, so the default slot list is `0 1 2 3 4 5 6 8 7`
+  (`dflt` in `ffx.lib`; also the GUI default and both reset paths).
 - `formuls.dsp` is unchanged. Compile flags are unchanged
   (`-vec -lv 0 -vs 4`).
 
@@ -72,7 +74,7 @@ The dry path is not ducked.
   state, see below) is deliberately swallowed.
 - `f.util.reset.pd` (FX canvas): on `<n>-reset` — raised by both a synth's reset
   button and the global reset — sends the default `fxstate` to the GUI and
-  `fxorder 0 1 2 3 4 5 6 7 8` straight to Faust. Sending to Faust directly means
+  `fxorder 0 1 2 3 4 5 6 8 7` straight to Faust. Sending to Faust directly means
   the audio resets even if no GUI is connected.
 
 ### GUI (`src/gui/_main.json`)
