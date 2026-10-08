@@ -280,7 +280,59 @@ arrive in the same burst.
 screen. Gestures were driven with the pane's mouse. Multi-touch is handled per
 `pointerId`, but untested.
 
-## multixy, and the blocker hit last time
+### C, implemented (branch `gui-compounds`)
+
+The six 128-step `seqsteppanel`s are compiled the same way, by
+`src/gui/compounds/sequencer-lib.js`. Each panel is 385 widgets: 128 cells of a toggle
+button under a 10-step fader. It becomes one 256-value canvas. Its per-step dimming
+(`OSC{/aseqwriteN-i}`, which is not state today) lives in a widget variable that the
+mailbox patches.
+
+**Gestures are identical.** The recording covers:
+- tapping steps;
+- traversing drags along a row and down a column;
+- with quantise held: dragging a step fader, tapping one, double-tapping one, and
+  dragging across several.
+
+The canvas sends the same 20 messages with the same values (reference:
+`tools/session/ref-gestures-seq1.log`). The only difference in order is where the
+double-tap's reset lands. o-s-c resets in a `setTimeout(0)`, and the test tool queues
+the next gesture's pointerdown ahead of that timer. No finger can start a new gesture
+within the same event-loop tick.
+
+**Inbound matches.** Toggles, fader values (o-s-c quantises what it receives, and so
+does the module), dimming and un-dimming all agree, in values and in screenshots.
+
+Getting there took four corrections, each found by the comparison failing:
+- `smart` traversing only affects widgets of the first one's type.
+- Faders in a traversing container always snap. A fader entered mid-drag takes its
+  position relative to the *first* fader, so it clips.
+- The unchanged-value check runs *before* step-quantising, and an exact tie goes to
+  the lower step.
+- The browser picks the traversed cell at the **rounded** pointer position, while the
+  canvas's `offsetX` is floored. Cells are hit-tested from the canvas's real edge
+  instead. The slider's mod cells were changed the same way and re-verified.
+
+**Measured, full session, A+ applied throughout:**
+
+| | A+ | A+ + B | A+ + B + C |
+|---|---|---|---|
+| widgets built | 10,694 | 7,650 | 5,346 |
+| `value-changed` listeners | 1,768 | 1,478 | 710 |
+| build + state | 2.7 + 0.9 s | 1.7 + 0.5 s | 1.5 + 0.3 s |
+| per incoming message | ~66 µs | ~50 µs | ~23.5 µs |
+| synth-tab switch, median | 51.6 ms | 38.9 ms | not yet measured † |
+
+† The browser pane stayed hidden, so `requestAnimationFrame` timings were invalid, and
+no number is recorded. C removes the 128 step-fader canvases on each synth tab
+(173 canvases against B's 304).
+
+State recall still sends the same 7,140 messages to Pd. In the built bundle, the
+shipped session, state and map are byte-identical to the verified ones. The bundle's
+own server, started with the app's exact flags including `--custom-module`, builds
+5,346 widgets (145 slider and 6 sequencer canvases) and sends the same burst.
+
+
 
 **Per-point colours already exist in 1.31.** `pointsAttr` takes one object per point
 with `color`, `colorFill`, `colorStroke`, `alphaFillOn`, `pointSize`, `label` and
@@ -348,7 +400,7 @@ It is the largest saving available and the largest change.
    helps the disconnects in `README.md`.
 2. **The tab-show patch** (done, on `gui-compounds`): one line, −17% tab switch. Now
    applied always by `src/tools/patch-osc-perf.py`.
-3. **The sequencer as one canvas** (C without B): the largest further cut per unit
+3. **The sequencer as one canvas** (done as C, on `gui-compounds`): the largest further cut per unit
    of work, and it halves per-message cost on its own.
 4. **Slider compounds** (done as B, on `gui-compounds`); **xy/menu compounds**, as canvases or multixy with the point patch. This is
    the decision about how the instrument looks, the same decision as Step 3 in

@@ -24,6 +24,7 @@ of the app's Open Stage Control package, never the app's own, and on ports 9020+
 | `mode.sh PORT MODE 0/1`, `inbound.sh PORT` | Send what Pd would send: a mode state, or values for every sub-address of `attack1`. |
 | `cmp_burst.py A.log B.log` | Compares two state-recall bursts: the multiset, then the order. |
 | `ref-gestures-attack1.log` | The reference recording the canvas compound must reproduce byte for byte. Gestures, in order (pane at 778 px, compound at y=124): tap 389; drag 200->600; double-click 500; chaos: drag 200->600; LFO freq: 300->500; LFO depth: 600->350; mod depth: 200->650; mod: tap 324, tap 324, tap 580, drag 70->450; parameter select: tap 389. |
+| `inbound-seq.sh PORT`, `ref-gestures-seq1.log` | The same for the synth-1 sequencer panel. Gestures (one-panel session, pane at 778 px): tap step 1 twice; drag (52,57)->(533,57); drag (245,57)->(245,159); hold quantise (`/quantiseseq1 1`), then drag (148,82)->(190,82), tap (245,82), double-click (341,82), drag (52,108)->(437,108). |
 | `patch-experiments.py` | `--tab-show-unforced`, `--multixy-point-interaction`. Anchored and idempotent. Not applied by the build. |
 
 ## Outline

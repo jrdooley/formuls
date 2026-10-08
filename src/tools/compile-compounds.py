@@ -25,7 +25,13 @@ redraws the canvases they gate (updateCanvas, no broadcast).
 
 Hard failure on anything it does not model.
 
-usage: compile-compounds.py SESSION_IN STATE_IN SESSION_OUT STATE_OUT MAP_OUT --lib slider-lib.js
+Each 128-step `seqsteppanel` (option C) -- 128 cells of a toggle button under a
+quantised fader, 385 widgets -- likewise becomes ONE canvas (256 values), drawn and
+touched by src/gui/compounds/sequencer-lib.js. Its per-step dimming, which is an
+OSC{} receiver today rather than state, goes to a widget variable.
+
+usage: compile-compounds.py SESSION_IN STATE_IN SESSION_OUT STATE_OUT MAP_OUT
+                            --lib slider-lib.js --seq-lib sequencer-lib.js
 """
 import argparse, json, pathlib, re, sys
 
@@ -82,6 +88,7 @@ def main():
     for n in ('session_in', 'state_in', 'session_out', 'state_out', 'map_out'):
         ap.add_argument(n)
     ap.add_argument('--lib', required=True)
+    ap.add_argument('--seq-lib', required=True)
     a = ap.parse_args()
     try:
         run(a)
@@ -93,6 +100,7 @@ def run(a):
     session = json.loads(pathlib.Path(a.session_in).read_text())
     state = json.loads(pathlib.Path(a.state_in).read_text())
     lib = pathlib.Path(a.lib).read_text()
+    seq_lib = pathlib.Path(a.seq_lib).read_text()
     root = session['content']
 
     compounds = []                                   # (parent, index, panel)
@@ -101,8 +109,6 @@ def run(a):
             if c.get('type') == 'panel' and c.get('id') == 'slider':
                 compounds.append((w, i, c))
     walk(root, find)
-    if not compounds:
-        raise CompileError('no slider compounds found')
 
     used_ids = set()
     walk(root, lambda w, p: used_ids.add(str(w.get('id'))))
@@ -182,7 +188,7 @@ def run(a):
             'left': panel.get('left', 'auto'), 'top': panel.get('top', 'auto'),
             'width': panel.get('width', 'auto'), 'height': panel.get('height', 'auto'),
             'valueLength': NSLOTS, 'default': values, 'autoClear': False, 'padding': 0,
-            'onDraw': f'var M = {mjs};\nglobals.FC && globals.FC.draw(ctx, width, height, value, cssVars, M, {{get: get}})',
+            'onDraw': f'var M = {mjs};\nglobals.FC && globals.FC.draw(ctx, width, height, value, cssVars, M, {{get: get}}, locals)',
             'onTouch': f'var M = {mjs};\nglobals.FC && globals.FC.touch(event, value, width, height, M, locals, {{get: get, set: set, send: send}})',
         }
         for p in ('expand', 'visible', 'css', 'interaction'):
@@ -198,6 +204,79 @@ def run(a):
             sub_to_slot[sub_ids[slot]] = (cid, slot)
             mapping['inbound'].setdefault(addrs[slot], []).append([cid, slot, 1])
         # no aggregate: o-s-c ignores /attackmod1 carrying 6 values (verified), so must we
+
+    # --- option C: sequencer step panels --------------------------------------------
+    seqs = []
+    def find_seq(w, parent):
+        for i, c in enumerate(w.get('widgets') or []):
+            if c.get('type') == 'panel' and c.get('id') == 'seqsteppanel':
+                seqs.append((w, i, c))
+    walk(root, find_seq)
+    for parent, idx, panel in seqs:
+        cells = panel.get('widgets') or []
+        if len(cells) != 128 or any([g.get('type') for g in (c.get('widgets') or [])] != ['button', 'fader'] for c in cells):
+            raise CompileError('seqsteppanel: expected 128 cells of [button, fader]')
+        if panel.get('layout') != 'grid' or str(panel.get('gridTemplate')) != '8' or panel.get('traversing') != 'smart':
+            raise CompileError('seqsteppanel: expected an 8-column grid with smart traversing')
+        btn = [c['widgets'][0] for c in cells]; fad = [c['widgets'][1] for c in cells]
+        quant = {value_ref(f.get('interaction')) for f in fad}
+        if len(quant) != 1:
+            raise CompileError('seqsteppanel: faders gated by different inputs')
+        for f in fad:
+            for prop, want in (('steps', 10), ('design', 'compact'), ('knobSize', 10), ('padding', 3), ('horizontal', True), ('doubleTap', True)):
+                if f.get(prop) != want:
+                    raise CompileError(f'seqsteppanel: fader {f["id"]} has {prop}={f.get(prop)!r}, expected {want!r}')
+        op0, opaddr = [], []
+        for b in btn:
+            m = re.fullmatch(r'opacity:\s*OSC\{\s*(/[^,}]+?)\s*,\s*([01])\s*\}', str(b.get('css', '')))
+            if not m:
+                raise CompileError(f'seqsteppanel: {b["id"]} css {b.get("css")!r} is not an OSC{{}} opacity')
+            opaddr.append(m.group(1)); op0.append(int(m.group(2)))
+        n = re.fullmatch(r'seqwrite(.+)-0', str(btn[0]['id'])).group(1)
+        cid = f'seqsteps{n}_c'
+        while cid in used_ids:
+            cid += '_'
+        used_ids.add(cid)
+        caddr = f'/fs/{n}'
+        baddr = [address_of(b) for b in btn]; waddr = [address_of(f) for f in fad]
+        sub_ids = [str(b['id']) for b in btn] + [str(f['id']) for f in fad]
+        values, recall = [], []
+        for slot, sid in enumerate(sub_ids):
+            if sid in state:
+                v = state[sid]; recall.append(slot); drop_keys.add(sid)
+            else:
+                v = 0
+            values.append(v if isinstance(v, (int, float)) and not isinstance(v, bool) else (1 if v is True else 0))
+        first = next((sid for sid in sub_ids if sid in state), None)
+        if first:
+            new_state_entries.setdefault(first, []).append((cid, values))
+        M = {'b': baddr, 'w': waddr, 'q': quant.pop(), 'op0': op0}
+        mjs = json.dumps(M, ensure_ascii=False)
+        canvas = {
+            'type': 'canvas', 'id': cid, 'address': caddr,
+            'left': panel.get('left', 'auto'), 'top': panel.get('top', 'auto'),
+            'width': panel.get('width', 'auto'), 'height': panel.get('height', 'auto'),
+            'valueLength': 256, 'default': values, 'autoClear': False, 'padding': 0,
+            'onDraw': f'var M = {mjs};\nglobals.FS && globals.FS.draw(ctx, width, height, value, cssVars, M, {{get: get, getVar: getVar}}, locals)',
+            'onTouch': f'var M = {mjs};\nglobals.FS && globals.FS.touch(event, value, width, height, M, locals, {{get: get, set: set, send: send}})',
+        }
+        for prop in ('expand', 'visible', 'css', 'interaction'):
+            if prop in panel:
+                canvas[prop] = panel[prop]
+        parent['widgets'][idx] = canvas
+        key_pos = {k2: i for i, k2 in enumerate(state)}
+        recall.sort(key=lambda sl: key_pos[sub_ids[sl]])
+        all_addr = baddr + waddr
+        mapping['canvases'][caddr] = {'id': cid, 'recall': [[sl, all_addr[sl]] for sl in recall]}
+        for slot, sid in enumerate(sub_ids):
+            sub_to_slot[sid] = (cid, slot)
+            # the step faders quantise what they receive (10 steps), as o-s-c does
+            mapping['inbound'].setdefault(all_addr[slot], []).append([cid, slot, 1] + ([10] if slot >= 128 else []))
+        for i, a2 in enumerate(opaddr):
+            mapping['inbound'].setdefault(a2, []).append([cid, 'op', i])
+
+    if not compounds and not seqs:
+        raise CompileError('no compounds found')
 
     # references from outside the compounds into their sub-widgets
     refs = {'rewritten': 0}
@@ -257,9 +336,10 @@ def run(a):
         raise CompileError('session has no tabs to host the mailbox')
     tabs[0].setdefault('widgets', []).append({
         'type': 'variable', 'id': PATCH_ID, 'address': PATCH_ADDRESS,
-        'onValue': 'globals.FC && globals.FC.patch({get: get, set: set}, value)'})
+        'onValue': 'globals.FC && globals.FC.patch({get: get, set: set, getVar: getVar, setVar: setVar, updateCanvas: updateCanvas}, value)'})
     prev = root.get('onCreate', '')
-    root['onCreate'] = '// compile-compounds: src/gui/compounds/slider-lib.js\n' + lib + ('\n' + prev if prev else '')
+    root['onCreate'] = ('// compile-compounds: src/gui/compounds/slider-lib.js\n' + lib +
+                        '\n// compile-compounds: src/gui/compounds/sequencer-lib.js\n' + seq_lib + ('\n' + prev if prev else ''))
 
     # state: packed values, in the position of each compound's first sub key. A sub key
     # whose id another widget still carries (reverb1 is also the effect's own toggle)
@@ -280,6 +360,7 @@ def run(a):
     nwid = [0]; walk(root, lambda w, p: nwid.__setitem__(0, nwid[0] + 1))
     if skipped:
         print(f'compile-compounds: note: {len(skipped)} compounds with non-static wiring left as authored: {skipped[:6]}')
+    print(f'compile-compounds: {len(seqs)} sequencer panels -> canvases')
     print(f'compile-compounds: {k + 1} of {len(compounds)} slider compounds -> canvases, {refs["rewritten"]} outside references '
           f'rewritten, {len(hooked)} mode inputs hooked, {len(mapping["passthrough"])} shared addresses passed through, '
           f'{nwid[0]} authored widgets, state {len(state)} -> {len(out_state)} keys')

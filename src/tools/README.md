@@ -146,7 +146,8 @@ props moved deliberately. See `docs/gui/session-size.md`.
 ## compile-compounds.py
 
 Runs after `flatten-session.py`. Turns each `slider` compound (15 stacked widgets)
-into one canvas, drawn and touched by `src/gui/compounds/slider-lib.js`. Pd keeps its
+into one canvas, drawn and touched by `src/gui/compounds/slider-lib.js`, and each
+128-step `seqsteppanel` (385 widgets) into one, by `sequencer-lib.js`. Pd keeps its
 per-parameter addresses: `src/gui/formuls-module.js`, an o-s-c server module, does
 the translation from the `compounds.json` this writes.
 

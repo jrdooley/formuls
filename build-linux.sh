@@ -103,14 +103,15 @@ python3 "$ROOT/src/tools/flatten-session.py" "$ROOT/src/gui/_main.json" "$ROOT/b
     --osc-package "$ROOT/build/gui/open-stage-control" \
     --template-tab formuls0 --template-tab Widgets
 
-# Compile each slider compound (15 stacked widgets) into one canvas, migrate the
+# Compile each slider compound (15 stacked widgets) and each 128-step sequencer
+# panel (385 widgets) into one canvas, migrate the
 # state file to the packed values, and write the map the server module uses to
-# keep Pd's per-parameter addresses unchanged. Option B in
+# keep Pd's per-parameter addresses unchanged. Options B and C in
 # docs/gui/session-size.md. Hard failure on anything it does not model.
 python3 "$ROOT/src/tools/compile-compounds.py" \
     "$ROOT/build/gui/_main.json" "$ROOT/src/gui/_formuls-default.state" \
     "$ROOT/build/gui/_main.json" "$ROOT/build/gui/_formuls-default.state" "$ROOT/build/gui/compounds.json" \
-    --lib "$ROOT/src/gui/compounds/slider-lib.js"
+    --lib "$ROOT/src/gui/compounds/slider-lib.js" --seq-lib "$ROOT/src/gui/compounds/sequencer-lib.js"
 cp "$ROOT/src/gui/formuls-module.js" "$ROOT/build/gui/"
 
 NODE_PKG="node-v22.17.0-linux-$ARCH"

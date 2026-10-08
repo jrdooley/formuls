@@ -73,7 +73,26 @@
     ctx.restore();
   }
 
-  function draw(ctx, W, H, v, cs, M, api) {
+
+  // Where the browser's hit test lands, in canvas CSS pixels. o-s-c traverses by the
+  // pointer event's target; the browser rounds the pointer to a whole pixel, and the
+  // canvas' event.offsetX is floored, so neither offsetX nor pageX - offsetX will do:
+  // use the canvas' real edge, cached at draw time, unless it has moved (a scrolled
+  // panel), in which case fall back to the event's own estimate.
+  function hitPoint(event, locals) {
+    var ex = event.pageX - event.offsetX, ey = event.pageY - event.offsetY;
+    var lx = (locals.left != null && Math.abs(ex - locals.left) < 1) ? locals.left : ex;
+    var ly = (locals.top != null && Math.abs(ey - locals.top) < 1) ? locals.top : ey;
+    return [Math.round(event.pageX) - lx, Math.round(event.pageY) - ly];
+  }
+  function cacheRect(ctx, locals, W) {
+    if (!locals) return;
+    var r = ctx.canvas.getBoundingClientRect();
+    locals.left = r.left; locals.top = r.top; locals.cssW = r.width; locals.cssH = r.height; locals.pw = W;
+  }
+
+  function draw(ctx, W, H, v, cs, M, api, locals) {
+    cacheRect(ctx, locals, W);
     ctx.clearRect(0, 0, W, H);
     var i, f;
     // LEDs (bottom layer)
@@ -154,21 +173,23 @@
   function touch(event, value, W, H, M, locals, api) {
     var id = event.pointerId || 0, t = locals.touches || (locals.touches = {});
     var x = event.offsetX, y = event.offsetY, now = Date.now();
+    // cells are chosen where the browser's hit test would land
+    var hx = hitPoint(event, locals)[0];
     if (event.type === 'start') {
-      var layer = layerAt(x, y, W, M, api);
+      var layer = layerAt(hx, y, W, M, api);
       var st = t[id] = { layer: layer };
       if (layer.kind === 'label') {
         api.send(M.a[SLOT.label], 1);                                // tap mode: sends its on value only
         return;
       }
       if (layer.kind === 'mod') {
-        var c = cellAt(x, W); st.first = c >= 0 ? num(value[SLOT.mod + c]) : null; st.cells = {};
+        var c = cellAt(hx, W); st.first = c >= 0 ? num(value[SLOT.mod + c]) : null; st.cells = {};
         if (c >= 0) { st.cells[c] = 1; emit(api, value, SLOT.mod + c, st.first ? 0 : 1, M, true); }
         return;
       }
       var f = layer.f;
       // snap to the touch, as the fader's draginit does with snap: true
-      st.percent = clip((x - f.gp) / (W - 2 * f.gp), 0, 1) * 100;
+      st.percent = (x - f.gp) / (W - 2 * f.gp) * 100;               // unclipped, as o-s-c keeps it
       var nv = faderTo(api, value, f, f.min + st.percent / 100 * (f.max - f.min), M, true);
       // double tap on the same layer: reset to its default after the snap
       var last = locals.lastTap;
@@ -188,7 +209,7 @@
     if (!s) return;
     if (event.type === 'move') {
       if (s.layer.kind === 'mod') {
-        var cc = cellAt(x, W);
+        var cc = cellAt(hx, W);
         if (cc >= 0 && !s.cells[cc]) {                              // traversing rule
           s.cells[cc] = 1;
           if (num(value[SLOT.mod + cc]) === s.first) emit(api, value, SLOT.mod + cc, s.first ? 0 : 1, M, true);
@@ -197,16 +218,25 @@
       }
       if (s.layer.kind !== 'fader') return;
       var ff = s.layer.f, inertia = event.ctrlKey ? 10 : 1;
+      // accumulates unclipped: only the value is clipped (percentToValue)
       s.percent = s.percent + event.movementX / (W - 2 * (ff.gp + ff.A / 2)) * 100 / inertia;
-      s.percent = clip(s.percent, 0, 100);
       faderTo(api, value, ff, ff.min + s.percent / 100 * (ff.max - ff.min), M, true);
       return;
     }
     if (event.type === 'stop') delete t[id];
   }
 
-  // Inbound patch from the mailbox: [canvasId, slot, value, slot, value, ...]
+  // Inbound patch from the mailbox: [canvasId, slot, value, slot, value, ...], or
+  // ['@var', canvasId, name, index, value] for state that is not the widget's value
+  // (the sequencer's per-step dimming), followed by a redraw.
   function patch(api, args) {
+    if (args[0] === '@var') {
+      var o = api.getVar(args[1], args[2]) || {};
+      for (var j = 3; j + 1 < args.length; j += 2) o[args[j]] = args[j + 1];
+      api.setVar(args[1], args[2], o);
+      api.updateCanvas(args[1]);
+      return;
+    }
     var c = args[0], v = api.get(c);
     if (!v || !v.length) return;
     v = v.slice();
