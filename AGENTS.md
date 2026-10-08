@@ -136,6 +136,7 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 
 ## Diagnostic tools
 
+- **`src/tools/compile-compounds.py`** + **`src/gui/formuls-module.js`**: Compile slider compounds to single canvases; the server module keeps Pd's addresses unchanged. The app loads the module only when `compounds.json` is present (a build).
 - **`src/tools/flatten-session.py`**: Writes the shipped, flattened session (clones inlined, static `@{}` resolved). Both build scripts run it. Fails the build on anything it does not model.
 - **`src/tools/patch-osc-perf.py`**: Performance patches to vendored Open Stage Control. Serialises OSC once per broadcast (not per client), and makes tab show resize only canvases whose size changed. Opt-in `--batch-ms N` for WebSocket frame coalescing (off by default — adds client load). Both build scripts apply it automatically.
 - **`src/tools/check-reset-coverage.py`**: Verifies every GUI parameter with chaos/LFO/mod sub-widgets is reset by `f.util.reset.pd`. Run after adding a parameter or renaming a widget. Exits non-zero on mismatch.

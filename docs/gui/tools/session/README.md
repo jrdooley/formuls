@@ -19,6 +19,11 @@ of the app's Open Stage Control package, never the app's own, and on ports 9020+
 | `gen_tabs.py`, `gen_canvas.py` | Session variants: fewer synth tabs; slider compounds and/or sequencer panels as one canvas. |
 | `census.py` | Authored vs expanded widget counts per tab, and clone templates. |
 | `extract-defaults.js` | Regenerates `src/tools/osc-defaults-<version>.json` from a live client running the clone-based session. Needed when the vendored o-s-c version changes. |
+| `make-mini.py` | One-compound session (the compound filling the window) for exact gesture coordinates. |
+| `oscrec.py PORT LOG` | Stands in for Pd: records every OSC message o-s-c sends. Bundles are unpacked. |
+| `mode.sh PORT MODE 0/1`, `inbound.sh PORT` | Send what Pd would send: a mode state, or values for every sub-address of `attack1`. |
+| `cmp_burst.py A.log B.log` | Compares two state-recall bursts: the multiset, then the order. |
+| `ref-gestures-attack1.log` | The reference recording the canvas compound must reproduce byte for byte. Gestures, in order (pane at 778 px, compound at y=124): tap 389; drag 200->600; double-click 500; chaos: drag 200->600; LFO freq: 300->500; LFO depth: 600->350; mod depth: 200->650; mod: tap 324, tap 324, tap 580, drag 70->450; parameter select: tap 389. |
 | `patch-experiments.py` | `--tab-show-unforced`, `--multixy-point-interaction`. Anchored and idempotent. Not applied by the build. |
 
 ## Outline

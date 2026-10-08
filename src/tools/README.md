@@ -143,6 +143,29 @@ flattened sessions in a browser (resolved props, values, geometry, computed
 style, popups) and compares them. The only differences should be the clone
 props moved deliberately. See `docs/gui/session-size.md`.
 
+## compile-compounds.py
+
+Runs after `flatten-session.py`. Turns each `slider` compound (15 stacked widgets)
+into one canvas, drawn and touched by `src/gui/compounds/slider-lib.js`. Pd keeps its
+per-parameter addresses: `src/gui/formuls-module.js`, an o-s-c server module, does
+the translation from the `compounds.json` this writes.
+
+It also:
+- migrates the state file to the packed values;
+- rewrites the outside references to a sub-widget (`@{saturation1.value}` ->
+  `@{saturation1_c.value.0}`);
+- hooks the mode inputs to redraw the canvases they gate.
+
+A compound whose wiring is not static is left as authored.
+
+The app passes `--custom-module` only when both the module and `compounds.json` sit
+next to the session, so a dev run from `src/gui` is unaffected.
+
+Verifying a change: `docs/gui/tools/session/` has the harness. It records the OSC a
+one-compound session sends for a fixed set of gestures, sends both versions the same
+Pd-side messages, and compares the state-recall bursts. See
+`docs/gui/session-size.md`, "B, implemented".
+
 ## check-reset-coverage.py
 
 Checks that every parameter carrying chaos/LFO/mod sub-widgets in

@@ -334,6 +334,15 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     if (state.existsAsFile())
         args.addArray ({ "--state", state.getFullPathName() });
 
+    // The built session draws each slider compound as one canvas; this server module
+    // translates between those canvases and the per-parameter addresses Pd uses
+    // (src/tools/compile-compounds.py). Only a build has the map it needs, so a dev
+    // run from src/gui, which loads the authored session, starts without it.
+    auto module   = guiDir.getChildFile ("formuls-module.js");
+    auto compounds = guiDir.getChildFile ("compounds.json");
+    if (module.existsAsFile() && compounds.existsAsFile())
+        args.addArray ({ "--custom-module", module.getFullPathName() });
+
     if (! process.start (args))
         return juce::Result::fail ("Could not start Open Stage Control ("
                                    + node.getFullPathName() + ")");
