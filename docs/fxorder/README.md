@@ -123,11 +123,9 @@ most three columns.
 stacked vertically in chain order, never side by side.** Selecting or pinning any
 of them shows all four; pinning one pins all four (the pin buttons on the four
 tiles move together), and the stack counts as one column against the limit.
-**Filter Pitch Track** now lives in the filter column, as a tall button laid over
-the right-hand edge of the Filter Frequency, Q pad (the pad keeps its full width
-underneath). It is about as wide as the Freq Snap button (4% of the view, 5.33% of
-the editor) however many columns are on show, so with three columns it takes
-about 16% of the filter column.
+**Filter Pitch Track** now lives in the filter column, as a full-width button row
+(16% of the column) above the Filter Frequency, Q pad; the pad and its Filter Type
+slider sit beneath it, so nothing overlaps.
 
 **State.** One canvas, `fxstate<n>`, now holds 28 values: order[9], on[9],
 selected effect, pinned[9]. The first 18 are exactly what they were. Its
