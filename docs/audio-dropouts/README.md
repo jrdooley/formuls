@@ -128,13 +128,52 @@ the press before any part sees the release, as before the stagger.
 In playing, no reset or record stop missed a deadline afterwards, and the app
 sent every OSC packet with none dropped.
 
+### Fix 3: lazy record arming (`f.seq.automater`)
+
+Every record press used to go to all 421 automaters through
+`f.seq.automatermessage`. Each one ran its record logic: seven `$0-record`
+receivers in the automater, which in turn drive `f.seq.record`. In headless Pd
+that was 1.7–4.3 ms per press; in the app it was 4–12 ms, including time waiting
+for the lock.
+
+For an automater that receives no value during the take, that work did nothing
+useful:
+
+- its input `[spigot]` and "first value starts the take" onebangs only act once a
+  value arrives;
+- `record-on-off`, which drives `f.seq.record`'s recording loop, is only set by
+  that first value.
+
+The only effect on every automater was the GUI pause:
+`GUI_THROTTLE` and `RECORD_GUI_UPDATE_PAUSE` stop widget updates during a take.
+
+So now:
+
+- `automatermessage` no longer forwards `automateRecord`;
+- each automater only notes the arm state;
+- when a value arrives while armed, the automater sends itself `record 1` just
+  before that value, as the press used to;
+- on disarm, only the automaters told `record 1` get `record 0`;
+- the two GUI pauses listen to `automateRecord` directly, so every widget still
+  pauses during a take.
+
+Checked against `main`:
+
+| | `main` | lazy |
+|---|---|---|
+| record press, headless | 2.7–4.3 ms | **0.5–1.5 ms** |
+| automation probe, `ramp` and `triangle` at three press timings | | every frame identical |
+| GUI traffic for three takes on one parameter | 18 messages | the same 18 |
+| GUI traffic for a take on a second parameter while the first plays | 7 messages | the same 7 |
+| Pd load errors | | the same set |
+
+The automation probe now arms through `automateRecord`, as the GUI does, rather
+than sending `record 1` into the automater directly.
+
 ### Still to do
 
-Neither of these is audible now:
+Not audible now, but the heaviest message left:
 
-- **Record stop** still holds Pd for 4–12 ms, because all 421 automaters handle
-  `record` on every press. Only the automater that recorded needs the full stop
-  handling.
 - **Per-synth reset buttons** (`/reset1` … `/reset6`) hold Pd for 6–12 ms. They do
   the same work as one share of the global reset, all at once.
 
