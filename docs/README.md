@@ -33,7 +33,7 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
-| [`audio-dropouts/README.md`](audio-dropouts/README.md) | Clicks and dropouts: the record-stop click (unsmoothed synth parameters, fixed with `si.smoo`), the reset click (a GUI message holding Pd's lock longer than an audio callback, fixed by sending GUI OSC from the app and staggering the reset), and random clicks from a virtual audio cable. How each was measured. |
+| [`audio-dropouts/README.md`](audio-dropouts/README.md) | Clicks and dropouts: the record-stop click (unsmoothed synth parameters, fixed with `si.smoo`), the reset click (a GUI message holding Pd's lock longer than an audio callback, fixed by sending GUI OSC from the app and staggering the reset; the per-synth reset parses the GUI bus once and is spread over 10 ms), and random clicks from a virtual audio cable. How each was measured. |
 | [`gui/fast-gui.md`](gui/fast-gui.md) | **Start here for the GUI build.** What the build does to the session before it ships (flattening, the tab-show patch, slider and sequencer compounds as single canvases), how Pd's addresses are kept through a server module, how it was verified, and how to work with it. Branch `gui-compounds`. |
 | [`gui/session-size.md`](gui/session-size.md) | Why the session takes seconds to load and tabs lag: quadratic build from global listeners, canvas count on tab show. Build-time flattening (3× faster load, verified identical; **shipped**, `src/tools/flatten-session.py`), bespoke canvas compounds, multixy `pointsAttr` and a per-point interaction patch — all measured. |
 | [`fxorder/README.md`](fxorder/README.md) | The reorderable, bypassable effects chain (`fxorder-crossbar` branch): the Faust crossbar, live-change duck and debounce, the modal chain strip, reset behaviour, the Feedback slider, measurements and known limits. |
@@ -352,6 +352,10 @@ See [`audio-dropouts/README.md`](audio-dropouts/README.md).
   `[netsend]`). The reset is also staggered per synth, with the release held until
   every synth has had its press. A reset now takes about 1 ms at once, plus
   about 3.7 ms per synth, 30 ms apart.
+- **Per-synth reset buttons:** held Pd for 8–17 ms. The quantise listeners in
+  `f.util.oscinparse` parsed every GUI-bound packet 30 times; `_main.pd` now
+  parses the bus once (`to-o-s-c-parsed`). A press is also spread over 10 ms in
+  three steps. Now 2.4–7.7 ms, with no missed deadlines.
 - **Random clicks:** from the virtual audio cable bridging two clock rates, not
   from formuls.
 
