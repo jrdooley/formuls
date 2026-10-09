@@ -1,7 +1,13 @@
 # Draft: upstream proposal to Open Stage Control
 
-To post as a GitHub issue on `jean-emmanuel/open-stage-control`, or on the project
-forum. Not yet posted. It proposes upstreaming the two changes `src/tools/patch-osc-perf.py`
+> **Status: proposed and declined (October 2026).** The project does not accept
+> AI-generated contributions, and this proposal was drafted with AI assistance. The
+> decision is about where the work came from, not whether the changes are correct.
+> Do not resubmit this text or a reworded version of it. Both changes stay local,
+> applied by `src/tools/patch-osc-perf.py`.
+
+Written to post as a GitHub issue on `jean-emmanuel/open-stage-control`, or on the
+project forum. It proposed upstreaming the two changes `src/tools/patch-osc-perf.py`
 always applies, so the script can shrink. The numbers come from
 [`session-size.md`](session-size.md) and [`README.md`](README.md).
 
