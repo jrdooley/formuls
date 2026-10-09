@@ -12,6 +12,9 @@ emulated 1366×1024 viewport, against Open Stage Control 1.31.0 exactly as
 numbers are a fast desktop; a tablet will be several times slower. The ratios are
 the point.** Tooling is in `tools/session/`.
 
+For a summary of what was built and how it works, start with
+[`fast-gui.md`](fast-gui.md). This document is the investigation behind it.
+
 ## The short version
 
 | | widgets built | `widget-created` listeners | `value-changed` listeners | load (build + state) | synth-tab switch | per incoming message |
@@ -344,7 +347,7 @@ shipped session, state and map are byte-identical to the verified ones. The bund
 own server, started with the app's exact flags including `--custom-module`, builds
 5,346 widgets (145 slider and 6 sequencer canvases) and sends the same burst.
 
-
+## Not implemented: `multixy` instead of canvases
 
 **Per-point colours already exist in 1.31.** `pointsAttr` takes one object per point
 with `color`, `colorFill`, `colorStroke`, `alphaFillOn`, `pointSize`, `label` and
