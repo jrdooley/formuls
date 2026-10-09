@@ -68,7 +68,7 @@
 #X obj 46 203 s \$1-reset;
 #X obj 37 154 sel 1;
 #X obj 60 132 s \$0-\$1-reset;
-#X obj 60 107 r resetglobal;
+#X obj 60 107 r resetglobal-\$1;
 #X obj 198 247 outlet;
 #X connect 0 0 1 0;
 #X connect 1 0 5 0;
@@ -166,7 +166,7 @@
 #X obj 148 127 list trim;
 #X obj 148 148 route amfreqquantise\$1;
 #X obj 148 215 f.util.listgetvalue;
-#X obj 259 172 r resetglobal;
+#X obj 259 172 r resetglobal-\$1;
 #X msg 259 193 0.5 1 2 4 8 16;
 #X obj 148 389 f;
 #X obj 163 358 t b f;
@@ -385,7 +385,7 @@
 #X obj 150 88 route delaytimequantise\$1;
 #X obj 150 153 f.util.listgetvalue;
 #X msg 261 131 0.125 0.25 0.5 0.75 1;
-#X obj 261 110 r resetglobal;
+#X obj 261 110 r resetglobal-\$1;
 #X connect 0 0 8 0;
 #X connect 1 0 4 0;
 #X connect 2 0 10 0;
@@ -1328,7 +1328,7 @@
 #X obj 140 98 route attackquantise\$1;
 #X obj 108 483 outlet;
 #X obj 140 163 f.util.listgetvalue;
-#X obj 251 120 r resetglobal;
+#X obj 251 120 r resetglobal-\$1;
 #X msg 251 141 0.125 0.25 0.5 0.75 1 2 4;
 #X obj 140 319 spigot;
 #X obj 140 341 clip 0 1;
@@ -1375,7 +1375,7 @@
 #X obj 27 29 inlet;
 #X obj 108 479 outlet;
 #X obj 140 163 f.util.listgetvalue;
-#X obj 251 120 r resetglobal;
+#X obj 251 120 r resetglobal-\$1;
 #X obj 140 98 route decayquantise\$1;
 #X obj 27 69 route decay\$1;
 #X msg 140 381 decay\$2 \$1;
@@ -1424,7 +1424,7 @@
 #X obj 27 29 inlet;
 #X obj 108 469 outlet;
 #X obj 140 163 f.util.listgetvalue;
-#X obj 251 120 r resetglobal;
+#X obj 251 120 r resetglobal-\$1;
 #X obj 27 69 route release\$1;
 #X obj 140 98 route releasequantise\$1;
 #X msg 140 381 release\$2 \$1;

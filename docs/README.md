@@ -33,6 +33,7 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
+| [`audio-dropouts/README.md`](audio-dropouts/README.md) | Clicks and dropouts: the record-stop click (unsmoothed synth parameters, fixed with `si.smoo`), the reset click (a GUI message holding Pd's lock longer than an audio callback, fixed by sending GUI OSC from the app and staggering the reset), and random clicks from a virtual audio cable. How each was measured. |
 | [`gui/fast-gui.md`](gui/fast-gui.md) | **Start here for the GUI build.** What the build does to the session before it ships (flattening, the tab-show patch, slider and sequencer compounds as single canvases), how Pd's addresses are kept through a server module, how it was verified, and how to work with it. Branch `gui-compounds`. |
 | [`gui/session-size.md`](gui/session-size.md) | Why the session takes seconds to load and tabs lag: quadratic build from global listeners, canvas count on tab show. Build-time flattening (3× faster load, verified identical; **shipped**, `src/tools/flatten-session.py`), bespoke canvas compounds, multixy `pointsAttr` and a per-point interaction patch — all measured. |
 | [`fxorder/README.md`](fxorder/README.md) | The reorderable, bypassable effects chain (`fxorder-crossbar` branch): the Faust crossbar, live-change duck and debounce, the modal chain strip, reset behaviour, the Feedback slider, measurements and known limits. |
@@ -335,6 +336,24 @@ before it ships; `src/gui/_main.json` is still the file you edit:
 Several tablets stay in step: the module mirrors each gesture to the other tablets,
 which o-s-c could no longer do by address. This was checked with three browser
 tabs, not yet with physical tablets or on a real touch screen.
+
+## 11. Clicks and dropouts
+
+See [`audio-dropouts/README.md`](audio-dropouts/README.md).
+
+- **Record-stop click:** when a take stops, playback restarts from the take's
+  first value. On synth parameters Faust didn't smooth, that jump clicked: the
+  mono-mode oscillator frequency, `fmfreq`, `fmdepth` and `noise`. They now pass
+  through `si.smoo` (`fsynth.lib`). The ADSR path and audio-rate modulation are
+  untouched.
+- **Reset click:** the global reset held Pd's lock for 65–69 ms, and the audio
+  dropped out. Half of that was `[netsend]` making 7,354 system calls. The app now
+  sends the patch's GUI OSC from its own thread (`PdOscOut.h`; plain Pd still uses
+  `[netsend]`). The reset is also staggered per synth, with the release held until
+  every synth has had its press. A reset now takes about 1 ms at once, plus
+  about 3.7 ms per synth, 30 ms apart.
+- **Random clicks:** from the virtual audio cable bridging two clock rates, not
+  from formuls.
 
 ---
 

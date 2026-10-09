@@ -28,6 +28,8 @@ It is one app that:
 | `Source/MainComponent.h/.cpp` | The window contents: device/channel combo boxes, Start/Stop and Record buttons, status line. |
 | `Source/AudioRecorder.h/.cpp` | Writes the engine's output to a WAV file on a background thread. |
 | `Source/FormulsEngine.h/.cpp` | libpd embedded behind a `juce::AudioIODeviceCallback`; loads `_main.pd`, renders audio, receives patch messages. |
+| `Source/OscBridge.h/.cpp` | Receives the control GUI's OSC on its own thread and hands each message to the patch, so parsing never runs on the audio thread. |
+| `Source/PdOscOut.h` | The other direction: takes the patch's GUI-bound OSC (`[s formuls-osc-out]`) into a lock-free FIFO and sends it from a background thread, outside Pd's lock. The patch's own `[netsend]` made one system call per message while holding that lock, which stalled the audio callback on bursts. In plain Pd the patch keeps using `[netsend]`. See `docs/audio-dropouts/README.md`. |
 | `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server with `juce::ChildProcess`; also works out the GUI's web addresses. |
 | `Source/FormulsLookAndFeel.h` | **All styling** — window title/size, colours, fonts, layout metrics. |
 | `Source/ResourceLocator.h` | Finds the `pd/` and `gui/` resources both in the packaged app and in development builds. |
