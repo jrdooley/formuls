@@ -12,12 +12,19 @@ of the app's Open Stage Control package, never the app's own, and on ports 9020+
 | `bench.js` | In-page: `benchTabs` (switch time to second frame, discarding any switch during which the page was hidden), `msgCost` / `msgCostArr` (one `setValue(…, {sync:true})`, which is what an incoming message costs), `drawCost` (synchronous `draw()`), `census`. |
 | `tabrun.js` | Waits for the build marker, settles, then runs `benchTabs` on synth tabs 1–3. |
 | `modeprobe.js` + `oscsend.py` | Arms a long-task and `widget-created` counter, then a real OSC message is sent over UDP (`oscsend.py PORT /lfofreq1 1`). |
-| `flatten.js` | In-page reference flattener: resolves static `@{…}` with o-s-c's own `resolveProp`, inlines clones, and keeps template tabs as empty placeholders so tab indices are unchanged. `__flatten({templateTabs: ['formuls0', 'Widgets']})`. |
+| `flatten.js` | The first, in-browser flattener (the build uses `src/tools/flatten-session.py`, a Python port that needs no browser): resolves static `@{…}` with o-s-c's own `resolveProp`, inlines clones, and keeps template tabs as empty placeholders so tab indices are unchanged. `__flatten({templateTabs: ['formuls0', 'Widgets']})`. |
 | `receiver.py PORT DIR` | POST sink, used to get large JSON out of the page. |
 | `fingerprint.js` + `compare_fp.py` | Equivalence check: every widget's resolved props, value, geometry and computed style, compared between two sessions. |
 | `modalgeom.js` + `compare_modal.py` | The same for every popup on synth 1, opened in turn. |
 | `gen_tabs.py`, `gen_canvas.py` | Session variants: fewer synth tabs; slider compounds and/or sequencer panels as one canvas. |
 | `census.py` | Authored vs expanded widget counts per tab, and clone templates. |
+| `extract-defaults.js` | Regenerates `src/tools/osc-defaults-<version>.json` from a live client running the clone-based session. Needed when the vendored o-s-c version changes. |
+| `make-mini.py` | One-compound session (the compound filling the window) for exact gesture coordinates. |
+| `oscrec.py PORT LOG` | Stands in for Pd: records every OSC message o-s-c sends. Bundles are unpacked. |
+| `mode.sh PORT MODE 0/1`, `inbound.sh PORT` | Send what Pd would send: a mode state, or values for every sub-address of `attack1`. |
+| `cmp_burst.py A.log B.log` | Compares two state-recall bursts: the multiset, then the order. |
+| `ref-gestures-attack1.log` | The reference recording the canvas compound must reproduce byte for byte. Gestures, in order (pane at 778 px, compound at y=124): tap 389; drag 200->600; double-click 500; chaos: drag 200->600; LFO freq: 300->500; LFO depth: 600->350; mod depth: 200->650; mod: tap 324, tap 324, tap 580, drag 70->450; parameter select: tap 389. |
+| `inbound-seq.sh PORT`, `ref-gestures-seq1.log` | The same for the synth-1 sequencer panel. Gestures (one-panel session, pane at 778 px): tap step 1 twice; drag (52,57)->(533,57); drag (245,57)->(245,159); hold quantise (`/quantiseseq1 1`), then drag (148,82)->(190,82), tap (245,82), double-click (341,82), drag (52,108)->(437,108). |
 | `patch-experiments.py` | `--tab-show-unforced`, `--multixy-point-interaction`. Anchored and idempotent. Not applied by the build. |
 
 ## Outline

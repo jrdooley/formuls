@@ -22,7 +22,7 @@ the top of the build script (currently `0.3.1`). Steps:
 1. Compiles 3 Faust externals: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`
 2. Copies **prebuilt** `abl_link~.pd_darwin` (never builds from source on macOS)
 3. Downloads Open Stage Control 1.31.0 + Node 22.17.0
-4. Runs `brand-osc.sh` and `patch-osc-perf.py` on the downloaded O-S-C package
+4. Runs `brand-osc.sh` and `patch-osc-perf.py` on the downloaded O-S-C package, then `flatten-session.py` to write the bundle's `_main.json`
 5. Builds libpd with `UTIL=true EXTRA=true`, sets `@rpath` install name
 6. Runs Projucer (`--resave src/app/formuls.jucer`) then `xcodebuild`
 7. Assembles self-contained `.app` bundle, codesigns, cleans up
@@ -80,7 +80,7 @@ Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000).
 | `src/libs/libpd/` | submodule | libpd |
 | `src/libs/abl_link/` | submodule | Ableton Link Pd external |
 | `src/prebuilt/` | binary | Known-good `abl_link~.pd_darwin` (arm64) |
-| `src/tools/` | mixed | `brand-osc.sh`, `patch-osc-perf.py`, `check-reset-coverage.py`, `automation-probe.py`, `bpm-probe`, `abl-link-repro` |
+| `src/tools/` | mixed | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py` (+ `osc-defaults-1.31.0.json`), `check-reset-coverage.py`, `automation-probe.py`, `bpm-probe`, `abl-link-repro` |
 | `docs/` | markdown/html | Efficiency report, GUI performance write-up, session logs |
 
 ### Signal flow
@@ -118,6 +118,9 @@ diff src/pd/_main.pd /path/to/formuls.app/Contents/Resources/pd/_main.pd
 ### GUI JSON is 43k lines
 `src/gui/_main.json` is the Open Stage Control session definition. Edits change the touchscreen interface. Be careful with search-and-replace.
 
+### The app ships a *flattened* `_main.json`
+The build does not copy `src/gui/_main.json` into the bundle: `src/tools/flatten-session.py` writes an equivalent session with the clones inlined and `@{parent.variables...}` resolved (load 10.9 s -> 3.6 s, `docs/gui/session-size.md`). Edit the source, never the bundle's copy. Template tabs `formuls0` and `Widgets` are kept as empty placeholders because Pd reads the synth from the root tab **index**. A dev build loads the unflattened source (same behaviour, slower). Upgrading Open Stage Control stops the build until `src/tools/osc-defaults-<version>.json` is regenerated (see `src/tools/README.md`).
+
 ### `src/app/Builds/` and `JuceLibraryCode/` are gitignored
 Projucer regenerates both from `formuls.jucer`. Never commit them.
 
@@ -133,7 +136,9 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 
 ## Diagnostic tools
 
-- **`src/tools/patch-osc-perf.py`**: Performance patches to vendored Open Stage Control. Serialises OSC once per broadcast (not per client). Opt-in `--batch-ms N` for WebSocket frame coalescing (off by default — adds client load). Both build scripts apply it automatically.
+- **`src/tools/compile-compounds.py`** + **`src/gui/formuls-module.js`**: Compile slider compounds to single canvases; the server module keeps Pd's addresses unchanged. The app loads the module only when `compounds.json` is present (a build).
+- **`src/tools/flatten-session.py`**: Writes the shipped, flattened session (clones inlined, static `@{}` resolved). Both build scripts run it. Fails the build on anything it does not model.
+- **`src/tools/patch-osc-perf.py`**: Performance patches to vendored Open Stage Control. Serialises OSC once per broadcast (not per client), and makes tab show resize only canvases whose size changed. Opt-in `--batch-ms N` for WebSocket frame coalescing (off by default — adds client load). Both build scripts apply it automatically.
 - **`src/tools/check-reset-coverage.py`**: Verifies every GUI parameter with chaos/LFO/mod sub-widgets is reset by `f.util.reset.pd`. Run after adding a parameter or renaming a widget. Exits non-zero on mismatch.
 - **`src/tools/automater-load-bench.py`**: CPU cost of N automaters with playback/LFO/chaos running, in deterministic `pd -batch`. Use `--rev` to compare against a commit.
 - **`src/tools/automation-probe.py`**: Records a gesture into one automater, reports value discontinuities. Use `--rev` to compare against a specific commit. No audio device or externals needed.

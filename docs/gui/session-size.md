@@ -12,6 +12,9 @@ emulated 1366×1024 viewport, against Open Stage Control 1.31.0 exactly as
 numbers are a fast desktop; a tablet will be several times slower. The ratios are
 the point.** Tooling is in `tools/session/`.
 
+For a summary of what was built and how it works, start with
+[`fast-gui.md`](fast-gui.md). This document is the investigation behind it.
+
 ## The short version
 
 | | widgets built | `widget-created` listeners | `value-changed` listeners | load (build + state) | synth-tab switch | per incoming message |
@@ -95,7 +98,11 @@ number of canvases:
 (15 switches each, any switch during which the page was hidden discarded. The
 measurement's own floor, two animation frames with nothing to do, is 3.8 ms.)
 
-## Option A — flatten the session at build time
+## Option A — flatten the session at build time (implemented)
+
+**Shipped as a build step:** `src/tools/flatten-session.py`, run by both build
+scripts after `patch-osc-perf.py`, writes the bundle's `_main.json`. Usage,
+failure modes and the defaults table are in `src/tools/README.md`.
 
 Resolve every **static** reference (`@{parent.variables…}`,
 `@{this.variables…}`, `@{this.id}`) once, replace each clone with the widget it
@@ -108,10 +115,11 @@ and the build ships the flattened file.
 *index* (the `/GET root` poll, see `README.md`). `formuls0` sits at index 1, so it
 is replaced by an empty hidden tab rather than deleted.
 
-The reference implementation is `tools/session/flatten.js`. It runs inside a
-loaded client and resolves each reference with o-s-c's own `resolveProp`, so its
-semantics are o-s-c's rather than a reimplementation. Three subtleties it handles,
-each found by the equivalence check failing first:
+The first version was `tools/session/flatten.js`, which runs inside a loaded
+client and resolves each reference with o-s-c's own `resolveProp`. The build
+step is a Python port of `resolveProp`, `balancedReplace` and `balanced-match`
+themselves, so it needs no browser. Three subtleties both handle, each found by
+the equivalence check failing first:
 
 - A static prop that resolves to an object is written back as a **JSON string**.
   o-s-c coerces strings inside object literals (`"true"` → `true`) but not inside a
@@ -122,6 +130,8 @@ each found by the equivalence check failing first:
   container. They are moved onto the inlined widget, and `css` is joined with a `;`.
 
 ### Verified
+
+All of the following were run on the Python build step's output.
 
 - **Every widget, every prop:** `fingerprint.js` + `compare_fp.py` over all
   10,692 widgets of both sessions compared the resolved value of every prop
@@ -139,18 +149,54 @@ each found by the equivalence check failing first:
   so it is inert either way. If it is ever switched on, it needs re-checking, since
   flattening removes one wrapper level.
 
+- **Listeners and load:** the same 10,694 widgets, 1,961 `widget-created` and
+  1,768 `value-changed` listeners as the browser version.
+- **The build:** `./build-macOS.sh` runs it and completes. The bundle's
+  `_main.json` is byte-identical to a standalone run of the same command.
+
+### What porting it turned up
+
+Each of these was found by a comparison failing, not by reading:
+
+- **o-s-c's parser deletes every prop the widget type does not define.**
+  `for (k in data) if (defaults[k] === undefined) delete data[k]`. So a prop the
+  type doesn't define is invisible to `@{}`, and the flattener drops it as well.
+- **Inside `OSC{}`, arguments are split on `,` before values are substituted.**
+  Splicing a value in as text changes the split if the value contains a comma,
+  so such references are left for o-s-c to resolve. The browser `flatten.js` got
+  this wrong: it spliced with `String()`, which the fingerprint could not see,
+  because no message ever arrives on either address. The Python port matches the
+  live client's receiver address exactly.
+- **A clone `props` override that does not parse never applies.** It is spread as
+  a string, and the parser deletes the character keys. The flattener reproduces
+  this and prints a note.
+
+Three overrides in the session never take effect today for these reasons, and
+flattening keeps them exactly as they behave now:
+
+- `bpmglobal` (mixer): its `"n": @{parent.variables.n}` is `undefined` there, so
+  the override is not JSON.
+- `modepanelparent` and `modepanelseq`: they override `n`, which panels don't
+  define, so it is deleted.
+
+And one bug that matters more:
+
+- **The keyboard panel's velocity slider gets the whole variables object as its
+  `n`.** Its ids come out as `velocity{"n":1,"colour":"#e53db8"}` instead of
+  `velocity1`, its address with them, and its mode layers listen on
+  `/chaos{"n":1,…}`, which nothing sends. This is how it behaves in today's build.
+  The clone override presumably wants `@{parent.variables.n}`.
+
 ### Not verified
 
 - Anything with Pd running.
 - Multi-client sync.
 - Saving state from the GUI. Ids are unchanged, so the state format is too, but this
   wasn't exercised.
+- The Linux build script: it gets the same step, but only the macOS build was run.
 
-The production version needs a build step that does not need a browser: a port of
-`flatten.js`, with `compare_fp.py` as its regression test. The flattened file is
-2.5 MB against 1.7 MB, because the template text is now repeated per instance;
-dropping the resolved `variables` objects that nothing reads would recover some of
-that.
+The flattened file is 2.5 MB against 1.7 MB, because the template text is now
+repeated per instance.
 
 ## Option B/C — bespoke canvas compounds
 
@@ -189,7 +235,127 @@ payload, so one message per compound costs the same as one per parameter.
 synth, it has no performance-mode interplay, and its 768 value listeners are 43% of
 all value listeners left after A.
 
-## multixy, and the blocker hit last time
+### B, implemented (branch `gui-compounds`)
+
+`src/tools/compile-compounds.py` runs after the flattener and turns 145 of the 151
+slider compounds into one `canvas` each. The other six are the keyboard velocity
+sliders, which are left exactly as authored because their wiring is not static
+(their `n` is an object; see "What porting it turned up").
+
+| piece | role |
+|---|---|
+| `src/gui/compounds/slider-lib.js` | Drawing and touch for all compounds. Installed once into `globals.FC` by the root's `onCreate`; each canvas passes its own constants. |
+| `src/gui/formuls-module.js` | o-s-c server module, loaded by the app with `--custom-module`. Pd -> GUI: a sub-address becomes a single-slot patch for the client mailbox `/fc_patch`. It keeps no server copy of the values, so a flashing LED can never overwrite a fader being dragged. GUI -> Pd: a canvas's packed state-recall send is unpacked into today's per-address burst. |
+| `compounds.json` | The address map the module reads, generated by the build. |
+
+**Gestures send exactly what the stacked widgets send.** Recorded on a one-compound
+session, each gesture preceded by a marker, then replayed on the canvas version:
+- tap, snap-and-drag, double tap;
+- a drag in each of the chaos, LFO freq, LFO depth and mod-depth modes;
+- toggling mod-source cells, including a traversing drag (which skips a cell exactly
+  as o-s-c does);
+- the parameter-select label tap.
+
+**The recordings are byte-identical:** 25 messages, same addresses, types, values
+and order. The reference recording is `tools/session/ref-gestures-attack1.log`.
+
+**Pd -> GUI matches.** Every sub-address (faders, LEDs, cells, the mod label) sent to
+both versions gave the same values, and screenshots that cannot be told apart. One
+finding: o-s-c *ignores* `/attackmod1` carrying 6 values, so the module ignores it too.
+
+**State recall sends the same 7,140 messages to Pd.** The multiset is identical. 714
+of them arrive in a different position: where a compound's keys are scattered through
+the state file (a mod cell stored elsewhere, or `reverb1` shared with the effect's own
+toggle), its recall now comes as one block. Every value is the same and all of them
+arrive in the same burst.
+
+**Measured on the full session, with A+ applied to both:**
+
+| | A+ | A+ + B |
+|---|---|---|
+| widgets built | 10,694 | 7,650 |
+| `widget-created` / `value-changed` listeners | 1,961 / 1,768 | 976 / 1,478 |
+| build + state | 2.7 + 0.9 s | 1.7 + 0.5 s |
+| synth-tab switch, median (p90) | 51.6 (69.7) ms | 38.9 (41.6) ms |
+| per incoming message | ~66 µs | ~50 µs |
+
+**Not verified:** with Pd running, with more than one tablet, or on a real touch
+screen. Gestures were driven with the pane's mouse. Multi-touch is handled per
+`pointerId`, but untested.
+
+**Found later: more than one tablet (fixed).** A gesture on one tablet did not reach
+the others. o-s-c re-delivers a widget's message to the other clients by address, and
+the canvas sends a sub-widget address no widget has any more. The master-panel reverb
+fader also stopped moving the reverb slider on the same tablet: same-id sync, lost
+with the canvas's new id. The module now mirrors gestures to the other tablets, and
+the compiler wires the shared pair together. See [`fast-gui.md`](fast-gui.md), "At run
+time".
+
+**Found later, with Pd running (fixed).** The eight sliders under `fxa`/`fxb` (AM
+Wave, Saturation, Bitcrush, Chorus, Phaser, Delay Time, Envelope/Sidechain, Reverb)
+showed a white overlay, and their quantise LED filled the whole slider. Those two
+panels set `colorBg: @{this}`, which is not a colour: the original matrix background
+is transparent there, while a canvas receives `cssVars.colorBg = "-1"`. An invalid
+`fillStyle` is silently ignored, so the matrix's dimming rectangle was painted in
+whatever colour was set last. The libraries now use only colours the canvas
+accepts, never let a fill colour carry over, and read the inherited text colour
+from CSS (the sequencer's `cssVars.colorText` is the synth colour; its labels are
+white). The one-compound sessions used default colours and could not show this, so
+look at any change to the libraries in a real synth tab as well.
+
+### C, implemented (branch `gui-compounds`)
+
+The six 128-step `seqsteppanel`s are compiled the same way, by
+`src/gui/compounds/sequencer-lib.js`. Each panel is 385 widgets: 128 cells of a toggle
+button under a 10-step fader. It becomes one 256-value canvas. Its per-step dimming
+(`OSC{/aseqwriteN-i}`, which is not state today) lives in a widget variable that the
+mailbox patches.
+
+**Gestures are identical.** The recording covers:
+- tapping steps;
+- traversing drags along a row and down a column;
+- with quantise held: dragging a step fader, tapping one, double-tapping one, and
+  dragging across several.
+
+The canvas sends the same 20 messages with the same values (reference:
+`tools/session/ref-gestures-seq1.log`). The only difference in order is where the
+double-tap's reset lands. o-s-c resets in a `setTimeout(0)`, and the test tool queues
+the next gesture's pointerdown ahead of that timer. No finger can start a new gesture
+within the same event-loop tick.
+
+**Inbound matches.** Toggles, fader values (o-s-c quantises what it receives, and so
+does the module), dimming and un-dimming all agree, in values and in screenshots.
+
+Getting there took four corrections, each found by the comparison failing:
+- `smart` traversing only affects widgets of the first one's type.
+- Faders in a traversing container always snap. A fader entered mid-drag takes its
+  position relative to the *first* fader, so it clips.
+- The unchanged-value check runs *before* step-quantising, and an exact tie goes to
+  the lower step.
+- The browser picks the traversed cell at the **rounded** pointer position, while the
+  canvas's `offsetX` is floored. Cells are hit-tested from the canvas's real edge
+  instead. The slider's mod cells were changed the same way and re-verified.
+
+**Measured, full session, A+ applied throughout:**
+
+| | A+ | A+ + B | A+ + B + C |
+|---|---|---|---|
+| widgets built | 10,694 | 7,650 | 5,346 |
+| `value-changed` listeners | 1,768 | 1,478 | 710 |
+| build + state | 2.7 + 0.9 s | 1.7 + 0.5 s | 1.5 + 0.3 s |
+| per incoming message | ~66 µs | ~50 µs | ~23.5 µs |
+| synth-tab switch, median | 51.6 ms | 38.9 ms | not yet measured † |
+
+† The browser pane stayed hidden, so `requestAnimationFrame` timings were invalid, and
+no number is recorded. C removes the 128 step-fader canvases on each synth tab
+(173 canvases against B's 304).
+
+State recall still sends the same 7,140 messages to Pd. In the built bundle, the
+shipped session, state and map are byte-identical to the verified ones. The bundle's
+own server, started with the app's exact flags including `--custom-module`, builds
+5,346 widgets (145 slider and 6 sequencer canvases) and sends the same burst.
+
+## Not implemented: `multixy` instead of canvases
 
 **Per-point colours already exist in 1.31.** `pointsAttr` takes one object per point
 with `color`, `colorFill`, `colorStroke`, `alphaFillOn`, `pointSize`, `label` and
@@ -253,11 +419,12 @@ It is the largest saving available and the largest change.
 
 ## Suggested order
 
-1. **A**: no visual change, verified, 3× faster load, −28% per message, which also
+1. **A** (done): no visual change, verified, 3× faster load, −28% per message, which also
    helps the disconnects in `README.md`.
-2. **The tab-show patch**: one line, −17% tab switch.
-3. **The sequencer as one canvas** (C without B): the largest further cut per unit
+2. **The tab-show patch** (done, on `gui-compounds`): one line, −17% tab switch. Now
+   applied always by `src/tools/patch-osc-perf.py`.
+3. **The sequencer as one canvas** (done as C, on `gui-compounds`): the largest further cut per unit
    of work, and it halves per-message cost on its own.
-4. **Slider/xy/menu compounds**, as canvases or multixy with the point patch. This is
+4. **Slider compounds** (done as B, on `gui-compounds`); **xy/menu compounds**, as canvases or multixy with the point patch. This is
    the decision about how the instrument looks, the same decision as Step 3 in
    `README.md`, and it brings the I/O mapping with it.

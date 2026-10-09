@@ -79,6 +79,132 @@ characters `sed` would need escaping for, and BSD and GNU `sed` disagree about
 several of them.
 
 
+## flatten-session.py
+
+Writes the session the app actually ships. `src/gui/_main.json` is authored
+with clones, whose contents take their ids and values from
+`@{parent.variables...}`. Every widget carrying a reference like that
+registers a global listener, and every other widget's creation calls it, so
+Open Stage Control's load time grows with the square of the widget count. This
+resolves those references once, at build time:
+
+```bash
+python3 flatten-session.py src/gui/_main.json build/gui/_main.json \
+    --defaults osc-defaults-1.31.0.json --osc-package build/gui/open-stage-control \
+    --template-tab formuls0 --template-tab Widgets
+```
+
+- every clone is replaced by the widget it renders, and the clone's geometry,
+  `css`, `interaction:false` and `visible:false` are carried onto it;
+- static references (`@{parent.variables...}`, `@{this.variables...}`,
+  `@{parent.id}`, `@{this.id}`) are resolved. Everything dynamic is left as
+  written: `OSC{}`, `JS{}`, `#{}`, `@{otherWidget.value}`, `@{this.value}` and
+  scripts;
+- the template tabs become empty hidden tabs **in the same position**, because
+  Pd reads the selected synth from the root tab index;
+- props equal to the type's default are dropped, as are props the type does not
+  define. o-s-c's parser refills the first and deletes the second.
+
+Both build scripts run it after `patch-osc-perf.py`. Measured on an M5, load
+drops from 10.9 s to 3.6 s, and each incoming message costs 28% less. The
+flattened file is 2.5 MB against 1.7 MB.
+
+**Edit `src/gui/_main.json`, never the flattened output.** A dev build that
+finds `src/gui` by walking up the tree (`ResourceLocator.h`) loads the
+unflattened source: identical behaviour, just the old load time.
+
+It is a line-by-line port of o-s-c 1.31's `Widget.resolveProp`,
+`balancedReplace` and `balanced-match`. The quirks are reproduced, not fixed:
+
+- nested `@{}` values are spliced in with `String()`, so objects become
+  `[object Object]`;
+- inside `OSC{}`, arguments are split on commas *before* values are
+  substituted, so a value that would change that split is left as a reference;
+- a clone override that does not parse never applies.
+
+It prints a note when it meets one of these, and **fails the build** on anything
+it does not model, in the style of `patch-osc-perf.py`:
+- scoped clones or `fragment` widgets;
+- an ambiguous clone target;
+- a clone prop that would be lost;
+- `css` set on both a clone and its content in a way that compounds;
+- a reference to a widget that only exists in a template tab;
+- an o-s-c package whose version differs from the defaults table.
+
+**`osc-defaults-1.31.0.json`** is each widget type's defaults, read from the
+1.31.0 client's widget classes. Only the browser bundle holds them, so they
+are extracted rather than computed. When the vendored o-s-c version changes,
+the build stops until it is regenerated: load any session in the new client
+and run `docs/gui/tools/session/extract-defaults.js` in its console.
+
+**Verifying a change to it.** The reference is o-s-c itself:
+`docs/gui/tools/session/` fingerprints every widget of the original and
+flattened sessions in a browser (resolved props, values, geometry, computed
+style, popups) and compares them. The only differences should be the clone
+props moved deliberately. See `docs/gui/session-size.md`.
+
+## compile-compounds.py
+
+Runs after `flatten-session.py`. Turns each `slider` compound (15 stacked widgets)
+into one canvas, drawn and touched by `src/gui/compounds/slider-lib.js`, and each
+128-step `seqsteppanel` (385 widgets) into one, by `sequencer-lib.js`. Pd keeps its
+per-parameter addresses: `src/gui/formuls-module.js`, an o-s-c server module, does
+the translation from the `compounds.json` this writes.
+
+It also:
+- migrates the state file to the packed values;
+- rewrites the outside references to a sub-widget (`@{saturation1.value}` ->
+  `@{saturation1_c.value.0}`);
+- hooks the mode inputs to redraw the canvases they gate;
+- wires a widget left on the same address as a canvas slot (the master-panel reverb
+  faders) to that slot, both ways, so the pair stays in step on one tablet.
+
+A compound whose wiring is not static is left as authored.
+
+The app passes `--custom-module` only when both the module and `compounds.json` sit
+next to the session, so a dev run from `src/gui` is unaffected.
+
+Verifying a change: `docs/gui/tools/session/` has the harness. It records the OSC a
+one-compound session sends for a fixed set of gestures, sends both versions the same
+Pd-side messages, and compares the state-recall bursts. See
+`docs/gui/session-size.md`, "B, implemented".
+
+## check-gestures.mjs
+
+Checks that the canvas compounds send exactly what o-s-c's own widgets send. Run it
+after changing `src/gui/compounds/*.js`, `compile-compounds.py`, `formuls-module.js`,
+or the vendored o-s-c version:
+
+    formuls-0.3.1.app/Contents/Resources/gui/node src/tools/check-gestures.mjs
+
+It needs node 22+ (the vendored node is fine) and Chrome; there are no npm packages.
+
+It builds a one-compound slider session and a one-panel sequencer session from
+`src/gui/_main.json`, each two ways: native widgets, and compiled to a canvas. Each is
+served with the vendored o-s-c (the canvas with the module), and the script drives
+the same real mouse gestures in headless Chrome over the DevTools protocol. A UDP
+socket stands in for Pd, and the script compares what each variant sent, gesture by
+gesture. Mode switches are sent to the server over UDP, as Pd sends them.
+
+There are 20 gestures:
+- slider: taps, snap-drag, double tap, drag past the end, one drag per mode layer,
+  mod cells, parameter select;
+- sequencer: taps, row and column drags, drags across steps in mixed states, and
+  quantised fader taps and drags.
+
+Exit status 0 means identical. 1 means a difference, printed side by side. 2 means
+the harness failed.
+
+Options:
+- `--osc-dir` defaults to `build/gui`, then the newest app bundle.
+- `--chrome`
+- `--port` takes four ports from 9061; never 9000/9001.
+- `--keep` keeps the generated sessions.
+- `--verbose` prints every message.
+
+Not covered: exact ties between quantise steps. No pixel position lands exactly
+halfway between two steps.
+
 ## check-reset-coverage.py
 
 Checks that every parameter carrying chaos/LFO/mod sub-widgets in

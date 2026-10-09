@@ -33,11 +33,12 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
-| [`gui/session-size.md`](gui/session-size.md) | Why the session takes seconds to load and tabs lag: quadratic build from global listeners, canvas count on tab show. Build-time flattening (3× faster load, verified identical), bespoke canvas compounds, multixy `pointsAttr` and a per-point interaction patch — all measured. |
+| [`gui/fast-gui.md`](gui/fast-gui.md) | **Start here for the GUI build.** What the build does to the session before it ships (flattening, the tab-show patch, slider and sequencer compounds as single canvases), how Pd's addresses are kept through a server module, how it was verified, and how to work with it. Branch `gui-compounds`. |
+| [`gui/session-size.md`](gui/session-size.md) | Why the session takes seconds to load and tabs lag: quadratic build from global listeners, canvas count on tab show. Build-time flattening (3× faster load, verified identical; **shipped**, `src/tools/flatten-session.py`), bespoke canvas compounds, multixy `pointsAttr` and a per-point interaction patch — all measured. |
 | [`fxorder/README.md`](fxorder/README.md) | The reorderable, bypassable effects chain (`fxorder-crossbar` branch): the Faust crossbar, live-change duck and debounce, the modal chain strip, reset behaviour, the Feedback slider, measurements and known limits. |
 | [`../src/app/README.md`](../src/app/README.md) | The JUCE application: source layout, recording, GUI addresses, styling, building, test harness. |
 | [`../src/prebuilt/README.md`](../src/prebuilt/README.md) | Why `abl_link~` ships prebuilt and must not be built locally on macOS. |
-| [`../src/tools/README.md`](../src/tools/README.md) | `brand-osc.sh`, `patch-osc-perf.py`, `bpm-probe`. |
+| [`../src/tools/README.md`](../src/tools/README.md) | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py`, `compile-compounds.py`, `bpm-probe`. |
 | [`../src/tools/abl-link-repro/README.md`](../src/tools/abl-link-repro/README.md) | Minimal reproduction and root-cause trace of the Ableton Link tempo limit. |
 | [`../INSTALL.md`](../INSTALL.md) / [`../README.md`](../README.md) | Build requirements and the user-facing feature list, both updated for the port. |
 
@@ -306,6 +307,34 @@ finding from the same session still stands: `widener` in `ffx.lib` used a
 genuinely L/R-unequal Hass delay, `(l@(ma.SR/100) - r)`, gated by `max(0, w-1)` —
 inaudible at the default width of 0.5, a left-biased comb above 50%. That effect
 has since been removed.
+
+## 10. The GUI loads 6× faster (branch `gui-compounds`)
+
+See [`gui/fast-gui.md`](gui/fast-gui.md) for how it works, and
+[`gui/session-size.md`](gui/session-size.md) for the measurements behind it.
+
+Load and tab-switch lag came from the o-s-c client, not from Pd. The clone-based
+layout makes nearly every widget a global listener, which makes load quadratic in
+widget count. Every incoming message is also broadcast to every listener, and showing
+a tab force-resizes all of its 400 canvases. The build now transforms the session
+before it ships; `src/gui/_main.json` is still the file you edit:
+
+- **A**: clones are inlined and static `@{parent.variables…}` references resolved.
+  Verified identical prop by prop.
+- **A+**: the tab-show resize is no longer forced.
+- **B, C**: each slider compound (15 widgets) and each 128-step sequencer panel (385
+  widgets) becomes one canvas. A server module translates, so Pd keeps every address.
+  Gestures send byte-identical OSC, and state recall sends the same 7,140 messages.
+
+| | original | all stages |
+|---|---|---|
+| widgets | 13,442 | 5,346 |
+| load | 10.9 s | 1.8 s |
+| per incoming message | 92 µs | ~23.5 µs |
+
+Several tablets stay in step: the module mirrors each gesture to the other tablets,
+which o-s-c could no longer do by address. This was checked with three browser
+tabs, not yet with physical tablets or on a real touch screen.
 
 ---
 

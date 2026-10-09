@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Two experimental client patches for a vendored Open Stage Control 1.31 package,
-measured in ../../session-size.md. Same contract as src/tools/patch-osc-perf.py:
+measured in ../../session-size.md. Same contract as src/tools/patch-osc-perf.py
+(which now applies --tab-show-unforced itself, always):
 matched on code rather than line numbers, idempotent, hard failure on a missing anchor.
-Neither is applied by the build.
+The multixy patch is not applied by the build.
 
   --tab-show-unforced
       Tab.show() calls check(widget, true), which resizes (reallocates and redraws)
