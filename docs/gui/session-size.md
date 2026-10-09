@@ -283,6 +283,14 @@ arrive in the same burst.
 screen. Gestures were driven with the pane's mouse. Multi-touch is handled per
 `pointerId`, but untested.
 
+**Found later: more than one tablet (fixed).** A gesture on one tablet did not reach
+the others. o-s-c re-delivers a widget's message to the other clients by address, and
+the canvas sends a sub-widget address no widget has any more. The master-panel reverb
+fader also stopped moving the reverb slider on the same tablet: same-id sync, lost
+with the canvas's new id. The module now mirrors gestures to the other tablets, and
+the compiler wires the shared pair together. See [`fast-gui.md`](fast-gui.md), "At run
+time".
+
 **Found later, with Pd running (fixed).** The eight sliders under `fxa`/`fxb` (AM
 Wave, Saturation, Bitcrush, Chorus, Phaser, Delay Time, Envelope/Sidechain, Reverb)
 showed a white overlay, and their quantise LED filled the whole slider. Those two

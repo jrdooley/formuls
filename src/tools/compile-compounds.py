@@ -118,6 +118,12 @@ def run(a):
     new_state_entries = {}                           # first sub key -> (canvas id, value)
     drop_keys = set()
 
+    slider_canvases = {}                             # canvas id -> (canvas, M)
+    def slider_scripts(canvas, M):
+        mjs = json.dumps(M, ensure_ascii=False)
+        canvas['onDraw'] = f'var M = {mjs};\nglobals.FC && globals.FC.draw(ctx, width, height, value, cssVars, M, {{get: get}}, locals)'
+        canvas['onTouch'] = f'var M = {mjs};\nglobals.FC && globals.FC.touch(event, value, width, height, M, locals, {{get: get, set: set, send: send}})'
+
     skipped = []
     def static_wiring(ch):
         # a compound whose mode gates or label still hold @{} (the keyboard velocity
@@ -182,15 +188,14 @@ def run(a):
             new_state_entries.setdefault(first, []).append((cid, values))
 
         M = {'n': None, 'label': label, 'a': addrs, 'modes': modes, 'labelFont': FONT, 'digitFont': FONT}
-        mjs = json.dumps(M, ensure_ascii=False)
         canvas = {
             'type': 'canvas', 'id': cid, 'address': caddr,
             'left': panel.get('left', 'auto'), 'top': panel.get('top', 'auto'),
             'width': panel.get('width', 'auto'), 'height': panel.get('height', 'auto'),
             'valueLength': NSLOTS, 'default': values, 'autoClear': False, 'padding': 0,
-            'onDraw': f'var M = {mjs};\nglobals.FC && globals.FC.draw(ctx, width, height, value, cssVars, M, {{get: get}}, locals)',
-            'onTouch': f'var M = {mjs};\nglobals.FC && globals.FC.touch(event, value, width, height, M, locals, {{get: get, set: set, send: send}})',
         }
+        slider_scripts(canvas, M)
+        slider_canvases[cid] = (canvas, M)
         for p in ('expand', 'visible', 'css', 'interaction'):
             if p in panel:
                 canvas[p] = panel[p]
@@ -320,6 +325,37 @@ def run(a):
     walk(root, addr_of)
     mapping['passthrough'] = sorted(a for a in mapping['inbound'] if a in remaining)
 
+    # A widget left in the session on the same address as a canvas slot (each master
+    # panel's reverb fader shares /reverbN, and its id, with that synth's reverb slider).
+    # On one tablet o-s-c kept the two in step by their shared id, which the canvas no
+    # longer has, so they now update each other: the widget patches the canvas slot
+    # through the mailbox library, and a gesture on the canvas sets the widget (M.mirror).
+    # Other tablets are formuls-module.js's job.
+    mirrored = []
+    def mirror(w, p):
+        if w.get('type') in ('panel', 'tab', 'root', 'modal', 'canvas', 'variable'):
+            return
+        try:
+            a2 = address_of(w)
+        except CompileError:
+            return
+        for target in mapping['inbound'].get(a2, []):
+            cid, slot = target[0], target[1]
+            if cid not in slider_canvases or not isinstance(slot, int):
+                raise CompileError(f'{w.get("id")}: shares {a2} with {cid}, which cannot mirror it')
+            M = slider_canvases[cid][1]
+            M.setdefault('mirror', {}).setdefault(str(slot), []).append(str(w['id']))
+            prev = w.get('onValue', '')
+            w['onValue'] = (prev + '\n' if prev else '') + \
+                f'// compile-compounds: keep {cid} in step on this tablet\n' + \
+                'globals.FC && globals.FC.patch({get: get, set: set, getVar: getVar, setVar: setVar, updateCanvas: updateCanvas}, ' + \
+                f'[{json.dumps(cid)}, {slot}, value])'
+            mirrored.append(str(w['id']))
+    walk(root, mirror)
+    for cid, (canvas, M) in slider_canvases.items():
+        if 'mirror' in M:
+            slider_scripts(canvas, M)
+
     # mode inputs redraw the canvases they gate
     hooked = set()
     def hook(w, p):
@@ -363,6 +399,7 @@ def run(a):
     print(f'compile-compounds: {len(seqs)} sequencer panels -> canvases')
     print(f'compile-compounds: {k + 1} of {len(compounds)} slider compounds -> canvases, {refs["rewritten"]} outside references '
           f'rewritten, {len(hooked)} mode inputs hooked, {len(mapping["passthrough"])} shared addresses passed through, '
+          f'{len(mirrored)} widgets mirrored, '
           f'{nwid[0]} authored widgets, state {len(state)} -> {len(out_state)} keys')
 
 

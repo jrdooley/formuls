@@ -184,6 +184,31 @@ the slot locally and calls `send('/attack1', 0.52)` (or `/attackmod1`,
 untouched. o-s-c only allows a script `send()` from a user-initiated event, which is
 another reason inbound updates go through `set(…, {send: false})`.
 
+**GUI → GUI, other tablets: mirrored by the module.** o-s-c keeps tablets in step
+by address: when a widget on tablet A sends, the server re-delivers the message to
+every other tablet, where the widget with that address takes it. A canvas gesture
+sends `/attack1`, which no widget has any more, so on its own that re-delivery
+reaches nothing. `oscOutFilter` therefore also turns every outgoing message on a
+mapped address into the same mailbox patch Pd's message would make, and delivers
+it to each *other* connected tablet. The module learns the tablets from their
+`open` events, because o-s-c has no "everyone but the sender" delivery.
+
+It skips the sender on purpose. An echo of value *n* can arrive after the finger
+has already moved to *n + 1*; it would pull the slot back, and the next drag step
+would compare against the wrong value and could send a message the original never
+sent.
+
+**One tablet, two widgets on one address: mirrored by the compiler.** Each master
+panel's reverb fader shares `/reverbN`, and its id, with that synth's reverb slider.
+o-s-c kept same-id widgets in step on one tablet, which the canvas (`reverbN_c`)
+no longer gets for free. The compiler wires the pair together:
+
+- the master-panel fader gets an `onValue` that patches the canvas slot;
+- the canvas lists the fader in `M.mirror` and sets it, without sending, whenever
+  the gesture sets that slot.
+
+Neither sends OSC, so Pd still receives exactly one message per change.
+
 **GUI → Pd, state recall: unpacked.** Loading a state makes each canvas send its
 packed address once (`/fc/3` with 20 values). `oscOutFilter` drops that message and
 sends the per-address messages the stacked widgets would have sent, as floats, in the
@@ -249,6 +274,19 @@ approximated. Each of these was found by a recording comparison failing:
 - **State recall:** the same 7,140-message multiset to Pd.
 - **With real Pd:** the shipped `_main.pd` running headless against the compiled GUI,
   which is how the `fxa`/`fxb` colour bug was reproduced and its fix confirmed.
+- **Several tablets:** three browser tabs on one server. Each was compared with the
+  original session served alongside. Checked:
+  - a slider drag, an LFO-layer drag and a sequencer drag on one tablet appear on
+    the other two, at the value sent to Pd (rounded to 2 decimals, as o-s-c's own
+    sync delivers);
+  - the sending tablet keeps its own, unrounded value (no echo);
+  - the master-panel reverb fader and the reverb slider follow each other on the
+    same tablet and on the others, in both directions;
+  - Pd-side messages reach all three alike;
+  - Pd receives one message per change, as before.
+
+  Before the fix, the other tablets did not move at all. Neither did the reverb
+  slider on the same tablet when the master-panel reverb fader moved.
 
 The rig is in [`tools/session/`](tools/session/). The reference recordings are
 `ref-gestures-attack1.log` and `ref-gestures-seq1.log`.
@@ -271,7 +309,8 @@ The rig is in [`tools/session/`](tools/session/). The reference recordings are
 
 ## Not verified
 
-- Several tablets connected at once.
+- Several *physical* tablets over Wi-Fi: the multi-tablet check above used browser
+  tabs on one machine.
 - A real touch screen. Gestures were driven with a mouse; multi-touch is handled per
   pointer but untested.
 - The Linux build script (it has the same steps; only the macOS build was run).
@@ -287,6 +326,6 @@ The rig is in [`tools/session/`](tools/session/). The reference recordings are
 | `src/tools/compile-compounds.py` | Stages B and C, the state migration, and `compounds.json`. |
 | `src/gui/compounds/slider-lib.js` | `globals.FC`: slider drawing, touch and the mailbox `patch`. |
 | `src/gui/compounds/sequencer-lib.js` | `globals.FS`: sequencer drawing and touch. |
-| `src/gui/formuls-module.js` | o-s-c server module: inbound patches, outbound recall unpacking. |
+| `src/gui/formuls-module.js` | o-s-c server module: inbound patches, mirroring gestures to the other tablets, outbound recall unpacking. |
 | `src/app/Source/OpenStageControlProcess.cpp` | Adds `--custom-module` when the module and map are present. |
 | `build-macOS.sh`, `build-linux.sh` | Run the stages in order. |

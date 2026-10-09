@@ -169,9 +169,13 @@
   }
 
   // Set one slot locally (no packed send) and send the sub-widget's own message.
+  // A widget elsewhere on the same address (M.mirror, from the compiler) is set too,
+  // as o-s-c kept same-id widgets in step on one tablet.
   function emit(api, value, slot, x, M, sendIt) {
     var v = value.slice(); v[slot] = x;
     api.set('this', v, { send: false });
+    var mir = M.mirror && M.mirror[slot];
+    for (var i = 0; mir && i < mir.length; i++) api.set(mir[i], x, { send: false });
     if (sendIt) api.send(M.a[slot], round2(x));
     return v;
   }

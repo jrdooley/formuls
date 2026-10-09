@@ -332,7 +332,9 @@ before it ships; `src/gui/_main.json` is still the file you edit:
 | load | 10.9 s | 1.8 s |
 | per incoming message | 92 µs | ~23.5 µs |
 
-Not yet tested with several tablets or on a real touch screen.
+Several tablets stay in step: the module mirrors each gesture to the other tablets,
+which o-s-c could no longer do by address. This was checked with three browser
+tabs, not yet with physical tablets or on a real touch screen.
 
 ---
 

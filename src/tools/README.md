@@ -155,7 +155,9 @@ It also:
 - migrates the state file to the packed values;
 - rewrites the outside references to a sub-widget (`@{saturation1.value}` ->
   `@{saturation1_c.value.0}`);
-- hooks the mode inputs to redraw the canvases they gate.
+- hooks the mode inputs to redraw the canvases they gate;
+- wires a widget left on the same address as a canvas slot (the master-panel reverb
+  faders) to that slot, both ways, so the pair stays in step on one tablet.
 
 A compound whose wiring is not static is left as authored.
 
