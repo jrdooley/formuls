@@ -76,6 +76,33 @@ session that differs silently.
 
 ## Stage A: flattening
 
+**In plain terms.** The build does two separate things. *Flattening* affects the
+whole session and keeps every widget a native o-s-c widget. *Compiling* (stages B
+and C) then turns only the slider compounds and sequencer panels into canvases, and
+adds the server module and `compounds.json`.
+
+`_main.json` is built from templates and clones. A design is made once (a synth
+panel, the slider compound) and placed many times with `clone` widgets, each
+passing its instance number in `variables`:
+
+```
+clone  (variables: {"n": 1})
+  └─ template "slider"
+       └─ fader   id: "attack@{parent.variables.n}"   →  attack1
+```
+
+o-s-c resolves `attack@{parent.variables.n}` to `attack1` at every load, for every
+widget. Each widget holding such a reference also keeps a listener in case it
+changes, which it never does. Flattening does that work once, at build time: each
+clone is replaced by its own copy of the widgets, with the references filled in
+(`id: "attack1"`, `address: "/attack1"`). The nesting of clone and template becomes
+plain widgets, hence "flattened". References that can really change while playing
+(mode buttons, `OSC{}` receivers, scripts) are left alone. It is like a spreadsheet
+whose source keeps the formulas, while the shipped copy holds their values. You keep
+editing the clones, so changing a template still updates every copy.
+
+**In detail:**
+
 `src/tools/flatten-session.py` evaluates, once, at build time, everything o-s-c would
 evaluate at load and that can never change afterwards:
 
