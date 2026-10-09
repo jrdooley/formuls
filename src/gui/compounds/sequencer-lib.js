@@ -51,6 +51,18 @@
   // canvas' event.offsetX is floored, so neither offsetX nor pageX - offsetX will do:
   // use the canvas' real edge, cached at draw time, unless it has moved (a scrolled
   // panel), in which case fall back to the event's own estimate.
+
+  // A colour the canvas really accepts, or null. o-s-c can hand a canvas an unusable
+  // colour -- under fxa/fxb, whose colorBg is "@{this}", cssVars.colorBg is "-1" -- and
+  // an invalid fillStyle is silently ignored, so the previous fill would be reused.
+  function validColor(ctx, c) {
+    if (!c || typeof c !== 'string') return null;
+    var prev = ctx.fillStyle; ctx.fillStyle = '#010203'; ctx.fillStyle = c;
+    var ok = ctx.fillStyle !== '#010203' || c.replace(/\s/g, '').toLowerCase() === '#010203';
+    ctx.fillStyle = prev;
+    return ok ? c : null;
+  }
+
   function hitPoint(event, locals) {
     var ex = event.pageX - event.offsetX, ey = event.pageY - event.offsetY;
     var lx = (locals.left != null && Math.abs(ex - locals.left) < 1) ? locals.left : ex;
@@ -65,20 +77,26 @@
 
   function draw(ctx, W, H, v, cs, M, api, locals) {
     cacheRect(ctx, locals, W);                             // for touch hit-testing
+    var bg = validColor(ctx, cs.colorBg);
+    // the step labels inherit the text colour (white here); cssVars.colorText does not
+    // (it resolves to the synth colour), so read what CSS actually inherits
+    if (locals && !locals.textColor) locals.textColor = ctx.canvas.ownerDocument.defaultView.getComputedStyle(ctx.canvas).color;
+    var text = (locals && validColor(ctx, locals.textColor)) || validColor(ctx, cs.colorText) || 'rgb(216,222,233)';
+    var fill = validColor(ctx, cs.colorFill) || validColor(ctx, cs.colorWidget) || 'rgb(109,181,253)';
+    var stroke = validColor(ctx, cs.colorStroke) || fill;
     ctx.clearRect(0, 0, W, H);
     var op = api.getVar('this', 'op') || {};
     ctx.font = '500 11px Roboto, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
     for (var i = 0; i < N; i++) {
       var c = cell(W, H, i), on = num(v[i]), o = (i in op) ? num(op[i]) : M.op0[i];
-      ctx.globalAlpha = 1; ctx.fillStyle = cs.colorBg || 'rgb(33,37,43)';     // step panel
-      ctx.fillRect(c.x, c.y, c.w, c.h);
+      if (bg) { ctx.globalAlpha = 1; ctx.fillStyle = bg; ctx.fillRect(c.x, c.y, c.w, c.h); }   // step panel
       if (o > 0) {                                                            // the button
-        ctx.globalAlpha = o * (on ? 0.75 : 0.15); ctx.fillStyle = cs.colorFill || cs.colorWidget;
+        ctx.globalAlpha = o * (on ? 0.75 : 0.15); ctx.fillStyle = fill;
         ctx.fillRect(c.x + 3, c.y + 3, c.w - 6, c.h - 6);
-        ctx.globalAlpha = o * 0.5; ctx.strokeStyle = cs.colorStroke || cs.colorWidget; ctx.lineWidth = 3;
+        ctx.globalAlpha = o * 0.5; ctx.strokeStyle = stroke; ctx.lineWidth = 3;
         ctx.strokeRect(c.x + 1.5, c.y + 1.5, c.w - 3, c.h - 3);
-        ctx.globalAlpha = o; ctx.fillStyle = on ? (cs.colorBg || 'rgb(33,37,43)') : (cs.colorText || 'rgb(216,222,233)');
+        ctx.globalAlpha = o; ctx.fillStyle = on ? (bg || 'rgb(33,37,43)') : text;   // colorTextOn auto = background
         ctx.fillText(String(i + 1), c.x + c.w / 2, c.y + c.h / 2 + 1);
       }
       ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(0,0,0,1)';                   // the fader's knob

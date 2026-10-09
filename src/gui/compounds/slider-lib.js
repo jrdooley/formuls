@@ -67,7 +67,7 @@
     ctx.fillRect(k, gp, A, T - 2 * gp);
     if (f.stroke) {                                        // outline (main fader only)
       var lw = 5;
-      ctx.globalAlpha = 1; ctx.strokeStyle = cs.colorStroke || fill; ctx.lineWidth = lw;
+      ctx.globalAlpha = 1; ctx.strokeStyle = validColor(ctx, cs.colorStroke) || fill; ctx.lineWidth = lw;
       ctx.strokeRect(lw / 2, lw / 2, W - lw, H - lw);
     }
     ctx.restore();
@@ -79,6 +79,18 @@
   // canvas' event.offsetX is floored, so neither offsetX nor pageX - offsetX will do:
   // use the canvas' real edge, cached at draw time, unless it has moved (a scrolled
   // panel), in which case fall back to the event's own estimate.
+
+  // A colour the canvas really accepts, or null. o-s-c can hand a canvas an unusable
+  // colour -- under fxa/fxb, whose colorBg is "@{this}", cssVars.colorBg is "-1" -- and
+  // an invalid fillStyle is silently ignored, so the previous fill would be reused.
+  function validColor(ctx, c) {
+    if (!c || typeof c !== 'string') return null;
+    var prev = ctx.fillStyle; ctx.fillStyle = '#010203'; ctx.fillStyle = c;
+    var ok = ctx.fillStyle !== '#010203' || c.replace(/\s/g, '').toLowerCase() === '#010203';
+    ctx.fillStyle = prev;
+    return ok ? c : null;
+  }
+
   function hitPoint(event, locals) {
     var ex = event.pageX - event.offsetX, ey = event.pageY - event.offsetY;
     var lx = (locals.left != null && Math.abs(ex - locals.left) < 1) ? locals.left : ex;
@@ -106,14 +118,15 @@
     for (i = 0; i < 4; i++) {
       f = FADERS[i];
       var fillAlpha = f.mode ? (active(api, M.modes[f.mode]) ? 1 : 0) : f.fillAlpha;
-      drawFader(ctx, W, H, f, num(v[f.slot]), f.color || cs.colorFill || cs.colorWidget, cs, fillAlpha);
+      drawFader(ctx, W, H, f, num(v[f.slot]), f.color || validColor(ctx, cs.colorFill) || validColor(ctx, cs.colorWidget) || '#6db5fd', cs, fillAlpha);
     }
     // mod-source matrix: 6 toggle cells
     var mx = W * MOD.left, mw = W * MOD.width / MOD.cells;
-    // the matrix container itself is opaque background at the matrix's opacity: it
-    // dims every layer below it across its width
-    ctx.globalAlpha = MOD.opacity; ctx.fillStyle = cs.colorBg || 'rgb(33,37,43)';
-    ctx.fillRect(mx, 0, W * MOD.width, H);
+    // the matrix container itself has the panel background at the matrix's opacity: it
+    // dims every layer below it across its width -- where that background is a real
+    // colour. Under fxa/fxb it is not, and the original matrix is transparent there.
+    var bg = validColor(ctx, cs.colorBg);
+    if (bg) { ctx.globalAlpha = MOD.opacity; ctx.fillStyle = bg; ctx.fillRect(mx, 0, W * MOD.width, H); }
     ctx.fillStyle = MOD.color; ctx.strokeStyle = MOD.color; ctx.lineWidth = 1;
     for (i = 0; i < MOD.cells; i++) {
       ctx.globalAlpha = MOD.opacity * (num(v[SLOT.mod + i]) ? MOD.on : MOD.off);

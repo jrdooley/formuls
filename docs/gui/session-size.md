@@ -280,6 +280,18 @@ arrive in the same burst.
 screen. Gestures were driven with the pane's mouse. Multi-touch is handled per
 `pointerId`, but untested.
 
+**Found later, with Pd running (fixed).** The eight sliders under `fxa`/`fxb` (AM
+Wave, Saturation, Bitcrush, Chorus, Phaser, Delay Time, Envelope/Sidechain, Reverb)
+showed a white overlay, and their quantise LED filled the whole slider. Those two
+panels set `colorBg: @{this}`, which is not a colour: the original matrix background
+is transparent there, while a canvas receives `cssVars.colorBg = "-1"`. An invalid
+`fillStyle` is silently ignored, so the matrix's dimming rectangle was painted in
+whatever colour was set last. The libraries now use only colours the canvas
+accepts, never let a fill colour carry over, and read the inherited text colour
+from CSS (the sequencer's `cssVars.colorText` is the synth colour; its labels are
+white). The one-compound sessions used default colours and could not show this, so
+look at any change to the libraries in a real synth tab as well.
+
 ### C, implemented (branch `gui-compounds`)
 
 The six 128-step `seqsteppanel`s are compiled the same way, by
