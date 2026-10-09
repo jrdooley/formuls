@@ -182,6 +182,13 @@
 #X obj 300 82 t f f;
 #X obj 330 104 == 0;
 #X text 300 190 The app sends formuls-app-osc 1: GUI-bound OSC then goes to [s formuls-osc-out] \, which the app sends from its own thread \, outside the Pd lock (src/app/Source/PdOscOut.h). [netsend] made one system call per message while holding it \, which stalled the audio callback on bursts such as a global reset. In plain Pd nothing sends formuls-app-osc \, so [netsend] carries everything as before.;
+#X obj 33 330 oscparse;
+#X obj 33 351 list trim;
+#X obj 33 372 s to-o-s-c-parsed;
+#X text 140 330 Parsed once here for the quantise listeners in f.util.oscinparse \, which used to parse every GUI-bound packet themselves: 30 parses per packet \, about 36 \,000 per synth reset.;
+#X connect 0 0 32 0;
+#X connect 32 0 33 0;
+#X connect 33 0 34 0;
 #X connect 0 0 1 0;
 #X connect 0 0 15 0;
 #X connect 1 0 2 0;

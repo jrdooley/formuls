@@ -8,7 +8,7 @@ Audio log, and headless Pd. The log is on branch `diag-audio-timing`, not on
 | what was heard | cause | fix |
 |---|---|---|
 | A click when stopping an automation recording | The synth jumped to the take's first value, and some synth parameters weren't smoothed | `si.smoo` on those parameters in `src/faust/fsynth.lib` |
-| A click when pressing the global reset | The reset held Pd's lock for 65–69 ms, six times an audio callback, so the output dropped out | The app sends GUI messages itself (`PdOscOut.h`); the reset is staggered per synth (`_main.pd`) |
+| A click when pressing the global reset | The reset held Pd's lock for 65–69 ms, six times an audio callback, so the output dropped out | The app sends GUI messages itself (`PdOscOut.h`); the reset is staggered per synth (`_main.pd`); the per-synth reset is cheaper and spread over 10 ms (fix 4) |
 | Occasional clicks with nothing happening | The virtual audio cable between formuls and SoundDesk | None in formuls: they stopped with a direct audio interface |
 
 ## 1. The record-stop click: a jump the synth didn't smooth
@@ -170,12 +170,51 @@ Checked against `main`:
 The automation probe now arms through `automateRecord`, as the GUI does, rather
 than sending `record 1` into the automater directly.
 
-### Still to do
+### Fix 4: per-synth reset buttons (`f.util.oscinparse`, `_main.pd`)
 
-Not audible now, but the heaviest message left:
+After fixes 1–3 the per-synth reset buttons (`/reset1` … `/reset6`) were the
+heaviest message left. In the app a press held Pd for 7.7–17.3 ms, and 3 of 39
+presses missed a deadline (none were heard). Each press sends about 1,200 OSC
+packets to the GUI.
 
-- **Per-synth reset buttons** (`/reset1` … `/reset6`) hold Pd for 6–12 ms. They do
-  the same work as one share of the global reset, all at once.
+**A: the outgoing bus is parsed once.** Every GUI-bound packet goes out on
+`[s to-o-s-c-interface]`. Each synth's `f.util.oscinparse` had five listeners on
+that bus, `[oscparse] → [list trim] → [route …quantise$1]`, to pick up quantise
+settings the patch itself sends. That was 30 full OSC parses per packet, about
+36,000 per synth reset; `oscparse_list` was the top Pd function in the profile.
+Now `_main.pd`'s send subpatch parses the bus once and sends the result on
+`to-o-s-c-parsed`, and the listeners take that. Each listener's `[oscparse]` is
+a pass-through `[t a]`, so object numbers and connections are unchanged. This
+also cheapens every other GUI-bound burst, such as the global reset.
+
+**B: the press is spread over 10 ms.** The reset subpatch sent its three
+messages at once. Now a button press sends:
+
+- `$0-reset` at once;
+- `$1-reset` 5 ms later;
+- `$0-$1-reset 1` (the frequency-snap gate) 10 ms later.
+
+The release (`$0-$1-reset 0`) is held 15 ms so it always follows the press. The
+global reset keeps its order (gate first) and its release still comes 190 ms
+later from `RESET_STAGGER`. The 5 ms steps are about half an audio callback, so
+they usually land in different callbacks.
+
+Checked against `main`:
+
+| | `main` | A | A + B |
+|---|---|---|---|
+| press, headless | median 5.7, worst 9.1 ms | 4.2, 6.9 | **2.5, 3.3** (immediate part) |
+| press, in the app | 7.7–17.3 ms, median ~11 | 6.5–13.1, median 8.5 | **2.4–7.7, median 4.5** |
+| delayed steps, worst tick in the app | | | 6.75 ms |
+| missed deadlines from resets | 3 of 39 | 0 of 18 | **0 of 19** |
+| GUI output for a reset/quantise script | 3,807 packets | identical | the same packets, spread over 10 ms |
+| what the quantise listeners receive | | identical | |
+| send order, traced (tap, held, global, start-up) | | | as designed; every release after its press |
+| Pd load messages | | the same set | the same set |
+
+The worst callback within 30 ms of a press was 9.4 ms of 10.67, so a press during
+heavy playing is now close to the edge rather than over it. Splitting further
+would mean dividing `$0-reset`'s fan-out itself.
 
 ## 3. Random clicks: the virtual audio cable
 
