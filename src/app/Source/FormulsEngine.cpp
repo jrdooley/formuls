@@ -86,6 +86,12 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
     pdOutputChannels = numOutputChannels;
 
     pd.setReceiver (this);
+
+    // Bind the GUI sender before the patch opens; the patch switches over to it
+    // once told to, below. If it can't start, the patch keeps its [netsend].
+    const bool appSendsOsc = oscOut.start (OpenStageControlProcess::guiPort);
+    if (! appSendsOsc)
+        juce::Logger::writeToLog ("OSC out: could not open a UDP socket; the patch sends to the GUI itself");
     pd.subscribe (quitReceiverName);   // lets the patch quit the app
     pd.computeAudio (true);
 
@@ -93,11 +99,17 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
 
     if (! patch.isValid())
     {
+        oscOut.stop();   // its receiver must not outlive the Pd it is bound in
         pd.clear();
         deviceManager.closeAudioDevice();
         return juce::Result::fail ("libpd could not open "
                                    + patchDir.getChildFile ("_main.pd").getFullPathName());
     }
+
+    // From here on the patch hands its GUI-bound OSC to oscOut rather than
+    // sending it from inside Pd (_main.pd, O-S-C_&_FORMULS_SEND).
+    if (appSendsOsc)
+        pd.sendFloat ("formuls-app-osc", 1.0f);
 
     // Listen for the GUI's OSC before going live. A failure here is not
     // fatal -- the engine still makes sound, it just cannot be driven from
@@ -134,6 +146,7 @@ void FormulsEngine::stop()
     // Before the patch closes: the bridge sends into libpd, so it must not
     // be able to fire once there is nothing left to send to.
     oscBridge.stop();
+    oscOut.stop();   // unbinds its receiver while Pd is still there
 
     if (patch.isValid())
     {

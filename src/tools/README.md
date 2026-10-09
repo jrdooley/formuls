@@ -344,7 +344,7 @@ silently changing the result.
 
 ### What it has established so far
 
-- **Open:** releasing the record button steps the parameter by an arbitrary
+- **Was open:** releasing the record button steps the parameter by an arbitrary
   amount. Automation playback is armed as soon as recording starts, so the
   first beat *during* the take sets the read head running underneath it;
   releasing record swaps the output onto that head mid-gesture. Measured steps
@@ -358,12 +358,18 @@ silently changing the result.
 - The fault is **not** a regression. `--rev 2194d48`, the commit that
   introduced the JUCE front end and predates all the efficiency work,
   reproduces it exactly.
-- A gate on `clockin`, held closed while `$0-record` is 1, was tried in
-  `f.seq.automater`'s `TIMING_+_SCHEDULING______` and does fix it -- the
-  parameter holds its last live value until the next beat, then playback starts
-  from index 0, and a gesture that returns to where it started loops with no
-  step at all. It is not in the tree: it changes where the loop's phase comes
-  from, which is a musical decision rather than a bug fix.
+- **Fixed** (`cd94ae0`, then `e0c6797`): a gate on `clockin`, held closed while
+  *this* parameter is taking a gesture (`$0-record-on-off`), in
+  `f.seq.automater`'s `TIMING_+_SCHEDULING______`. The parameter holds its last
+  live value until the next beat, then playback starts from index 0.
+- **The remaining step is by design, and is smoothed in Faust.** That restart,
+  and every loop wrap, still jump from where the gesture ended to where it began.
+  The jump was audible only on synth parameters Faust did not smooth: the
+  oscillator frequency in mono mode (ADSR off), `fmfreq`, `fmdepth` and `noise`.
+  Those now pass through `si.smoo` in `src/faust/fsynth.lib`. A 5 ms glide on
+  playback in this patch was tried first and also removed the click, but the
+  diagnosis showed the cause was in the synth, so the fix went there. See
+  `docs/audio-dropouts/README.md`.
 - Nothing in the Pd value path smooths. The `[line 0 5]` in
   `VALUE_READ_EVOLUTION_SEND` only ever receives bare floats, so it passes them
   straight through; whether a step is audible depends entirely on whether the

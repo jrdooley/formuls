@@ -29,7 +29,7 @@ pow27(x) = ba.tabulate(1, ^(2.7), 1024, 0, 1, x).lin;
 //------FORMULS------//
 /* main synth function */
 // One audio signal in: receives from another synth and controls FM modulation
-synth(inmod) = inmod : *(extmod) <: (par(i,POLYPHONY,(_ : fmosc((oxO,ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c),o2dx(i,c),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
+synth(inmod) = inmod : *(extmod) <: (par(i,POLYPHONY,(_ : fmosc(((oxO : si.smoo),ox(i,c,t) : si.interpolate(adsron)),orx,otx,o2fx(i,c),o2dx(i,c),nx,wx(i,c,c2),(t,tx(i,c,c2) : si.interpolate(adsron)),adsron) <:_, adsr(attack,decay,sustain,release,tx(i,c,c2)) : si.interpolate(adsrons) : *(vx(i,c))) : *(poly(i,c))) :> _)
 with{
   //-----------COUNTER/VOICE_SELECT------------//
   /* i = index/instance, c = current counter index, c2 = next counter index, t = trigger */
@@ -66,6 +66,11 @@ with{
 
   op1freq = hslider("oscfreq",0.001,0.001,22050,0.001); // carrier frequency
   oxO = op1freq; // frequency value sent to oscillator when adsr is not active
+  // In synth() the oscillator gets (oxO, ox) : si.interpolate(adsron), so with the ADSR off (mono) it is oxO itself.
+  // A jump in the value -- an automation loop wrapping, or playback taking over when record stops -- was
+  // then an instant pitch jump and an audible click, so synth() smooths oxO there with si.smoo (5 ms time
+  // constant). Only that input: the ADSR path (ox1) still samples the exact value at each trigger, and
+  // audio-rate modulation (extmodulation) is applied later, in fmosc's freqset, so it is not smoothed.
   // ox1(i,x,y) = oxO : ba.sAndH((i==x) & (y==1));
   ox1(i,x,y) = oxO : ba.sAndH((i==x) & (y==1) : ba.impulsify); // snaps current frequency value and sends it to oscillator when triggered and adsr is active
   ox(i,x,y) = ba.if(adsron == 0,oxO,ox1(i,x,y)); // allows for smooth glide between frequencies if ADSR is not operational, with a view to making non-ADSR also polyphonic
@@ -76,13 +81,17 @@ with{
   op1slidetime = hslider("oscslidetime",0,0,1,0.001) : *(2); //time taken for carrier frequency slide
   otx = op1slidetime;
 
-  op2freq = hslider("fmfreq",0,0,1,0.001) : *(2) : max(0.001); // mod freq is relative to op1 freq
+  // fmfreq, fmdepth and noise are smoothed (si.smoo, 5 ms time constant) for the same reason as the mono
+  // carrier (see oxO): an automation jump in them -- a loop wrapping, playback taking over when record
+  // stops -- was an instant change of FM ratio, FM depth or noise amount, and an audible click. Each voice
+  // still samples them (sAndH), now from the smoothed value; nothing audio-rate feeds them.
+  op2freq = hslider("fmfreq",0,0,1,0.001) : si.smoo : *(2) : max(0.001); // mod freq is relative to op1 freq
   o2fx(i,x) = op2freq : ba.sAndH((i==x));
 
-  op2depth = hslider("fmdepth",0,0,1,0.001) : *(2); // mod depth is relative to op1 freq
+  op2depth = hslider("fmdepth",0,0,1,0.001) : si.smoo : *(2); // mod depth is relative to op1 freq
   o2dx(i,x) = op2depth : ba.sAndH((i==x));
 
-  noise = hslider("noise",0,0,1,0.001) : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
+  noise = hslider("noise",0,0,1,0.001) : si.smoo : *(22050) : *(no.noise) : fi.lowpass(1,noisefilterfreq); // amount of noise to add to carrier frequency
   nx = noise;
 
   noisefilterfreq = hslider("noisefilterfreq",0,0,1,0.001) : *(0.999) : +(0.001) : *(22050); // noise filter amount
