@@ -94,6 +94,11 @@ public:
         actually talking to the patch. */
     int getMessageCount() const noexcept   { return messageCount; }
 
+    // TEMPORARY timing diagnostics (Diagnostics.h): ", N GUI messages, held Pd
+    // X ms in total, longest Y ms (address)" since the last call, then reset.
+    // Message thread only.
+    static juce::String takeDiagnosticSummary();
+
 private:
     void oscMessageReceived (const juce::OSCMessage& message) override;
     void oscBundleReceived (const juce::OSCBundle& bundle) override;

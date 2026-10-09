@@ -171,6 +171,17 @@ private:
 
     bool running = false;
 
+    // TEMPORARY timing diagnostics (Diagnostics.h). The audio thread pushes
+    // slow callbacks into a lock-free FIFO and bumps counters; timerCallback()
+    // writes them out on the message thread.
+    struct SlowBlock { double atMs; float tookMs, budgetMs, worstTickMs; int ticks, worstTickIndex; };
+    juce::AbstractFifo slowFifo { 256 };
+    std::array<SlowBlock, 256> slowBlocks {};
+    std::atomic<int> diagCallbacks { 0 }, diagOverHalf { 0 }, diagMissed { 0 }, diagFifoFull { 0 };
+    std::atomic<float> diagWorstMs { 0.0f }, diagWorstTickMs { 0.0f };
+    double diagLastSummaryMs = 0.0;
+    void writeDiagnostics();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FormulsEngine)
 };
 

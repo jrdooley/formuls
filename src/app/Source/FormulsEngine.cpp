@@ -4,6 +4,7 @@
 
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"   // patchOscPort
+#include "Diagnostics.h"               // TEMPORARY timing diagnostics
 
 namespace formuls
 {
@@ -124,6 +125,12 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
     activeDeviceManager = &deviceManager;
     running = true;
 
+    Diagnostics::log ("engine started: \"" + device->getName() + "\", "
+                      + juce::String (device->getCurrentBufferSizeSamples()) + " samples @ "
+                      + juce::String ((int) actualSampleRate) + " Hz, budget "
+                      + juce::String (device->getCurrentBufferSizeSamples() * 1000.0 / actualSampleRate, 2)
+                      + " ms per callback");   // TEMPORARY
+
     juce::Logger::writeToLog ("formuls engine started: \"" + device->getName()
                               + "\", " + juce::String (numOutputChannels)
                               + " channels @ " + juce::String ((int) actualSampleRate)
@@ -192,6 +199,9 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
                                                       const juce::AudioIODeviceCallbackContext&)
 {
     const auto blockSize = libpd_blocksize();
+    const auto diagStartMs = juce::Time::getMillisecondCounterHiRes();   // TEMPORARY diagnostics
+    float diagWorstTick = 0.0f;
+    int diagTicks = 0, diagWorstTickIndex = -1;
 
     // libpd renders in fixed 64-frame "ticks" of interleaved audio, while the
     // device may ask for any buffer size. Render one tick at a time into
@@ -203,7 +213,14 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
     {
         if (samplesLeftInTick == 0)
         {
+            // processFloat takes sys_lock: this includes any wait for the
+            // message thread, as well as DSP and Pd clocks firing in the tick
+            const auto tickStart = juce::Time::getMillisecondCounterHiRes();
             pd.processFloat (1, pdInputBuffer.data(), pdOutputBuffer.data());
+            const auto tickMs = (float) (juce::Time::getMillisecondCounterHiRes() - tickStart);
+
+            if (tickMs > diagWorstTick) { diagWorstTick = tickMs; diagWorstTickIndex = diagTicks; }
+            ++diagTicks;
             samplesLeftInTick = blockSize;
         }
 
@@ -262,6 +279,67 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
 
         recorder->write (recordChannels.data(), pdOutputChannels, numSamples);
     }
+
+    // TEMPORARY diagnostics: no allocation, no locks, no I/O here.
+    if (actualSampleRate > 0)
+    {
+        const auto tookMs = (float) (juce::Time::getMillisecondCounterHiRes() - diagStartMs);
+        const auto budgetMs = (float) (numSamples * 1000.0 / actualSampleRate);
+
+        diagCallbacks.fetch_add (1, std::memory_order_relaxed);
+        if (tookMs > diagWorstMs.load (std::memory_order_relaxed)) diagWorstMs.store (tookMs, std::memory_order_relaxed);
+        if (diagWorstTick > diagWorstTickMs.load (std::memory_order_relaxed)) diagWorstTickMs.store (diagWorstTick, std::memory_order_relaxed);
+
+        if (tookMs > 0.5f * budgetMs)
+        {
+            diagOverHalf.fetch_add (1, std::memory_order_relaxed);
+            if (tookMs >= budgetMs) diagMissed.fetch_add (1, std::memory_order_relaxed);
+
+            const auto scope = slowFifo.write (1);
+            if (scope.blockSize1 > 0)
+                slowBlocks[(size_t) scope.startIndex1] = { diagStartMs, tookMs, budgetMs, diagWorstTick, diagTicks, diagWorstTickIndex };
+            else
+                diagFifoFull.fetch_add (1, std::memory_order_relaxed);
+        }
+    }
+}
+
+//==============================================================================
+void FormulsEngine::writeDiagnostics()
+{
+    // TEMPORARY: message thread. Slow blocks as they come, a summary every 10 s.
+    const auto scope = slowFifo.read (slowFifo.getNumReady());
+
+    auto write = [this] (int start, int count)
+    {
+        for (int i = start; i < start + count; ++i)
+        {
+            const auto& b = slowBlocks[(size_t) i];
+            Diagnostics::log ("SLOW BLOCK  " + juce::String (b.tookMs, 2) + " ms of " + juce::String (b.budgetMs, 2)
+                              + " ms (" + juce::String (juce::roundToInt (100.0f * b.tookMs / b.budgetMs)) + "%)"
+                              + (b.tookMs >= b.budgetMs ? "  MISSED" : "")
+                              + ", worst tick " + juce::String (b.worstTickMs, 2) + " ms (tick "
+                              + juce::String (b.worstTickIndex + 1) + " of " + juce::String (b.ticks) + ")", b.atMs);
+        }
+    };
+    write (scope.startIndex1, scope.blockSize1);
+    write (scope.startIndex2, scope.blockSize2);
+
+    const auto now = juce::Time::getMillisecondCounterHiRes();
+    if (now - diagLastSummaryMs >= 10000.0)
+    {
+        if (diagLastSummaryMs > 0.0)
+            Diagnostics::log ("SUMMARY     " + juce::String (diagCallbacks.exchange (0)) + " callbacks, "
+                              + juce::String (diagOverHalf.exchange (0)) + " over half budget, "
+                              + juce::String (diagMissed.exchange (0)) + " missed, worst "
+                              + juce::String (diagWorstMs.exchange (0.0f), 2) + " ms, worst tick "
+                              + juce::String (diagWorstTickMs.exchange (0.0f), 2) + " ms"
+                              + (diagFifoFull.load() ? ", " + juce::String (diagFifoFull.exchange (0)) + " slow blocks not logged" : juce::String())
+                              + OscBridge::takeDiagnosticSummary()
+                              + ", " + juce::String (oscOut.takeSentCount()) + " OSC packets sent by the app"
+                              + [this] { const auto d = oscOut.takeDroppedCount(); return d ? ", " + juce::String (d) + " DROPPED" : juce::String(); }());
+        diagLastSummaryMs = now;
+    }
 }
 
 void FormulsEngine::audioDeviceStopped()
@@ -277,6 +355,7 @@ void FormulsEngine::timerCallback()
     // Runs on the message thread: moves queued patch messages out of libpd's
     // ring buffer and into the receive* callbacks below.
     pd.receiveMessages();
+    writeDiagnostics();   // TEMPORARY
 }
 
 void FormulsEngine::handleQuitRequest()

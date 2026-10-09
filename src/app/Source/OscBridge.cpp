@@ -4,6 +4,15 @@
 
 #include "OscBridge.h"
 #include "PdBase.hpp"
+#include "Diagnostics.h"   // TEMPORARY timing diagnostics
+
+namespace
+{
+    // TEMPORARY timing diagnostics -- message thread only
+    int diagMessages = 0;
+    double diagHeldMs = 0.0, diagLongestMs = 0.0;
+    juce::String diagLongestAddress;
+}
 
 namespace formuls
 {
@@ -129,8 +138,46 @@ void OscBridge::forward (const juce::OSCMessage& message)
     // finishMessage -> libpd_message, which takes sys_lock() itself and then
     // runs pd_typedmess() on this thread. That is the whole point of the
     // exercise: this is the message thread, not the audio thread.
+    const auto heldFrom = juce::Time::getMillisecondCounterHiRes();   // TEMPORARY diagnostics
     pd->finishMessage (receiverName, selector.toStdString());
     ++messageCount;
+
+    // TEMPORARY: how long this message kept Pd (and so the audio thread) locked
+    const auto heldMs = juce::Time::getMillisecondCounterHiRes() - heldFrom;
+    ++diagMessages;
+    diagHeldMs += heldMs;
+
+    if (heldMs > diagLongestMs)
+    {
+        diagLongestMs = heldMs;
+        diagLongestAddress = message.getAddressPattern().toString();
+    }
+
+    // every record/reset button message, whatever it cost, with its value: a stray
+    // record stop was seen at 15:46:27 that the player did not press
+    const auto address = message.getAddressPattern().toString();
+    if (address.contains ("record") || address.contains ("reset"))
+    {
+        juce::String args;
+        for (const auto& arg : message)
+            args << " " << (arg.isFloat32() ? juce::String (arg.getFloat32()) : arg.isInt32() ? juce::String (arg.getInt32())
+                                                                                              : arg.isString() ? arg.getString() : juce::String ("?"));
+        Diagnostics::log ("OSC BUTTON  " + address + args + " (held Pd " + juce::String (heldMs, 2) + " ms)", heldFrom);
+    }
+    else if (heldMs > 1.0)
+        Diagnostics::log ("OSC HOLD    " + message.getAddressPattern().toString() + " ("
+                          + juce::String (message.size()) + " args) held Pd for "
+                          + juce::String (heldMs, 2) + " ms", heldFrom);
+}
+
+juce::String OscBridge::takeDiagnosticSummary()
+{
+    auto s = ", " + juce::String (diagMessages) + " GUI messages holding Pd "
+             + juce::String (diagHeldMs, 1) + " ms in total, longest "
+             + juce::String (diagLongestMs, 2) + " ms"
+             + (diagLongestAddress.isNotEmpty() ? " (" + diagLongestAddress + ")" : juce::String());
+    diagMessages = 0; diagHeldMs = 0.0; diagLongestMs = 0.0; diagLongestAddress = {};
+    return s;
 }
 
 } // namespace formuls
