@@ -227,9 +227,9 @@
     if (event.type === 'move') {
       if (s.layer.kind === 'mod') {
         var cc = cellAt(hx, W);
-        if (cc >= 0 && !s.cells[cc]) {                              // traversing rule
-          s.cells[cc] = 1;
-          if (num(value[SLOT.mod + cc]) === s.first) emit(api, value, SLOT.mod + cc, s.first ? 0 : 1, M, true);
+        if (cc >= 0 && !s.cells[cc]) {                              // each cell entered toggles
+          s.cells[cc] = 1;                                          // (o-s-c without altTraversing)
+          emit(api, value, SLOT.mod + cc, num(value[SLOT.mod + cc]) ? 0 : 1, M, true);
         }
         return;
       }

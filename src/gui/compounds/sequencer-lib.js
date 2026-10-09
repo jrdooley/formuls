@@ -8,7 +8,9 @@
 //   - the fader layer takes touches only while the quantise button (quantiseseqN) is
 //     held; otherwise the button layer does
 //   - the panel's `traversing: smart`: a drag affects only widgets of the type it
-//     started on; buttons toggle only if their state equals the first one's; faders in
+//     started on; every button it enters toggles (o-s-c's "only if its state equals
+//     the first one's" applies only with the client option altTraversing, which
+//     formuls does not set); faders in
 //     a traversing container always snap, and a fader entered during a drag takes its
 //     position from the pointer relative to the *first* fader (so it usually clips)
 //   - faders: 10 steps, relative drag, unchanged-value suppression compared *before*
@@ -158,11 +160,10 @@
     var j = cellAt(W, H, hx, hy);
     if (j >= 0 && j !== s.cur && !s.seen[j]) {                 // traversing into a new cell
       s.seen[j] = 1; s.cur = j;
-      if (s.kind === 'button') {
-        if (num(s.value[j]) === s.state) {
-          s.value = setSlot(api, s.value, j, s.state ? 0 : 1);
-          api.send(M.b[j], s.state ? 0 : 1);
-        }
+      if (s.kind === 'button') {                               // each button entered toggles
+        var nb = num(s.value[j]) ? 0 : 1;
+        s.value = setSlot(api, s.value, j, nb);
+        api.send(M.b[j], nb);
       } else {
         s.percent = (x - s.fx - F.gp) / (s.fw - 2 * F.gp);     // relative to the first fader
         faderTo(api, s, s.value, j, s.percent, M);

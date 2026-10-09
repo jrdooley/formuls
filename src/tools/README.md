@@ -169,6 +169,42 @@ one-compound session sends for a fixed set of gestures, sends both versions the 
 Pd-side messages, and compares the state-recall bursts. See
 `docs/gui/session-size.md`, "B, implemented".
 
+## check-gestures.mjs
+
+Checks that the canvas compounds send exactly what o-s-c's own widgets send. Run it
+after changing `src/gui/compounds/*.js`, `compile-compounds.py`, `formuls-module.js`,
+or the vendored o-s-c version:
+
+    formuls-0.3.1.app/Contents/Resources/gui/node src/tools/check-gestures.mjs
+
+It needs node 22+ (the vendored node is fine) and Chrome; there are no npm packages.
+
+It builds a one-compound slider session and a one-panel sequencer session from
+`src/gui/_main.json`, each two ways: native widgets, and compiled to a canvas. Each is
+served with the vendored o-s-c (the canvas with the module), and the script drives
+the same real mouse gestures in headless Chrome over the DevTools protocol. A UDP
+socket stands in for Pd, and the script compares what each variant sent, gesture by
+gesture. Mode switches are sent to the server over UDP, as Pd sends them.
+
+There are 20 gestures:
+- slider: taps, snap-drag, double tap, drag past the end, one drag per mode layer,
+  mod cells, parameter select;
+- sequencer: taps, row and column drags, drags across steps in mixed states, and
+  quantised fader taps and drags.
+
+Exit status 0 means identical. 1 means a difference, printed side by side. 2 means
+the harness failed.
+
+Options:
+- `--osc-dir` defaults to `build/gui`, then the newest app bundle.
+- `--chrome`
+- `--port` takes four ports from 9061; never 9000/9001.
+- `--keep` keeps the generated sessions.
+- `--verbose` prints every message.
+
+Not covered: exact ties between quantise steps. No pixel position lands exactly
+halfway between two steps.
+
 ## check-reset-coverage.py
 
 Checks that every parameter carrying chaos/LFO/mod sub-widgets in

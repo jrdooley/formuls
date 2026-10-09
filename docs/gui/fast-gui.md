@@ -243,10 +243,13 @@ approximated. Each of these was found by a recording comparison failing:
 - **Unchanged values are not sent**, compared at 2 decimals, *before* quantising to
   steps. Exact ties between steps go to the lower step.
 - **Double tap** (within 375 ms and 20 px) resets a fader to its default.
-- **Traversing drags.** A button drag toggles only cells whose state equals the first
-  cell's. With `smart`, it affects only widgets of the type it started on. A fader
-  entered mid-drag takes its position relative to the *first* fader, so it usually
-  clips.
+- **Traversing drags.** A button drag toggles every cell it enters. o-s-c's rule
+  "only cells in the same state as the first" applies only with the client option
+  `altTraversing`, which formuls doesn't set. The first build copied that rule by
+  mistake. `check-gestures.mjs` caught it, since no earlier recording had crossed
+  cells in mixed states. With `smart`, a drag affects only widgets of the type it
+  started on. A fader entered mid-drag takes its position relative to the *first*
+  fader, so it usually clips.
 - **Hit-testing.** The browser picks the touched element at the *rounded* pointer
   position, while a canvas's `offsetX` is floored. Cells are found from the canvas's
   real edge, cached at draw time, and in CSS pixels, because the grid's cells are
@@ -263,7 +266,12 @@ approximated. Each of these was found by a recording comparison failing:
   rectangles and key computed styles were fingerprinted in both sessions and compared.
   No differences beyond the intended moves. All 13 popups on synth 1 matched (3
   widgets differ by 1 px of sub-pixel rounding).
-- **Gestures:** a fixed set of gestures (taps, drags in every mode, mod cells,
+- **Gestures, automated:** `src/tools/check-gestures.mjs` (see "Working with it")
+  replays 20 gestures on the native widgets and on the canvases and requires the
+  same messages, in the same order. It was checked by breaking the libraries on
+  purpose (the double-tap window, the traversing rule for steps and for mod cells):
+  each break was reported.
+- **Gestures, first pass:** a fixed set of gestures (taps, drags in every mode, mod cells,
   traversing drags, double taps, label tap; for the sequencer, step taps, row and
   column drags, quantised fader drags) was recorded from the original widgets with a
   UDP recorder standing in for Pd, and replayed on the canvas. The slider's 25 messages
@@ -297,13 +305,26 @@ The rig is in [`tools/session/`](tools/session/). The reference recordings are
 - **A new slider** made by cloning the existing template is compiled automatically,
   provided its wiring is static. A compound whose shape the compiler does not
   recognise fails the build; one whose wiring is dynamic is left as authored.
-- **Changing the look or touch of a compound** means editing `slider-lib.js` or
-  `sequencer-lib.js`. Re-run the gesture recordings and look at the result in a real
-  synth tab, not only in the one-compound test session: the colour bug only appeared
-  under the real panels' colours.
+- **Check gestures after any change** to a compound library, the compiler, the
+  module, or the Open Stage Control version:
+
+  ```
+  formuls-0.3.1.app/Contents/Resources/gui/node src/tools/check-gestures.mjs
+  ```
+
+  This needs Chrome, and takes about 3 minutes. It builds a one-compound session two
+  ways from `src/gui/_main.json`: native widgets and canvas. It serves each with the
+  vendored o-s-c, drives real mouse events in headless Chrome, and compares what
+  each sends to Pd, gesture by gesture. Exit status 0 means identical, 1 a
+  difference (listed message by message), 2 a harness failure. A gesture that sends
+  nothing on the native side counts as a failure, so a miss can't pass silently.
+- **Then look at the result in a real synth tab**, not only in the test session:
+  the colour bug only appeared under the real panels' colours.
 - **Upgrading Open Stage Control** fails the flattener until the defaults table is
   regenerated (`tools/session/extract-defaults.js`, run on the clone-based session),
   and `patch-osc-perf.py` fails if its anchor text has moved. Both are intentional.
+  Then run `check-gestures.mjs`: the native side is the new version, so it shows
+  whether the canvases still match it.
 - **Running from `src/gui`** gives the original session, without the module. That is
   the easiest way to compare old and new side by side.
 
