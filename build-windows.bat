@@ -124,7 +124,7 @@ if errorlevel 1 (
 )
 7z x open-stage-control_1.31.0_node.zip >nul
 if errorlevel 1 (
-    echo Failed to extract Open Stage Control (is 7z on PATH?)
+    echo Failed to extract Open Stage Control ^(is 7z on PATH?^)
     exit /b 1
 )
 move open-stage-control_1.31.0_node "%ROOT%\build\gui\open-stage-control" >nul
