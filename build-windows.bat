@@ -5,7 +5,7 @@ REM
 REM Requirements:
 REM   - Visual Studio 2022 with C++ desktop workload (cl, msbuild, cmake)
 REM   - JUCE at %USERPROFILE%\JUCE (or set PROJUCER to the Projucer.exe path)
-REM   - vcpkg (VCPKG_ROOT, default C:\vcpkg), for the pthreads libpd needs
+REM   - a standalone vcpkg (C:\vcpkg, or set FORMULS_VCPKG), for the pthreads libpd needs
 REM   - faust on PATH (faust2puredata is not needed)
 REM   - sh on PATH (Git for Windows), for src\tools\brand-osc.sh
 REM   - Python 3  (python or python3 on PATH)
@@ -51,15 +51,20 @@ xcopy /s /e /i src\pd build\pd >nul
 
 REM --- Build libpd ---
 REM Built first: the Pd externals below link against it. With MSVC, libpd needs
-REM a pthreads library; vcpkg provides one (VCPKG_ROOT is set on GitHub's
-REM Windows machines; elsewhere, install vcpkg and set it).
-if not defined VCPKG_ROOT set "VCPKG_ROOT=C:\vcpkg"
-"%VCPKG_ROOT%\vcpkg" install pthreads:x64-windows
+REM a pthreads library; vcpkg provides one (it is installed on GitHub's
+REM Windows machines; elsewhere, install vcpkg and set it). It must be a
+REM standalone vcpkg: the copy inside Visual Studio, which a Developer Command
+REM Prompt puts in VCPKG_ROOT, only installs for projects with a vcpkg.json.
+REM GitHub's machines name the standalone one in VCPKG_INSTALLATION_ROOT.
+set "VCPKG=C:\vcpkg"
+if defined VCPKG_INSTALLATION_ROOT set "VCPKG=%VCPKG_INSTALLATION_ROOT%"
+if defined FORMULS_VCPKG set "VCPKG=%FORMULS_VCPKG%"
+"%VCPKG%\vcpkg" install pthreads:x64-windows
 if errorlevel 1 (
-    echo vcpkg could not install pthreads
+    echo vcpkg could not install pthreads from %VCPKG%
     exit /b 1
 )
-set "PTHREADS=%VCPKG_ROOT%\installed\x64-windows"
+set "PTHREADS=%VCPKG%\installed\x64-windows"
 cd "%ROOT%\src\libs\libpd"
 mkdir libs 2>nul
 cmake -B build-win -A x64 -DPD_UTILS=ON -DPD_EXTRA=ON -DPTHREADS_LIB="%PTHREADS%\lib\pthreadVC3.lib" -DPTHREADS_INCLUDE_DIR="%PTHREADS%\include"
