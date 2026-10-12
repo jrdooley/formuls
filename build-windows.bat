@@ -3,10 +3,11 @@ setlocal enabledelayedexpansion
 REM Windows build script for the formuls JUCE app.
 REM
 REM Requirements:
-REM   - Visual Studio 2022 with C++ desktop workload
+REM   - Visual Studio 2022 with C++ desktop workload (cl, msbuild, cmake)
 REM   - JUCE at %USERPROFILE%\JUCE (or set PROJUCER to the Projucer.exe path)
-REM   - MSYS2 with mingw-w64 toolchain (for building libpd)
-REM   - faust (with faust2puredata)
+REM   - vcpkg (VCPKG_ROOT, default C:\vcpkg), for the pthreads libpd needs
+REM   - faust on PATH (faust2puredata is not needed)
+REM   - sh on PATH (Git for Windows), for src\tools\brand-osc.sh
 REM   - Python 3  (python or python3 on PATH)
 REM   - curl (ships with Windows 10+)
 REM   - tar  (ships with Windows 10+)
@@ -48,23 +49,66 @@ mkdir build\pd\externals
 copy src\gui\_formuls-default.state build\gui\
 xcopy /s /e /i src\pd build\pd >nul
 
-REM --- Faust Pd externals ---
-cd "%ROOT%\src\faust"
-call faust2puredata -vec -lv 0 -vs 4 f_repeater.dsp f_reverb.dsp formuls.dsp
+REM --- Build libpd ---
+REM Built first: the Pd externals below link against it. With MSVC, libpd needs
+REM a pthreads library; vcpkg provides one (VCPKG_ROOT is set on GitHub's
+REM Windows machines; elsewhere, install vcpkg and set it).
+if not defined VCPKG_ROOT set "VCPKG_ROOT=C:\vcpkg"
+"%VCPKG_ROOT%\vcpkg" install pthreads:x64-windows
 if errorlevel 1 (
-    echo faust2puredata failed
+    echo vcpkg could not install pthreads
     exit /b 1
 )
-for %%f in (*.dll) do move "%%f" "..\..\build\pd\externals\" >nul
+set "PTHREADS=%VCPKG_ROOT%\installed\x64-windows"
+cd "%ROOT%\src\libs\libpd"
+mkdir libs 2>nul
+cmake -B build-win -A x64 -DPD_UTILS=ON -DPD_EXTRA=ON -DPTHREADS_LIB="%PTHREADS%\lib\pthreadVC3.lib" -DPTHREADS_INCLUDE_DIR="%PTHREADS%\include"
+if errorlevel 1 (
+    echo libpd cmake configure failed
+    exit /b 1
+)
+cmake --build build-win --config Release
+if errorlevel 1 (
+    echo libpd build failed
+    exit /b 1
+)
+REM Copy the DLL and import lib to libs/ where the JUCE project expects them
+for /r build-win %%f in (libpd.dll libpd.lib) do if exist "%%f" copy /y "%%f" libs\ >nul
+if not exist libs\libpd.dll (
+    echo Could not find libpd.dll after build
+    exit /b 1
+)
+copy /y "%PTHREADS%\bin\pthreadVC3.dll" libs\ >nul
+set "PDSRC=%ROOT%\src\libs\libpd\pure-data\src"
+set "PDLIB=%ROOT%\src\libs\libpd\libs\libpd.lib"
+
+REM --- Faust Pd externals ---
+REM faust2puredata is a Unix shell script, so do what it does: Faust writes
+REM C++ from the puredata.cpp architecture, and cl builds each into a DLL
+REM linked against libpd (the app's Pd, not pd.dll). Pd finds an external's
+REM setup function by name, so it is exported explicitly.
+cd "%ROOT%\src\faust"
+for %%d in (f_repeater f_reverb formuls) do (
+    faust -i -a puredata.cpp -vec -lv 0 -vs 4 %%d.dsp -o "%ROOT%\build\%%d.cpp"
+    if errorlevel 1 (
+        echo faust failed on %%d.dsp
+        exit /b 1
+    )
+    cl /nologo /O2 /EHsc /LD /DNEWIO=0 /Dmydsp=%%d /I"%PDSRC%" "%ROOT%\build\%%d.cpp" /Fo"%ROOT%\build\\" /link "%PDLIB%" /EXPORT:%%d_tilde_setup /OUT:"%ROOT%\build\pd\externals\%%d~.dll"
+    if errorlevel 1 (
+        echo compiling %%d~ failed
+        exit /b 1
+    )
+)
 
 REM --- Ableton Link (abl_link~) Pd external ---
+REM Its makefile (pd-lib-builder) expects MinGW; build it with cl like the rest.
 cd "%ROOT%\src\libs\abl_link\external"
-make pdincludepath="%ROOT%/src/libs/libpd/pure-data/src"
+cl /nologo /O2 /EHsc /LD /std:c++14 /DLINK_PLATFORM_WINDOWS=1 /D_WIN32_WINNT=0x0601 /I"link\include" /I"link\modules\asio-standalone\asio\include" /I"%PDSRC%" abl_link~.cpp abl_link_instance.cpp /Fo"%ROOT%\build\\" /link "%PDLIB%" ws2_32.lib iphlpapi.lib winmm.lib /EXPORT:abl_link_tilde_setup /OUT:"%ROOT%\build\pd\externals\abl_link~.dll"
 if errorlevel 1 (
     echo abl_link~ build failed
     exit /b 1
 )
-for %%f in (*.dll) do move "%%f" "%ROOT%\build\pd\externals\" >nul
 
 REM --- Download Open Stage Control ---
 cd "%ROOT%\build"
@@ -124,32 +168,6 @@ copy node-v22.17.0-win-x64\node.exe "%ROOT%\build\gui\node.exe"
 rmdir /s /q node-v22.17.0-win-x64
 del node-v22.17.0-win-x64.zip
 
-REM --- Build libpd ---
-cd "%ROOT%\src\libs\libpd"
-mkdir libs 2>nul
-cmake -B build-win -DCMAKE_BUILD_TYPE=Release -DPD_UTILS=ON -DPD_EXTRA=ON
-if errorlevel 1 (
-    echo libpd cmake configure failed
-    exit /b 1
-)
-cmake --build build-win --config Release
-if errorlevel 1 (
-    echo libpd build failed
-    exit /b 1
-)
-REM Copy the DLL and import lib to libs/ where the JUCE project expects them
-copy build-win\Release\libpd.dll libs\ >nul 2>nul
-copy build-win\Release\libpd.lib libs\ >nul 2>nul
-if not exist libs\libpd.dll (
-    REM Try alternative output paths
-    for /r build-win %%f in (libpd.dll) do copy "%%f" libs\ >nul 2>nul
-    for /r build-win %%f in (libpd.lib) do copy "%%f" libs\ >nul 2>nul
-)
-if not exist libs\libpd.dll (
-    echo Could not find libpd.dll after build
-    exit /b 1
-)
-
 REM --- Generate VS project and build the JUCE app ---
 cd "%ROOT%"
 
@@ -188,6 +206,7 @@ if exist "%OUT%" rmdir /s /q "%OUT%"
 mkdir "%OUT%"
 copy src\app\Builds\VisualStudio2022\x64\Release\formuls.exe "%OUT%\"
 copy src\libs\libpd\libs\libpd.dll "%OUT%\"
+copy src\libs\libpd\libs\pthreadVC3.dll "%OUT%\"
 xcopy /s /e /i build\pd "%OUT%\pd" >nul
 xcopy /s /e /i build\gui "%OUT%\gui" >nul
 
