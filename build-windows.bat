@@ -45,7 +45,6 @@ REM --- Staging directories ---
 if exist build rmdir /s /q build
 mkdir build\gui
 mkdir build\pd\externals
-copy src\gui\_main.json build\gui\
 copy src\gui\_formuls-default.state build\gui\
 xcopy /s /e /i src\pd build\pd >nul
 
@@ -96,6 +95,22 @@ if errorlevel 1 (
     echo patch-osc-perf.py failed
     exit /b 1
 )
+
+REM --- Flatten the session and compile compounds (as build-macOS.sh) ---
+REM src\gui\_main.json stays the clone-based file you edit; the build ships it
+REM flattened, with slider compounds and sequencer panels compiled to canvases.
+REM See docs/gui/session-size.md.
+%PYTHON% src\tools\flatten-session.py "%ROOT%\src\gui\_main.json" "%ROOT%\build\gui\_main.json" --defaults "%ROOT%\src\tools\osc-defaults-1.31.0.json" --osc-package "%ROOT%\build\gui\open-stage-control" --template-tab formuls0 --template-tab Widgets
+if errorlevel 1 (
+    echo flatten-session.py failed
+    exit /b 1
+)
+%PYTHON% src\tools\compile-compounds.py "%ROOT%\build\gui\_main.json" "%ROOT%\src\gui\_formuls-default.state" "%ROOT%\build\gui\_main.json" "%ROOT%\build\gui\_formuls-default.state" "%ROOT%\build\gui\compounds.json" --lib "%ROOT%\src\gui\compounds\slider-lib.js" --seq-lib "%ROOT%\src\gui\compounds\sequencer-lib.js"
+if errorlevel 1 (
+    echo compile-compounds.py failed
+    exit /b 1
+)
+copy src\gui\formuls-module.js build\gui\ >nul
 
 REM --- Download Node.js for Windows x64 ---
 cd "%ROOT%\build"
