@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The app. libpd loads the Pd externals (pd/externals/*.pd_darwin) as
+     plug-ins at run time. With library validation on, macOS only allows
+     plug-ins signed by the same team, which rules out an ad-hoc test build
+     and any external added later; audio hosts commonly turn it off. -->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

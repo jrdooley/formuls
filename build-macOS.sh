@@ -146,7 +146,15 @@ cp -r build/pd "formuls-$VERSION.app/Contents/Resources/pd"
 cp -r build/gui "formuls-$VERSION.app/Contents/Resources/gui"
 mkdir -p "formuls-$VERSION.app/Contents/Frameworks"
 cp src/libs/libpd/libs/libpd.dylib "formuls-$VERSION.app/Contents/Frameworks/"
-codesign --force --deep -s - "formuls-$VERSION.app"
+
+# With SIGN_IDENTITY set (and optionally NOTARY_PROFILE), sign for
+# distribution and write the release zip; see src/tools/sign-macos.sh and
+# docs/release.md. Otherwise an ad-hoc signature, which runs on this Mac only.
+if [[ -n "$SIGN_IDENTITY" ]]; then
+    "$ROOT/src/tools/sign-macos.sh" "formuls-$VERSION.app"
+else
+    codesign --force --deep -s - "formuls-$VERSION.app"
+fi
 
 # clean up build files
 cd "$ROOT"

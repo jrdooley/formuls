@@ -76,3 +76,9 @@ desktop.ini
 .idea/
 xcuserdata/
 *.xcuserdatad/
+
+# release downloads (docs/release.md)
+formuls-*.zip
+formuls-*.tar.gz
+formuls-*-linux-*/
+formuls-*-windows-*/

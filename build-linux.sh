@@ -61,9 +61,24 @@ cp -r src/pd build/pd
 mkdir -p build/pd/externals
 
 # build faust pd externals
+#
+# Not with faust2puredata: on Linux it always compiles with -march=native, and
+# its own setting overrides CXXFLAGS. Built on a CPU with AVX-512 (GitHub's
+# machines), the externals then crash with "Illegal instruction" on any CPU
+# without it. So do what it does, with portable flags: faust writes C++ from
+# the puredata.cpp architecture, and the compiler targets x86-64-v2 (SSE4.2,
+# every x86-64 CPU since about 2009). On arm64, the default target.
+case "$ARCH" in
+    x64)   MARCH="-march=x86-64-v2 -mtune=generic" ;;
+    *)     MARCH="" ;;
+esac
 cd "$ROOT/src/faust"
-faust2puredata -vec -lv 0 -vs 4 -clang f_repeater.dsp f_reverb.dsp formuls.dsp
-mv *.pd_linux ../../build/pd/externals
+for dsp in f_repeater f_reverb formuls; do
+    faust -i -a puredata.cpp -vec -lv 0 -vs 4 "$dsp.dsp" -o "$ROOT/build/$dsp.cpp"
+    ${CXX:-c++} -std=c++14 -Ofast $MARCH -fPIC -shared -DNEWIO=0 -Dmydsp="$dsp" \
+        -I"$ROOT/src/libs/libpd/pure-data/src" \
+        -o "$ROOT/build/pd/externals/$dsp~.pd_linux" "$ROOT/build/$dsp.cpp"
+done
 
 # build ableton link (abl_link~) pd external
 # pd-lib-builder only looks for Pd's headers (m_pd.h) in system locations

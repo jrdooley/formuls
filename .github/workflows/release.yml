@@ -1,0 +1,164 @@
+# Builds formuls for Linux and Windows on GitHub's machines.
+#
+# - Push a tag like v0.3.2 (matching VERSION in the build scripts): both are
+#   built and attached to a draft GitHub release, to check and publish.
+# - Or run it by hand from the Actions tab ("Run workflow"): both are built and
+#   kept as downloadable artifacts, with no release.
+# - A pull request that changes a build script or this file builds both too,
+#   so a broken build shows up before it reaches main.
+#
+# The macOS build is signed and notarised on your own Mac and added to the
+# release by hand; see docs/release.md.
+
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'build-linux.sh'
+      - 'build-windows.bat'
+      - '.github/workflows/release.yml'
+
+permissions:
+  contents: write   # to create the draft release
+
+env:
+  JUCE_VERSION: 9.0.1
+  FAUST_VERSION: 2.85.9
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        name: Read VERSION and check it matches the tag
+        run: |
+          v=$(sed -n 's/^VERSION="\(.*\)"/\1/p' build-linux.sh)
+          w=$(sed -n 's/^set VERSION=\(.*\)\r\?$/\1/p' build-windows.bat | tr -d '\r')
+          m=$(sed -n 's/^VERSION="\(.*\)"/\1/p' build-macOS.sh)
+          echo "linux=$v windows=$w macOS=$m"
+          [ "$v" = "$w" ] && [ "$v" = "$m" ] || { echo "VERSION differs between the build scripts"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$v" ]; then
+            echo "tag $GITHUB_REF_NAME does not match VERSION $v"; exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+  linux:
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          # JUCE's Linux dependencies (JUCE/docs/Linux Dependencies.md), plus
+          # Pd's headers and clang for faust2puredata, cmake for Faust.
+          sudo apt-get install -y --no-install-recommends \
+            build-essential clang cmake pkg-config wget unzip python3 xvfb \
+            libasound2-dev libjack-jackd2-dev libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev libxinerama-dev \
+            libxrandr-dev libxrender-dev libxi-dev libgl1-mesa-dev puredata-dev
+
+      - name: Cache Faust
+        id: faust-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ env.FAUST_VERSION }}-ubuntu-24.04
+
+      - name: Build Faust ${{ env.FAUST_VERSION }}
+        if: steps.faust-cache.outputs.cache-hit != 'true'
+        run: |
+          wget -q "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/faust-$FAUST_VERSION.tar.gz"
+          tar -xzf "faust-$FAUST_VERSION.tar.gz"
+          cd "faust-$FAUST_VERSION"
+          make -j"$(nproc)"
+          make install PREFIX="$HOME/faust"
+
+      - name: Download JUCE ${{ env.JUCE_VERSION }}
+        run: |
+          wget -q "https://github.com/juce-framework/JUCE/releases/download/$JUCE_VERSION/juce-$JUCE_VERSION-linux.zip"
+          unzip -q "juce-$JUCE_VERSION-linux.zip" -d "$HOME"
+          ls "$HOME/JUCE"
+
+      - name: Build
+        run: |
+          export PATH="$HOME/faust/bin:$PATH"
+          faust --version | head -1
+          # Projucer is a GUI app even when resaving from the command line.
+          xvfb-run -a ./build-linux.sh
+
+      - name: Package
+        run: tar -czf "formuls-${{ needs.version.outputs.version }}-linux-x64.tar.gz" "formuls-${{ needs.version.outputs.version }}-linux-x64"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: formuls-*-linux-x64.tar.gz
+
+  windows:
+    needs: version
+    runs-on: windows-2022
+    # Not yet known to build; it should not stop the Linux release meanwhile.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download JUCE ${{ env.JUCE_VERSION }}
+        shell: bash
+        run: |
+          curl -sSL -o juce.zip "https://github.com/juce-framework/JUCE/releases/download/$JUCE_VERSION/juce-$JUCE_VERSION-windows.zip"
+          7z x -y -o"$USERPROFILE" juce.zip > /dev/null
+          ls "$USERPROFILE/JUCE"
+
+      - name: Install Faust ${{ env.FAUST_VERSION }}
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://github.com/grame-cncm/faust/releases/download/$env:FAUST_VERSION/Faust-$env:FAUST_VERSION-win64.exe" -OutFile faust-setup.exe
+          Start-Process faust-setup.exe -ArgumentList '/S' -Wait
+          "C:\Program Files\Faust\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & "C:\Program Files\Faust\bin\faust.exe" --version
+
+      - uses: ilammy/msvc-dev-cmd@v1   # a Developer Command Prompt environment
+
+      - name: Build
+        shell: cmd
+        run: build-windows.bat
+
+      - name: Package
+        shell: pwsh
+        run: Compress-Archive -Path "formuls-${{ needs.version.outputs.version }}-windows-x64" -DestinationPath "formuls-${{ needs.version.outputs.version }}-windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: formuls-*-windows-x64.zip
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [version, linux, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft \
+            --title "formuls ${{ needs.version.outputs.version }}" \
+            --notes "Draft: add the signed macOS zip (docs/release.md), write the notes, then publish."
