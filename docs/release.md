@@ -340,6 +340,15 @@ Windows differs from the other two in ways worth knowing before changing
   Developer Command Prompt puts in `VCPKG_ROOT`, only installs for projects with a
   `vcpkg.json` and fails with *does not have a classic mode instance*.
   `pthreadVC3.dll` ships next to `libpd.dll`.
+- **Python runs in UTF-8 mode** (`PYTHONUTF8=1`). Otherwise Python on Windows
+  reads and writes files in the Windows code page (cp1252), which crashes on
+  characters in Open Stage Control's sources, or worse, silently misreads UTF-8.
+- **The `.jucer` module paths are rewritten by `src/tools/jucer-module-path.py`**,
+  not an inline `python -c`: cmd's quoting makes one-liners fragile. The script
+  stops if Projucer does not write the Visual Studio project.
+- **Brackets inside `if … ( … )` blocks must be escaped** (`^(` `^)`), even in
+  `echo` text: an unescaped `)` ends the block early, and the next line runs
+  unconditionally.
 - **Batch files keep Windows line endings** (`.gitattributes`): `cmd` can misread
   `goto` labels in files with Unix ones.
 - **Unsigned.** Windows SmartScreen warns about unsigned downloads until they are

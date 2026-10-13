@@ -197,10 +197,19 @@ exit /b 1
 set "JUCE_MODULES=%JUCE_DIR%\modules"
 
 copy src\app\formuls.jucer build\formuls.jucer.orig >nul
-%PYTHON% -c "import re,sys; t=open(sys.argv[1],'r').read(); t=re.sub(r'path=\"[^\"]*JUCE/modules\"','path=\"'+sys.argv[2].replace('\\','/')+'\"',t); open(sys.argv[1],'w').write(t)" src\app\formuls.jucer "%JUCE_MODULES%"
+%PYTHON% src\tools\jucer-module-path.py src\app\formuls.jucer "%JUCE_MODULES%"
+if errorlevel 1 (
+    copy /y build\formuls.jucer.orig src\app\formuls.jucer >nul
+    exit /b 1
+)
 "%PROJUCER%" --resave src\app\formuls.jucer
+set RESAVE_ERROR=%ERRORLEVEL%
 copy /y build\formuls.jucer.orig src\app\formuls.jucer >nul
 del build\formuls.jucer.orig
+if not exist src\app\Builds\VisualStudio2022\formuls.sln (
+    echo Projucer did not write the Visual Studio project ^(exit code %RESAVE_ERROR%^)
+    exit /b 1
+)
 
 REM Build with MSBuild
 msbuild src\app\Builds\VisualStudio2022\formuls.sln /p:Configuration=Release /p:Platform=x64 /m
