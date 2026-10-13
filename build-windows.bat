@@ -222,11 +222,19 @@ REM --- Assemble distributable folder ---
 set "OUT=formuls-%VERSION%-windows-x64"
 if exist "%OUT%" rmdir /s /q "%OUT%"
 mkdir "%OUT%"
-copy src\app\Builds\VisualStudio2022\x64\Release\formuls.exe "%OUT%\"
+REM JUCE puts the app target in an App subfolder.
+copy src\app\Builds\VisualStudio2022\x64\Release\App\formuls.exe "%OUT%\"
 copy src\libs\libpd\libs\libpd.dll "%OUT%\"
 copy src\libs\libpd\libs\pthreadVC3.dll "%OUT%\"
 xcopy /s /e /i build\pd "%OUT%\pd" >nul
 xcopy /s /e /i build\gui "%OUT%\gui" >nul
+REM A failed copy only prints a message, so check the package is complete.
+for %%f in (formuls.exe libpd.dll pthreadVC3.dll gui\node.exe gui\_main.json gui\compounds.json gui\formuls-module.js pd\_main.pd pd\externals\formuls~.dll pd\externals\f_reverb~.dll pd\externals\f_repeater~.dll pd\externals\abl_link~.dll) do (
+    if not exist "%OUT%\%%f" (
+        echo Missing from the package: %%f
+        exit /b 1
+    )
+)
 
 REM --- Clean up ---
 rmdir /s /q build
