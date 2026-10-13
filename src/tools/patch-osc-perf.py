@@ -218,7 +218,7 @@ def edit(path, pairs):
                  "       Re-derive the anchors in src/tools/patch-osc-perf.py from",
                  "       Client.send / IpcServer.send / the bundle callback.")
         src = src.replace(old, new)
-    open(path, "w").write(src)
+    open(path, "w", encoding="utf8").write(src)
 
 
 def main():

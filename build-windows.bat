@@ -17,6 +17,10 @@ REM Run from the repository root inside a Developer Command Prompt for VS 2022:
 REM   build-windows.bat
 
 set VERSION=0.3.1
+REM Python's file I/O defaults to the Windows code page (cp1252), which cannot
+REM hold characters in Open Stage Control's sources and would misread UTF-8.
+REM UTF-8 mode makes the build tools behave as on macOS and Linux.
+set PYTHONUTF8=1
 set ROOT=%CD%
 
 REM --- Locate Projucer ---
