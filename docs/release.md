@@ -12,7 +12,7 @@ nothing personal is written down either.
 |---|---|---|---|
 | macOS (Apple Silicon) | on your Mac, `build-macOS.sh` | Developer ID + notarised, on your Mac | `formuls-<version>-macOS-arm64.zip` |
 | Linux x64 | GitHub Actions | not needed | `formuls-<version>-linux-x64.tar.gz` |
-| Windows x64 | GitHub Actions | no (see [Windows](#windows)) | `formuls-<version>-windows-x64.zip` |
+| Windows x64 | GitHub Actions | no (see [Windows](#7-windows)) | `formuls-<version>-windows-x64.zip` |
 
 The Mac build is signed on your own Mac so the certificate's private key never
 leaves it. GitHub only ever builds Linux and Windows.
@@ -321,7 +321,28 @@ gh run download <run id> -n windows-x64
 
 ---
 
-## 6. Windows
+## 6. Linux
+
+- **The Faust externals are built without `faust2puredata`.** On Linux it always
+  compiles with `-march=native`, overriding any `CXXFLAGS`. On GitHub's machines,
+  which have AVX-512, that put 256 AVX-512 and 2,137 AVX instructions into
+  `formuls~` alone, and the app crashed with **`Illegal instruction`** (exit code
+  132) on any CPU without them, as soon as Pd loaded the first Faust external.
+  `build-linux.sh` now runs `faust -a puredata.cpp` and the compiler itself with
+  `-march=x86-64-v2 -mtune=generic` (SSE4.2: every x86-64 CPU since about 2009).
+- **Checking a build for this:** count AVX-512 and AVX instructions in each
+  binary; a portable build has none:
+
+  ```bash
+  for b in formuls libs/libpd.so pd/externals/*.pd_linux; do echo "$b $(objdump -d $b | grep -c %zmm) $(objdump -d $b | grep -c %ymm)"; done
+  ```
+
+- **Tested headless** in an x86-64 Ubuntu 24.04 VM (OrbStack, which runs x86-64
+  under Rosetta, without AVX): `xvfb-run -a ./formuls --start` starts the engine,
+  loads all four externals, and serves the GUI on port 9001. No system libraries
+  were missing (`ldd`), though that VM already had JUCE's dependencies installed.
+
+## 7. Windows
 
 Windows differs from the other two in ways worth knowing before changing
 `build-windows.bat`:
@@ -357,15 +378,16 @@ Windows differs from the other two in ways worth knowing before changing
 
 ---
 
-## 7. Limits and what is untested
+## 8. Limits and what is untested
 
 - **The Mac build is Apple Silicon only.** `node` and libpd are built for the
   Mac's own architecture, and the prebuilt `abl_link~` is arm64 only (see
   `src/prebuilt/README.md`). An Intel or universal build needs all three for
   x86_64 as well.
-- **Linux and Windows are checked for building, not for playing.** The Linux build
-  has been checked to contain the app, `libpd.so`, all four externals, `node` and
-  the compiled GUI. Someone needs to play each new build once.
+- **Linux has been run headless, Windows only inspected.** The Linux build starts,
+  loads every external and serves the GUI (section 6). The Windows package has been
+  checked to contain every file, with the externals importing `libpd.dll`. Neither
+  has been played with sound; someone needs to play each new build once.
 - **Mac signing was checked end to end:** an ad-hoc signature with the same runtime
   and entitlements started the engine, loaded every external and served the GUI,
   and the Developer ID build was notarised (*Accepted*), stapled and passed
