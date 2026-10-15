@@ -15,6 +15,7 @@ development and is not covered here.
 | **`juce-port`** | The live line of development. Everything in this document. Will become `main`. |
 | `main` / `development` | The Python-era instrument plus four bug fixes. Superseded — `juce-port` carries content-equivalent copies of all four. |
 | `alacarte-prototype` | A discarded experiment. **Nothing was ever merged from it.** Three fixes were *authored* there and re-made independently on the other branches (different SHAs, same change): the chorus fix, the Link tempo readout, and the prebuilt `abl_link~`. |
+| `fxorder-crossbar` | Reorderable/bypassable effects chain, commits on `main` at `43fd1d3`. Not merged. See [`fxorder/README.md`](fxorder/README.md). |
 
 Because those four `main` commits (`1be83bc`, `2c95a92`, `7de1b8a`, `40e5a28`) are
 duplicates of work `juce-port` already has rather than ancestors of it, **`git log
@@ -32,10 +33,15 @@ branches is the `multiwave4` cleanup from the efficiency work, not the chorus fi
 | [`headroom/README.md`](headroom/README.md) | The master gain, why the output clips in polyphonic mode, what `clip~` and the alternatives cost perceptually, and why the existing polyphony count cannot drive an adaptive gain. **Analysis only — nothing implemented.** |
 | [`gui/README.md`](gui/README.md) | Why the control GUI disconnects, what each proposed fix is worth, what shipped, and the JUCE/WebView alternative costed. |
 | [`gui/tools/README.md`](gui/tools/README.md) | The OSC/WebSocket load rig, step by step. |
+| [`audio-dropouts/README.md`](audio-dropouts/README.md) | Clicks and dropouts: the record-stop click (unsmoothed synth parameters, fixed with `si.smoo`), the reset click (a GUI message holding Pd's lock longer than an audio callback, fixed by sending GUI OSC from the app and staggering the reset; the per-synth reset parses the GUI bus once and is spread over 10 ms), and random clicks from a virtual audio cable. How each was measured. |
+| [`gui/fast-gui.md`](gui/fast-gui.md) | **Start here for the GUI build.** What the build does to the session before it ships (flattening, the tab-show patch, slider and sequencer compounds as single canvases), how Pd's addresses are kept through a server module, how it was verified, and how to work with it. Branch `gui-compounds`. |
+| [`gui/session-size.md`](gui/session-size.md) | Why the session takes seconds to load and tabs lag: quadratic build from global listeners, canvas count on tab show. Build-time flattening (3× faster load, verified identical; **shipped**, `src/tools/flatten-session.py`), bespoke canvas compounds, multixy `pointsAttr` and a per-point interaction patch — all measured. |
+| [`fxorder/README.md`](fxorder/README.md) | The reorderable, bypassable effects chain (`fxorder-crossbar` branch): the Faust crossbar, live-change duck and debounce, the modal chain strip, reset behaviour, the Feedback slider, measurements and known limits. |
+| [`release.md`](release.md) | **Making a release:** one-off Developer ID and notarisation setup, signing the Mac app on your Mac (`src/tools/sign-macos.sh`), and the GitHub Actions workflow that builds Linux and Windows and drafts the release on a version tag. |
 | [`android/README.md`](android/README.md) | The experimental Android build (`android-experimental` branch): how to build and use it, and how it differs from the desktop app. |
 | [`../src/app/README.md`](../src/app/README.md) | The JUCE application: source layout, recording, GUI addresses, styling, building, test harness. |
 | [`../src/prebuilt/README.md`](../src/prebuilt/README.md) | Why `abl_link~` ships prebuilt and must not be built locally on macOS. |
-| [`../src/tools/README.md`](../src/tools/README.md) | `brand-osc.sh`, `patch-osc-perf.py`, `bpm-probe`. |
+| [`../src/tools/README.md`](../src/tools/README.md) | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py`, `compile-compounds.py`, `bpm-probe`. |
 | [`../src/tools/abl-link-repro/README.md`](../src/tools/abl-link-repro/README.md) | Minimal reproduction and root-cause trace of the Ableton Link tempo limit. |
 | [`../INSTALL.md`](../INSTALL.md) / [`../README.md`](../README.md) | Build requirements and the user-facing feature list, both updated for the port. |
 
@@ -304,6 +310,56 @@ finding from the same session still stands: `widener` in `ffx.lib` used a
 genuinely L/R-unequal Hass delay, `(l@(ma.SR/100) - r)`, gated by `max(0, w-1)` —
 inaudible at the default width of 0.5, a left-biased comb above 50%. That effect
 has since been removed.
+
+## 10. The GUI loads 6× faster (branch `gui-compounds`)
+
+See [`gui/fast-gui.md`](gui/fast-gui.md) for how it works, and
+[`gui/session-size.md`](gui/session-size.md) for the measurements behind it.
+
+Load and tab-switch lag came from the o-s-c client, not from Pd. The clone-based
+layout makes nearly every widget a global listener, which makes load quadratic in
+widget count. Every incoming message is also broadcast to every listener, and showing
+a tab force-resizes all of its 400 canvases. The build now transforms the session
+before it ships; `src/gui/_main.json` is still the file you edit:
+
+- **A**: clones are inlined and static `@{parent.variables…}` references resolved.
+  Verified identical prop by prop.
+- **A+**: the tab-show resize is no longer forced.
+- **B, C**: each slider compound (15 widgets) and each 128-step sequencer panel (385
+  widgets) becomes one canvas. A server module translates, so Pd keeps every address.
+  Gestures send byte-identical OSC, and state recall sends the same 7,140 messages.
+
+| | original | all stages |
+|---|---|---|
+| widgets | 13,442 | 5,346 |
+| load | 10.9 s | 1.8 s |
+| per incoming message | 92 µs | ~23.5 µs |
+
+Several tablets stay in step: the module mirrors each gesture to the other tablets,
+which o-s-c could no longer do by address. This was checked with three browser
+tabs, not yet with physical tablets or on a real touch screen.
+
+## 11. Clicks and dropouts
+
+See [`audio-dropouts/README.md`](audio-dropouts/README.md).
+
+- **Record-stop click:** when a take stops, playback restarts from the take's
+  first value. On synth parameters Faust didn't smooth, that jump clicked: the
+  mono-mode oscillator frequency, `fmfreq`, `fmdepth` and `noise`. They now pass
+  through `si.smoo` (`fsynth.lib`). The ADSR path and audio-rate modulation are
+  untouched.
+- **Reset click:** the global reset held Pd's lock for 65–69 ms, and the audio
+  dropped out. Half of that was `[netsend]` making 7,354 system calls. The app now
+  sends the patch's GUI OSC from its own thread (`PdOscOut.h`; plain Pd still uses
+  `[netsend]`). The reset is also staggered per synth, with the release held until
+  every synth has had its press. A reset now takes about 1 ms at once, plus
+  about 3.7 ms per synth, 30 ms apart.
+- **Per-synth reset buttons:** held Pd for 8–17 ms. The quantise listeners in
+  `f.util.oscinparse` parsed every GUI-bound packet 30 times; `_main.pd` now
+  parses the bus once (`to-o-s-c-parsed`). A press is also spread over 10 ms in
+  three steps. Now 2.4–7.7 ms, with no missed deadlines.
+- **Random clicks:** from the virtual audio cable bridging two clock rates, not
+  from formuls.
 
 ---
 

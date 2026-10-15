@@ -2,7 +2,7 @@
 #X obj 40 798 outlet;
 #X msg 111 350 looptrig \$1;
 #X obj 111 307 loadbang;
-#X obj 40 15 r automateRecord;
+#X text 40 15 (record: see f.seq.automater \, lazy record arming);
 #X msg 40 36 record \$1;
 #X obj 40 716 t a;
 #X obj 56 58 r evolution-active;
@@ -48,7 +48,6 @@
 #X text 300 700 Removed a [loadbang] -> [(dollar)2] -> [== 0] chain whose output went nowhere \, and an unconnected [1( message into [tempo]. NOTE: this abstraction is created as "f.seq.automatermessage (dollar)1" with a single argument \, so (dollar)2 expands to 0 and [r (dollar)2-trig] below is really [r 0-trig] - a symbol nothing sends. That leaves the [spigot] on the automater-trig path shut \, so "trig bang" never reaches the automater. Passing a second argument from f.seq.automater would wire it up \, but that switches on dormant behaviour \, so it is left as found.;
 #X connect 1 0 5 0;
 #X connect 2 0 44 0;
-#X connect 3 0 4 0;
 #X connect 4 0 5 0;
 #X connect 5 0 26 0;
 #X connect 6 0 7 0;

@@ -1,19 +1,44 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # Linux build script for the formuls JUCE app.
-# NOTE: untested -- adapted from the macOS build. You need a Linux build of
-# Projucer (see ~/JUCE/extras/Projucer) plus the JUCE Linux dependencies
-# (see JUCE/docs/Linux Dependencies.md), faust, wget, and python3.
+# NOTE: untested -- adapted from the macOS build. You need JUCE at ~/JUCE
+# (its Projucer binary, or one built from extras/Projucer) plus the JUCE
+# Linux dependencies (see JUCE/docs/Linux Dependencies.md), faust, wget,
+# and python3.
 # Run from the repository root:  ./build-linux.sh
 
 set -e
 
-VERSION="0.3.0"
+VERSION="0.3.1"
+
+# Target architecture, named the way Node's downloads name it. Everything
+# else is compiled natively, so it matches too. Used for the Node download
+# and the output folder name. To build x64 on Apple Silicon, run this inside
+# an x64 OrbStack machine (orb create --arch amd64 ...).
+case "$(uname -m)" in
+    x86_64|amd64)  ARCH="x64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+esac
+OUT="formuls-$VERSION-linux-$ARCH"
 ROOT="$(pwd)"
-PROJUCER="${PROJUCER:-$HOME/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer}"
+# The JUCE download ships a ready-made Projucer at ~/JUCE/Projucer; a Projucer
+# built from source lands under extras/. Use the first that exists, unless
+# PROJUCER is set.
+if [[ -z "$PROJUCER" ]]; then
+    for candidate in \
+        "$HOME/JUCE/Projucer" \
+        "$HOME/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer"; do
+        if [[ -x "$candidate" ]]; then
+            PROJUCER="$candidate"
+            break
+        fi
+    done
+fi
 
 if [[ ! -x "$PROJUCER" ]]; then
-    echo "Projucer not found at: $PROJUCER"
-    echo "Build it from ~/JUCE/extras/Projucer, or set PROJUCER to your Projucer binary."
+    echo "Projucer not found at ~/JUCE/Projucer or"
+    echo "~/JUCE/extras/Projucer/Builds/LinuxMakefile/build/Projucer."
+    echo "Install JUCE at ~/JUCE, or set PROJUCER to your Projucer binary."
     exit 1
 fi
 
@@ -23,7 +48,7 @@ fi
 # build/gui behind, and "cp -r src/gui build/gui" would then copy INTO it
 # rather than replacing it.
 #
-# Only the two files the app actually reads from src/gui are copied. Copying
+# Only the two files the app actually reads from src/gui are staged. Copying
 # all of src/gui also picks up open-stage-control/ and node/ left behind by
 # earlier runs -- both gitignored, so invisible in "git status". The fresh
 # download below would then nest inside the stale tree, brand-osc.sh would
@@ -31,18 +56,35 @@ fi
 # old GUI plus tens of MB of dead weight.
 rm -rf build
 mkdir -p build/gui
-cp src/gui/_main.json src/gui/_formuls-default.state build/gui/
+cp src/gui/_formuls-default.state build/gui/   # _main.json is flattened in below
 cp -r src/pd build/pd
 mkdir -p build/pd/externals
 
 # build faust pd externals
+#
+# Not with faust2puredata: on Linux it always compiles with -march=native, and
+# its own setting overrides CXXFLAGS. Built on a CPU with AVX-512 (GitHub's
+# machines), the externals then crash with "Illegal instruction" on any CPU
+# without it. So do what it does, with portable flags: faust writes C++ from
+# the puredata.cpp architecture, and the compiler targets x86-64-v2 (SSE4.2,
+# every x86-64 CPU since about 2009). On arm64, the default target.
+case "$ARCH" in
+    x64)   MARCH="-march=x86-64-v2 -mtune=generic" ;;
+    *)     MARCH="" ;;
+esac
 cd "$ROOT/src/faust"
-faust2puredata -vec -lv 0 -vs 4 -clang f_repeater.dsp f_reverb.dsp formuls.dsp
-mv *.pd_linux ../../build/pd/externals
+for dsp in f_repeater f_reverb formuls; do
+    faust -i -a puredata.cpp -vec -lv 0 -vs 4 "$dsp.dsp" -o "$ROOT/build/$dsp.cpp"
+    ${CXX:-c++} -std=c++14 -Ofast $MARCH -fPIC -shared -DNEWIO=0 -Dmydsp="$dsp" \
+        -I"$ROOT/src/libs/libpd/pure-data/src" \
+        -o "$ROOT/build/pd/externals/$dsp~.pd_linux" "$ROOT/build/$dsp.cpp"
+done
 
 # build ableton link (abl_link~) pd external
+# pd-lib-builder only looks for Pd's headers (m_pd.h) in system locations
+# such as /usr/include/pd, so point it at the Pd source bundled with libpd.
 cd "$ROOT/src/libs/abl_link/external"
-make
+make pdincludepath="$ROOT/src/libs/libpd/pure-data/src"
 mv abl_link~.pd_linux "$ROOT/build/pd/externals"
 
 # Download open stage control and nodejs into build/, not into src/gui/:
@@ -65,12 +107,36 @@ sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION
 # than it saves. Both measured in docs/gui/README.md.
 python3 "$ROOT/src/tools/patch-osc-perf.py" "$ROOT/build/gui/open-stage-control"
 
+# Ship the session flattened: clones inlined, every @{parent.variables...} that
+# cannot change after load resolved, template tabs emptied (kept in place: Pd
+# reads the selected synth from the tab index). src/gui/_main.json stays the
+# clone-based file you edit. Load drops from 10.9 s to 3.6 s on an M5; see
+# docs/gui/session-size.md. Hard failure on anything it does not understand,
+# including an o-s-c version the defaults table was not taken from.
+python3 "$ROOT/src/tools/flatten-session.py" "$ROOT/src/gui/_main.json" "$ROOT/build/gui/_main.json" \
+    --defaults "$ROOT/src/tools/osc-defaults-1.31.0.json" \
+    --osc-package "$ROOT/build/gui/open-stage-control" \
+    --template-tab formuls0 --template-tab Widgets
+
+# Compile each slider compound (15 stacked widgets) and each 128-step sequencer
+# panel (385 widgets) into one canvas, migrate the
+# state file to the packed values, and write the map the server module uses to
+# keep Pd's per-parameter addresses unchanged. Options B and C in
+# docs/gui/session-size.md. Hard failure on anything it does not model.
+python3 "$ROOT/src/tools/compile-compounds.py" \
+    "$ROOT/build/gui/_main.json" "$ROOT/src/gui/_formuls-default.state" \
+    "$ROOT/build/gui/_main.json" "$ROOT/build/gui/_formuls-default.state" "$ROOT/build/gui/compounds.json" \
+    --lib "$ROOT/src/gui/compounds/slider-lib.js" --seq-lib "$ROOT/src/gui/compounds/sequencer-lib.js"
+cp "$ROOT/src/gui/formuls-module.js" "$ROOT/build/gui/"
+
+NODE_PKG="node-v22.17.0-linux-$ARCH"
+
 cd "$ROOT/build"
-wget https://nodejs.org/dist/v22.17.0/node-v22.17.0-linux-x64.tar.xz
-tar -xf node-v22.17.0-linux-x64.tar.xz
-cp node-v22.17.0-linux-x64/bin/node "$ROOT/build/gui/node"
+wget "https://nodejs.org/dist/v22.17.0/$NODE_PKG.tar.xz"
+tar -xf "$NODE_PKG.tar.xz"
+cp "$NODE_PKG/bin/node" "$ROOT/build/gui/node"
 chmod +x "$ROOT/build/gui/node"
-rm -rf node-v22.17.0-linux-x64*
+rm -rf "$NODE_PKG"*
 
 # build libpd (the shared library the JUCE app links against)
 cd "$ROOT/src/libs/libpd"
@@ -128,12 +194,12 @@ make CONFIG=Release
 # assemble the distributable folder; libpd.so sits in libs/ next to the
 # binary, matching the $ORIGIN/libs rpath set in formuls.jucer
 cd "$ROOT"
-rm -rf "formuls-$VERSION-linux"
-mkdir -p "formuls-$VERSION-linux/libs"
-cp src/app/Builds/LinuxMakefile/build/formuls "formuls-$VERSION-linux/"
-cp -r build/pd "formuls-$VERSION-linux/pd"
-cp -r build/gui "formuls-$VERSION-linux/gui"
-cp src/libs/libpd/libs/libpd.so "formuls-$VERSION-linux/libs/"
+rm -rf "$OUT"
+mkdir -p "$OUT/libs"
+cp src/app/Builds/LinuxMakefile/build/formuls "$OUT/"
+cp -r build/pd "$OUT/pd"
+cp -r build/gui "$OUT/gui"
+cp src/libs/libpd/libs/libpd.so "$OUT/libs/"
 
 # clean up build files
 rm -rf build/
@@ -145,5 +211,5 @@ rm -f libs/libpd.so
 cd "$ROOT/src/libs/abl_link/external"
 make clean
 
-echo "Done: $ROOT/formuls-$VERSION-linux"
+echo "Done: $ROOT/$OUT"
 exit 0

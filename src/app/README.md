@@ -28,6 +28,8 @@ It is one app that:
 | `Source/MainComponent.h/.cpp` | The window contents: device/channel combo boxes, Start/Stop and Record buttons, status line. |
 | `Source/AudioRecorder.h/.cpp` | Writes the engine's output to a WAV file on a background thread. |
 | `Source/FormulsEngine.h/.cpp` | libpd embedded behind a `juce::AudioIODeviceCallback`; loads `_main.pd`, renders audio, receives patch messages. |
+| `Source/OscBridge.h/.cpp` | Receives the control GUI's OSC on its own thread and hands each message to the patch, so parsing never runs on the audio thread. |
+| `Source/PdOscOut.h` | The other direction: takes the patch's GUI-bound OSC (`[s formuls-osc-out]`) into a lock-free FIFO and sends it from a background thread, outside Pd's lock. The patch's own `[netsend]` made one system call per message while holding that lock, which stalled the audio callback on bursts. In plain Pd the patch keeps using `[netsend]`. See `docs/audio-dropouts/README.md`. |
 | `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server with `juce::ChildProcess`; also works out the GUI's web addresses. |
 | `Source/FormulsLookAndFeel.h` | **All styling** — window title/size, colours, fonts, layout metrics. |
 | `Source/ResourceLocator.h` | Finds the `pd/` and `gui/` resources both in the packaged app and in development builds. |
@@ -186,6 +188,18 @@ module paths (or edit the `MODULEPATH` entries in the file).
 `./build-linux.sh` is the equivalent (untested) script; it uses the
 `Builds/LinuxMakefile` exporter and ships `libpd.so` in a `libs/` folder next
 to the binary (matching the `$ORIGIN/libs` rpath set in `formuls.jucer`).
+
+### Starting from the command line
+
+`--start` presses Start on launch, using the system default output device (or
+the first one), and prints the GUI addresses and status line to the console.
+It works in normal builds, so it is the way to run formuls with no one at the
+window, e.g. on Linux without a display: `xvfb-run -a ./formuls --start`.
+
+If the engine does not come up -- no audio device at all on a headless box,
+or a device that will not open -- the app prints the reason to stderr and
+exits with status 1 instead of sitting at a window nobody can see, so a
+service manager sees the failure.
 
 ### Test autostart
 

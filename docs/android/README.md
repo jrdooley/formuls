@@ -37,8 +37,8 @@ app's own folder on shared storage (`Android/data/net.formuls.formuls/files/pres
 
 ```bash
 export ANDROID_HOME=~/Library/Android/sdk   # or wherever your SDK lives
-./build-android.sh            # -> formuls-0.3.0-android-debug.apk
-adb install -r formuls-0.3.0-android-debug.apk
+./build-android.sh            # -> formuls-0.3.1-android-debug.apk
+adb install -r formuls-0.3.1-android-debug.apk
 ```
 
 Requirements (in addition to the desktop build's JUCE/Projucer and faust):
@@ -130,6 +130,12 @@ adb logcat -s formuls formuls-gui JUCE     # app, GUI server (node stdout/stderr
 - On the emulator, the GUI server is reachable from the host after
   `adb forward tcp:9001 tcp:9001` → `http://127.0.0.1:9001`.
 
+The GUI session is built exactly as the desktop builds it -- flattened, with
+slider compounds and sequencer panels compiled into single canvases, served
+with `formuls-module.js` as a custom module so Pd's addresses are unchanged
+(see `docs/gui/fast-gui.md`). That matters more on a tablet than on a desktop,
+since it is what makes the session load in seconds.
+
 ## What has been tested
 
 On the Android 15 emulator (arm64-v8a, Pixel Tablet profile), debug and release APKs:
@@ -148,6 +154,13 @@ On the Android 15 emulator (arm64-v8a, Pixel Tablet profile), debug and release 
 - Record → Stop recording writes a 2-channel 48 kHz WAV, which is copied into
   `Music/formuls`.
 - The macOS build still compiles with these changes.
+
+Re-checked at 0.3.1 (after merging `main`, release APK): resources unpack,
+the engine and all externals start, the flattened/compound GUI loads and its
+tabs switch, and the GUI server runs with the custom module. The GUI logs a
+handful of `gradient`/`onCreate` console errors from the built session; the
+same session shows exactly the same errors on the desktop, so they are not
+Android-specific.
 
 ## Known gaps / to test on hardware
 

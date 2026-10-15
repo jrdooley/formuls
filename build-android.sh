@@ -25,7 +25,7 @@
 
 set -euo pipefail
 
-VERSION="0.3.0"
+VERSION="0.3.1"
 CONFIG="${1:-debug}"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
@@ -93,7 +93,6 @@ download() {   # download <url> <file>: fetch once, reuse afterwards
 ASSETS="$BUILD/assets/formuls"
 mkdir -p "$ASSETS/gui"
 cp -R "$ROOT/src/pd" "$ASSETS/pd"
-cp "$ROOT/src/gui/_main.json" "$ROOT/src/gui/_formuls-default.state" "$ASSETS/gui/"
 cp "$ROOT/src/android/node/formuls-android-preload.js" "$ASSETS/gui/"
 
 # Open Stage Control, branded and patched exactly as for the desktop build.
@@ -111,6 +110,23 @@ rm -rf "$ASSETS/gui/open-stage-control/docs" \
        "$ASSETS/gui/open-stage-control/launcher" \
        "$ASSETS/gui/open-stage-control/server/electron"
 find "$ASSETS/gui/open-stage-control" -name "*.map" -delete
+
+# The GUI session is built exactly as build-macOS.sh builds it: flattened,
+# then slider compounds and sequencer panels compiled into single canvases,
+# with the map the server module uses to keep Pd's addresses unchanged.
+# A tablet needs this more than a desktop does -- it is the difference
+# between a session that loads in seconds and one that does not.
+# See docs/gui/fast-gui.md.
+python3 "$ROOT/src/tools/flatten-session.py" "$ROOT/src/gui/_main.json" "$ASSETS/gui/_main.json" \
+    --defaults "$ROOT/src/tools/osc-defaults-1.31.0.json" \
+    --osc-package "$ASSETS/gui/open-stage-control" \
+    --template-tab formuls0 --template-tab Widgets
+
+python3 "$ROOT/src/tools/compile-compounds.py" \
+    "$ASSETS/gui/_main.json" "$ROOT/src/gui/_formuls-default.state" \
+    "$ASSETS/gui/_main.json" "$ASSETS/gui/_formuls-default.state" "$ASSETS/gui/compounds.json" \
+    --lib "$ROOT/src/gui/compounds/slider-lib.js" --seq-lib "$ROOT/src/gui/compounds/sequencer-lib.js"
+cp "$ROOT/src/gui/formuls-module.js" "$ASSETS/gui/"
 
 #-------------------------------------------- faust externals -> C++ sources
 # The same three objects and the same options as build-macOS.sh, but only

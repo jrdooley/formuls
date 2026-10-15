@@ -2,8 +2,8 @@
 """Record an automation gesture into f.seq.automater and log what comes back out.
 
 Builds a throwaway Pd patch that drives one automater the way the running app
-does -- master parameter/GUI throttles, a beat on `clockin`, `record 1`, a
-gesture, `record 0` -- runs it headless, and reports every discontinuity in the
+does -- master parameter/GUI throttles, a beat on `clockin`, `automateRecord 1`,
+a gesture, `automateRecord 0` -- runs it headless, and reports every discontinuity in the
 value the automater sends towards Faust.
 
 Needs no audio device, no GUI, no externals and no built app: f.seq.automater
@@ -136,16 +136,19 @@ def build_patch(path, args):
     p.connect(beatmsg, 0, auto, 0)
 
     press = p.obj(240, 90, f"del {args.press}")
-    pressmsg = p.msg(240, 120, "record 1")
+    # Arm through the global automateRecord, as the GUI's record button does:
+    # since lazy record arming, an automater no longer gets `record` straight
+    # from that press, so a direct `record 1` would test a path the app never
+    # takes. Older revisions forwarded automateRecord to every automater, so
+    # this works for --rev too.
+    pressmsg = p.msg(240, 120, "\\; automateRecord 1")
     p.connect(fan, 2, press, 0)
     p.connect(press, 0, pressmsg, 0)
-    p.connect(pressmsg, 0, auto, 0)
 
     release = p.obj(360, 90, f"del {args.release}")
-    releasemsg = p.msg(360, 120, "record 0")
+    releasemsg = p.msg(360, 120, "\\; automateRecord 0")
     p.connect(fan, 3, release, 0)
     p.connect(release, 0, releasemsg, 0)
-    p.connect(releasemsg, 0, auto, 0)
 
     # The gesture: a phase counter over the take, shaped, sent as a bare float
     # (the automater's [route] catches those on its `float` branch).

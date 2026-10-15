@@ -10,15 +10,21 @@
  #include "AndroidPlatform.h"
 #endif
 
-#include <csignal>
 #include <cstring>
-#include <cerrno>
 #include <vector>
-#include <unistd.h>
 
-#if JUCE_MAC
- #include <libproc.h>
- #include <sys/sysctl.h>
+#if JUCE_WINDOWS
+ #include <windows.h>
+ #include <psapi.h>
+ #include <tlhelp32.h>
+#else
+ #include <csignal>
+ #include <cerrno>
+ #include <unistd.h>
+ #if JUCE_MAC
+  #include <libproc.h>
+  #include <sys/sysctl.h>
+ #endif
 #endif
 
 namespace formuls
@@ -44,16 +50,29 @@ juce::Array<int> getAllProcessIds()
 {
     juce::Array<int> pids;
 
-   #if JUCE_MAC
-    // Called with a null buffer, proc_listpids reports the size it needs.
+   #if JUCE_WINDOWS
+    HANDLE snapshot = CreateToolhelp32Snapshot (TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return pids;
+
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof (entry);
+
+    if (Process32First (snapshot, &entry))
+    {
+        do
+        {
+            pids.addIfNotAlreadyThere ((int) entry.th32ProcessID);
+        } while (Process32Next (snapshot, &entry));
+    }
+
+    CloseHandle (snapshot);
+   #elif JUCE_MAC
     const auto bytesNeeded = proc_listpids (PROC_ALL_PIDS, 0, nullptr, 0);
 
     if (bytesNeeded <= 0)
         return pids;
 
-    // Ask for more room than reported: processes can start between the
-    // sizing call and the fetch, and an exactly-full buffer is silently
-    // truncated rather than flagged.
     std::vector<pid_t> buffer ((size_t) bytesNeeded / sizeof (pid_t) + 64);
     const auto bytesFilled = proc_listpids (PROC_ALL_PIDS, 0, buffer.data(),
                                             (int) (buffer.size() * sizeof (pid_t)));
@@ -62,7 +81,6 @@ juce::Array<int> getAllProcessIds()
         if (buffer[(size_t) i] > 0)
             pids.addIfNotAlreadyThere ((int) buffer[(size_t) i]);
    #elif JUCE_LINUX
-    // Every numerically-named directory under /proc is a live process.
     for (const auto& entry : juce::RangedDirectoryIterator (juce::File ("/proc"), false,
                                                             "*", juce::File::findDirectories))
     {
@@ -81,7 +99,23 @@ juce::Array<int> getAllProcessIds()
     anything owned by another user). */
 juce::String getExecutablePath ([[maybe_unused]] int pid)
 {
-   #if JUCE_MAC
+   #if JUCE_WINDOWS
+    HANDLE h = OpenProcess (PROCESS_QUERY_LIMITED_INFORMATION, FALSE, (DWORD) pid);
+
+    if (h != nullptr)
+    {
+        WCHAR path[MAX_PATH] = {};
+        DWORD size = MAX_PATH;
+
+        if (QueryFullProcessImageNameW (h, 0, path, &size) && size > 0)
+        {
+            CloseHandle (h);
+            return juce::String (path);
+        }
+
+        CloseHandle (h);
+    }
+   #elif JUCE_MAC
     char path[PROC_PIDPATHINFO_MAXSIZE] = {};
 
     if (proc_pidpath (pid, path, sizeof (path)) > 0)
@@ -90,7 +124,6 @@ juce::String getExecutablePath ([[maybe_unused]] int pid)
     const juce::File link ("/proc/" + juce::String (pid) + "/exe");
     const auto target = link.getLinkedTarget();
 
-    // getLinkedTarget() hands back the link itself when it cannot be read.
     if (target != link)
         return target.getFullPathName();
    #endif
@@ -105,7 +138,13 @@ juce::String getCommandLine ([[maybe_unused]] int pid)
 {
     juce::StringArray args;
 
-   #if JUCE_MAC
+   #if JUCE_WINDOWS
+    // On Windows we cannot reliably read another process's command line
+    // without NtQueryInformationProcess / ReadProcessMemory, which requires
+    // elevated privileges. Return empty and let isStrayServer() rely on the
+    // executable-path match alone (it already handles the empty case).
+    juce::ignoreUnused (args);
+   #elif JUCE_MAC
     // KERN_PROCARGS2 hands back one blob: argc as an int, then the
     // executable path, then padding NULs, then argc NUL-terminated
     // arguments. There is no struct for it; it has to be walked by hand.
@@ -159,8 +198,24 @@ juce::String getCommandLine ([[maybe_unused]] int pid)
     look like a crash. */
 bool killProcessAndWait (int pid, int timeoutMs)
 {
+   #if JUCE_WINDOWS
+    HANDLE h = OpenProcess (PROCESS_TERMINATE | SYNCHRONIZE, FALSE, (DWORD) pid);
+
+    if (h == nullptr)
+        return GetLastError() == ERROR_INVALID_PARAMETER;
+
+    if (! TerminateProcess (h, 1))
+    {
+        CloseHandle (h);
+        return false;
+    }
+
+    bool gone = WaitForSingleObject (h, (DWORD) timeoutMs) == WAIT_OBJECT_0;
+    CloseHandle (h);
+    return gone;
+   #else
     if (::kill (pid, SIGTERM) != 0)
-        return errno == ESRCH;   // already gone: the outcome we wanted anyway
+        return errno == ESRCH;
 
     const auto deadline = juce::Time::getMillisecondCounter() + (juce::uint32) timeoutMs;
 
@@ -176,6 +231,7 @@ bool killProcessAndWait (int pid, int timeoutMs)
     juce::Thread::sleep (100);
 
     return ::kill (pid, 0) != 0 && errno == ESRCH;
+   #endif
 }
 
 //==============================================================================
@@ -283,6 +339,16 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     if (state.existsAsFile())
         args.addArray ({ "--state", state.getFullPathName() });
 
+    // The built session draws each slider compound as one canvas; this server
+    // module maps those canvases back to the per-parameter addresses Pd uses.
+    // Same as the desktop build above -- build-android.sh runs the same
+    // flatten/compile steps, so the APK always carries both files.
+    auto module    = guiDir.getChildFile ("formuls-module.js");
+    auto compounds = guiDir.getChildFile ("compounds.json");
+
+    if (module.existsAsFile() && compounds.existsAsFile())
+        args.addArray ({ "--custom-module", module.getFullPathName() });
+
     // node has no home or temp folder of its own on Android.
     const auto files = android::getFilesDir();
     const auto cache = android::getCacheDir();
@@ -329,7 +395,11 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     resourceRoot = newResourceRoot;
 
     auto guiDir  = resourceRoot.getChildFile ("gui");
+   #if JUCE_WINDOWS
+    auto node    = guiDir.getChildFile ("node.exe");
+   #else
     auto node    = guiDir.getChildFile ("node");
+   #endif
     auto oscDir  = guiDir.getChildFile ("open-stage-control");
     auto layout  = guiDir.getChildFile ("_main.json");
 
@@ -367,6 +437,15 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
 
     if (state.existsAsFile())
         args.addArray ({ "--state", state.getFullPathName() });
+
+    // The built session draws each slider compound as one canvas; this server module
+    // translates between those canvases and the per-parameter addresses Pd uses
+    // (src/tools/compile-compounds.py). Only a build has the map it needs, so a dev
+    // run from src/gui, which loads the authored session, starts without it.
+    auto module   = guiDir.getChildFile ("formuls-module.js");
+    auto compounds = guiDir.getChildFile ("compounds.json");
+    if (module.existsAsFile() && compounds.existsAsFile())
+        args.addArray ({ "--custom-module", module.getFullPathName() });
 
     if (! process.start (args))
         return juce::Result::fail ("Could not start Open Stage Control ("
@@ -409,9 +488,17 @@ bool OpenStageControlProcess::isRunning()
 int OpenStageControlProcess::killStrayServers (const juce::File& resourceRoot)
 {
     const auto guiDir = resourceRoot.getChildFile ("gui");
+   #if JUCE_WINDOWS
+    const auto ourNode = guiDir.getChildFile ("node.exe");
+   #else
     const auto ourNode = guiDir.getChildFile ("node");
+   #endif
     const auto ourPackage = guiDir.getChildFile ("open-stage-control");
+   #if JUCE_WINDOWS
+    const auto self = (int) GetCurrentProcessId();
+   #else
     const auto self = (int) ::getpid();
+   #endif
 
     int killed = 0;
 

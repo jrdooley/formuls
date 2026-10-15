@@ -11,21 +11,21 @@ because the output was tested rather than read:
   - arity-1 parameters were wired to route outlet 0 instead of their own.
 
 PARAMS lists the Pd-side parameter names, which are NOT the layout's clone
-ids: the fxa panel's clones are oscslide/pitchshift/saturationbitcrush/
-chorusphaser, but the names Pd sends under come from each clone's "name"
+ids: the fxa panel's clones are oscslide/pitchshift/saturation/bitcrush/
+chorus/phaser, but the names Pd sends under come from each clone's "name"
 variable. Two of these pads arrive as a pair from f.util.oscformatxy; the
 pitchshift pad is assembled in the patch from two separate scalar
 f.util.oscformat instances, so it arrives as two arity-1 entries.
 """
 import sys
 
-# fxa: four xy pads, two values each -> eight slots
-# fxa holds four xy pads. Two come straight from f.util.oscformatxy and
-# arrive as a pair; the pitchshift pad is assembled in the patch from two
-# separate f.util.oscformat instances, so it arrives as two scalars.
+# fxa: two xy pads (oscsliderangetime, pitchshift/mix) and four sliders
+# (saturation, bitcrush, chorus, phaser) -> eight slots. oscsliderangetime
+# arrives as a pair from f.util.oscformatxy; every other entry is a scalar
+# f.util.oscformat (the pitchshift pad is assembled from two of them).
 PANEL = "fxa"
 PARAMS = [("oscsliderangetime", 2), ("pitchshift", 1), ("pitchshiftmix", 1),
-          ("saturationbitcrush", 2), ("chorusphaser", 2)]
+          ("saturation", 1), ("bitcrush", 1), ("chorus", 1), ("phaser", 1)]
 SLOTS = sum(n for _, n in PARAMS)
 
 objs, conns = [], []

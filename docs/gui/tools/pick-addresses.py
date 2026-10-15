@@ -19,9 +19,9 @@ OUT     = sys.argv[2] if len(sys.argv) > 2 else "."
 
 # f.util.oscformat instances in f.util.oscinparse.pd: one float each
 FADER = ["panning", "volume", "reverb", "attack", "decay", "release",
-         "velocity", "delaytime"]
+         "velocity", "delaytime", "saturation", "bitcrush", "chorus", "phaser"]
 # f.util.oscformatxy instances: two floats each
-XY    = ["saturationbitcrush", "chorusphaser", "fmfreqdepth",
+XY    = ["fmfreqdepth",
          "noisefreqdepth", "oscsliderangetime", "delayfeedbacksend"]
 
 have = set(l.rstrip("\n").split("\t")[-1] for l in open(CAPTURE))
