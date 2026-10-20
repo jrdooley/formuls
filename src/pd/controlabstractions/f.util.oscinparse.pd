@@ -1195,6 +1195,8 @@
 #X obj 342 224 r \$0-timer;
 #X obj 101 88 r \$0-midi-note;
 #X obj 319 158 r \$0-midi-note;
+#X obj 30 88 r \$0-midi-note-raw;
+#X obj 30 120 t f f;
 #X connect 0 1 40 0;
 #X connect 1 0 8 1;
 #X connect 2 0 3 0;
@@ -1247,6 +1249,10 @@
 #X connect 47 0 28 0;
 #X connect 48 0 31 0;
 #X connect 49 0 42 0;
+#X connect 50 0 51 0;
+#X connect 51 1 42 0;
+#X connect 51 0 25 0;
+#X connect 51 0 35 0;
 #X restore 49 273 pd QLIST_GUBBINS;
 #X text 160 271 <- records keyboard performance;
 #X connect 0 0 8 0;
@@ -1500,7 +1506,7 @@
 #X obj 30 110 loadbang;
 #X obj 440 160 r \$0-key-note;
 #X obj 330 215 t f b b;
-#X obj 250 245 s \$0-midi-note;
+#X obj 250 245 s \$0-midi-note-raw;
 #X obj 250 270 s \$0-timer;
 #X obj 250 295 s \$0-one-bang;
 #X connect 1 0 3 0;
