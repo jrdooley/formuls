@@ -25,7 +25,8 @@
 namespace formuls
 {
 
-class FormulsPluginProcessor : public juce::AudioProcessor
+class FormulsPluginProcessor : public juce::AudioProcessor,
+                               private juce::Timer
 {
 public:
     FormulsPluginProcessor();
@@ -66,6 +67,14 @@ public:
 private:
     juce::Result startEngine (double sampleRate, int maxBlockSize);
     void stopEngine();
+
+    // A restored project is applied once the patch has finished its own
+    // start-up reset (FormulsEngine::resetReceiverName), or it would be reset
+    // straight away. timerCallback is the fallback if that never comes.
+    void patchIsReady();
+    void timerCallback() override   { patchIsReady(); }
+    bool patchReady = false;          // message thread
+    static constexpr int patchReadyFallbackMs = 10000;
 
     // Declared before the engine so it outlives it (the engine's PdOscOut
     // thread hands it packets until the engine stops).

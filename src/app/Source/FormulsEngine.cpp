@@ -141,6 +141,7 @@ juce::Result FormulsEngine::bootPd (int numOutputChannels, double sampleRate, co
     if (! appSendsOsc)
         juce::Logger::writeToLog ("OSC out: could not open a UDP socket; the patch sends to the GUI itself");
     pd.subscribe (quitReceiverName);   // lets the patch quit the app
+    pd.subscribe (resetReceiverName);  // tells a plugin when start-up reset is done
     pd.computeAudio (true);
 
     patch = pd.openPatch ("_main.pd", patchDir.getFullPathName().toStdString());
@@ -352,10 +353,12 @@ void FormulsEngine::receiveBang (const std::string& dest)
         handleQuitRequest();
 }
 
-void FormulsEngine::receiveFloat (const std::string& dest, float)
+void FormulsEngine::receiveFloat (const std::string& dest, float value)
 {
     if (dest == quitReceiverName)
         handleQuitRequest();
+    else if (dest == resetReceiverName && onGlobalReset != nullptr)
+        onGlobalReset (value);
 }
 
 void FormulsEngine::receiveSymbol (const std::string& dest, const std::string&)

@@ -48,9 +48,17 @@ Sources: `src/plugin/` (processor and editor) plus the app's own
   recorded as it goes by (tablet gestures, state loads, canvas recalls after
   the compounds module; not the `/GET` poll or `/STATE/*`).
 
-On load the patch messages are replayed to Pd straight away, so the project
-sounds right with no tablet open, and tablets that connect later are shown
-the GUI state (`stateLoad` with `send: false`; the patch already has it).
+On load the patch messages are replayed to Pd, so the project sounds right
+with no tablet open, and tablets that connect later are shown the GUI state
+(`stateLoad` with `send: false`; the patch already has it).
+
+The replay waits for the patch to finish starting: `_main.pd`'s
+INIT_PARAMETER_SET does a global reset (`resetglobal-in` 1 then 0) 5 s after
+loading, which would undo anything sent before it. The plugin restores on
+the first `resetglobal-in 0` (FormulsEngine::onGlobalReset), with a 10 s
+fallback. Before this, restored values were reset by the patch and the patch
+then reported its defaults to the tablets, so e.g. Repeater Level came back
+at 0 in both the sound and the GUI.
 
 Replaying what the patch actually received, rather than working it out again
 from the session, is deliberate: matrix children, rounding to each widget's
@@ -85,11 +93,6 @@ id with the panel around them, so in o-s-c's id-keyed state the panel's value
 overwrote theirs. Those panels, and the sequencer / swing panels that shared
 ids with their modals, now end in `panel`.)
 
-- A widget with an explicit `value` in the session (5 faders, 18 switches,
-  135 menus, ...) can show that value instead of the restored one, as
-  `repeaterlevel` (`value: 0`) did while `repeatermono` (no `value`) showed
-  the restored state. Likely o-s-c re-applying the property after the load;
-  not yet confirmed.
 - The GUI copy can be up to ~2 s behind the last gesture when the host saves.
 
 ## Limits of this first version

@@ -94,6 +94,12 @@ juce::Result FormulsPluginProcessor::startEngine (double sampleRate, int maxBloc
                                    "inside the plugin bundle.");
 
     gui.setStateCapture (true);
+    patchReady = false;
+    engine.onGlobalReset = [this] (float value)
+    {
+        if (value == 0.0f && ! patchReady)   // the end of the start-up pulse
+            patchIsReady();
+    };
     engine.setDirectGui ([this] (const juce::uint8* data, int size)
                          { gui.receivePatchPacket (data, size); });
 
@@ -120,11 +126,7 @@ juce::Result FormulsPluginProcessor::startEngine (double sampleRate, int maxBloc
     runningSampleRate = sampleRate;
     engineRunning = true;
 
-    {
-        const juce::ScopedLock sl (stateLock);
-        if (guiResult.wasOk() && (pendingGuiState.isNotEmpty() || pendingPatchState.isNotEmpty()))
-            gui.setState (pendingGuiState, pendingPatchState);
-    }
+    startTimer (patchReadyFallbackMs);
 
     status = guiResult.wasOk()
                  ? "Running at " + juce::String ((int) sampleRate) + " Hz."
@@ -137,6 +139,9 @@ void FormulsPluginProcessor::stopEngine()
     // Not while processBlock() can run: hosts call prepareToPlay() and the
     // destructor with processing stopped.
     engineRunning = false;
+    stopTimer();
+    patchReady = false;
+    engine.onGlobalReset = nullptr;
     {
         // Keep what the tablets did, so a restart (sample rate change) restores it.
         const juce::ScopedLock sl (stateLock);
@@ -160,14 +165,28 @@ void FormulsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
                               buffer.getNumChannels(), buffer.getNumSamples());
 }
 
+void FormulsPluginProcessor::patchIsReady()
+{
+    stopTimer();
+    if (patchReady)
+        return;
+    patchReady = true;
+
+    const juce::ScopedLock sl (stateLock);
+    if (gui.isRunning() && (pendingGuiState.isNotEmpty() || pendingPatchState.isNotEmpty()))
+        gui.setState (pendingGuiState, pendingPatchState);
+}
+
 //==============================================================================
 void FormulsPluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::String guiJson, patchJson;
     {
         const juce::ScopedLock sl (stateLock);
-        guiJson = gui.getStateJson();
-        patchJson = gui.getPatchStateJson();
+        // Until a restored project has been applied, it is still the state.
+        const bool restorePending = ! patchReady && (pendingGuiState.isNotEmpty() || pendingPatchState.isNotEmpty());
+        guiJson   = restorePending ? pendingGuiState   : gui.getStateJson();
+        patchJson = restorePending ? pendingPatchState : gui.getPatchStateJson();
         if (guiJson.isEmpty())   guiJson = pendingGuiState;
         if (patchJson.isEmpty()) patchJson = pendingPatchState;
     }
@@ -197,7 +216,8 @@ void FormulsPluginProcessor::setStateInformation (const void* data, int sizeInBy
     pendingPatchState = patchJson;
 
     // Hosts call this on the message thread; the server must be told there.
-    if (engineRunning && gui.isRunning())
+    // Before the patch is ready it waits for patchIsReady().
+    if (engineRunning && gui.isRunning() && patchReady)
     {
         if (juce::MessageManager::getInstance()->isThisTheMessageThread())
             gui.setState (guiJson, patchJson);

@@ -63,6 +63,15 @@ public:
     /** Called on the message thread when the patch sends to "formuls-quit". */
     std::function<void()> onQuitRequested;
 
+    /** The patch's global reset (_main.pd: [s resetglobal-in]). Its
+        INIT_PARAMETER_SET subpatch pulses it 1 then 0, 5 s after loading, and
+        the GUI's Global Reset does the same; every parameter goes back to its
+        default. Anything sent to the patch before the start-up pulse is lost. */
+    static constexpr const char* resetReceiverName = "resetglobal-in";
+
+    /** Called on the message thread with each value sent to resetglobal-in. */
+    std::function<void (float)> onGlobalReset;
+
     /** Opens the requested output device, boots libpd and loads pd/_main.pd
         from the given resource root. Returns Result::ok() or a failure with a
         user-displayable message.
