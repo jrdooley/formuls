@@ -1,4 +1,4 @@
-# formuls as a plugin (VST3 / AU)
+# formuls as a plugin (VST3 / AU / LV2)
 
 Branch `ws-prototype`. An instrument plugin that runs the same Pd patch as the
 app and serves the same control GUI. The GUI is still played in a browser or
@@ -17,6 +17,27 @@ the flattened `gui/` from the app bundle, leaves node out, and puts libpd in
 each bundle's `Contents/Frameworks`. `FORMULS_APP=/path/to/formuls.app`
 points it at another app build.
 
+On Linux, VST3 and LV2:
+
+```bash
+./build-linux.sh            # once: the app folder, whose pd/ and gui/ the plugin reuses
+./build-plugin-linux.sh     # formuls-0.3.1-linux-<arch>-plugins/{formuls.vst3, formuls.lv2}
+INSTALL=1 ./build-plugin-linux.sh   # also copies them into ~/.vst3 and ~/.lv2
+```
+
+It takes `pd/` (with the `.pd_linux` externals) and `gui/` from
+`formuls-0.3.1-linux-<arch>/` (or `FORMULS_APP=`), and puts `libpd.so` next
+to the plugin binary in each bundle, found through the `$ORIGIN` rpath:
+
+- `formuls.vst3/Contents/<arch>-linux/{formuls.so, libpd.so}`, resources in
+  `formuls.vst3/Contents/Resources/{pd, gui}`;
+- `formuls.lv2/{formuls.so, libpd.so, *.ttl, pd, gui}`.
+
+The bundles keep the plain name `formuls`: a Linux VST3 host looks for
+`Contents/<arch>-linux/<bundle name>.so`, so a renamed bundle does not load.
+The LV2 URI is `urn:net.formuls:formuls`; hosts save projects against it, so
+it must not change.
+
 Sources: `src/plugin/` (processor and editor) plus the app's own
 `FormulsEngine`, `OscBridge`, `PdOscOut`, `EmbeddedGuiServer` and
 `WebSocketServer`, compiled into the plugin unchanged
@@ -34,7 +55,7 @@ Sources: `src/plugin/` (processor and editor) plus the app's own
   the externals (built with `-undefined dynamic_lookup`). The processor
   re-opens libpd `RTLD_GLOBAL` before the patch loads.
 - `ResourceLocator` finds `pd/` and `gui/` in the plugin's own
-  `Contents/Resources`.
+  `Contents/Resources` (macOS, Linux VST3), or next to the binary (LV2).
 
 ## Saved with the host project
 
@@ -92,9 +113,16 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   blocks, gets the test tone at 0.0999 (silent before `SharedEngine`); auval's
   log shows the instance it drives rendering every block.
 
+- Linux (Ubuntu 24.04 x86_64, OrbStack VM), the same JUCE test host built
+  with VST3 and LV2 hosting: both bundles load, all four externals load
+  (Pd's symbols reach them through the `RTLD_GLOBAL` re-open), and the
+  `/testtone` output peaks at 0.0998. Not yet run: the editor window (the VM
+  has no display), a real Linux DAW, MIDI input.
+
 ## Diagnostics
 
-Every instance logs to `~/Library/Logs/formuls/plugin.log` (1 MB, trimmed):
+Every instance logs to `~/Library/Logs/formuls/plugin.log` on macOS and
+`~/.config/formuls/plugin.log` on Linux (1 MB, trimmed):
 creation and host, `prepareToPlay` (rate, block size, channels), engine and
 GUI start-up, Pd's own messages (externals, Link, errors), and every 5 s how
 many blocks the host called, how many this instance rendered, and the peak.
@@ -125,11 +153,12 @@ ids with their modals, now end in `panel`.)
   needs libpd built with `PDINSTANCE`, and the Faust and abl_link~ externals
   rebuilt for it (the prebuilt abl_link~ cannot be).
 - 2 output channels only (the app also offers 14).
-- No MIDI, no host automation, no tempo sync from the host (the patch has
-  its own clock and Ableton Link).
+- MIDI note-ons only (see Keyboard input); no host automation or MIDI CC,
+  by design, and no tempo sync from the host (the patch has its own clock
+  and Ableton Link).
 - No CLAP: JUCE 9.0.1's Projucer has no CLAP target; it needs a CMake build
   with clap-juce-extensions.
-- macOS only so far.
+- macOS and Linux so far; no Windows build yet.
 
 ## Max-based hosts (SoundDesk)
 

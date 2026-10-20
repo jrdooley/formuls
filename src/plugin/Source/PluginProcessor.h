@@ -67,7 +67,7 @@ public:
 private:
     std::shared_ptr<SharedEngine> engine;
 
-    // Diagnostics for this instance, in ~/Library/Logs/formuls/plugin.log.
+    // Diagnostics for this instance, in plugin.log (see SharedEngine::log).
     void log (const juce::String& message) const;
     void logStats();
     const int instanceNumber;

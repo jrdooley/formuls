@@ -52,8 +52,12 @@ if [[ ! -f "$ROOT/src/libs/libpd/libs/libpd.dylib" ]]; then
     LIBPD="$ROOT/src/libs/libpd/libs/libpd.dylib"
 fi
 
+# VST3 and AU only. The .jucer also lists LV2, for build-plugin-linux.sh; on
+# macOS its manifest step cannot find libpd (the rpaths are set for VST3/AU
+# bundle depth), and macOS hosts take VST3 or AU anyway.
 xcodebuild -project "$ROOT/src/plugin/Builds/MacOSX/formuls.xcodeproj" \
-    -scheme "formuls - All" -configuration Release ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES
+    -target "formuls - VST3" -target "formuls - AU" \
+    -configuration Release ARCHS="$(uname -m)" ONLY_ACTIVE_ARCH=YES
 
 OUT="$ROOT/src/plugin/Builds/MacOSX/build/Release"
 

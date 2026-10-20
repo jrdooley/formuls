@@ -25,7 +25,8 @@ FormulsPluginProcessor::FormulsPluginProcessor()
     const auto format = juce::PluginHostType::getPluginLoadedAs();
     log ("created in " + juce::String (juce::PluginHostType().getHostDescription())
          + " (" + (format == AudioProcessor::wrapperType_AudioUnit ? "AU" :
-                   format == AudioProcessor::wrapperType_VST3 ? "VST3" : "other")
+                   format == AudioProcessor::wrapperType_VST3 ? "VST3" :
+                   format == AudioProcessor::wrapperType_LV2 ? "LV2" : "other")
          + ", pid " + juce::String ((int) getpid()) + ")");
 
     statsTimer.tick = [this] { logStats(); };

@@ -64,7 +64,8 @@ public:
     bool isRunning() const noexcept   { return engineRunning; }
     bool isPatchReady() const noexcept   { return patchReady; }
 
-    /** Appends to ~/Library/Logs/formuls/plugin.log (via JUCE's logger). */
+    /** Appends to plugin.log (via JUCE's logger): ~/Library/Logs/formuls on macOS,
+        ~/.config/formuls on Linux. */
     static void log (const juce::String& message);
 
     static constexpr int numOutputChannels = 2;

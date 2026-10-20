@@ -57,8 +57,14 @@ SharedEngine::SharedEngine()
 {
     if (juce::Logger::getCurrentLogger() == nullptr)
     {
+       #if JUCE_MAC
         auto file = juce::File::getSpecialLocation (juce::File::userHomeDirectory)
                         .getChildFile ("Library/Logs/formuls/plugin.log");
+       #else
+        // ~/.config/formuls on Linux, %APPDATA%\formuls on Windows.
+        auto file = juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
+                        .getChildFile ("formuls/plugin.log");
+       #endif
         fileLogger = std::make_unique<juce::FileLogger> (file, "formuls plugin log", 1024 * 1024);
         juce::Logger::setCurrentLogger (fileLogger.get());
     }
