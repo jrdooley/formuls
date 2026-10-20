@@ -12069,7 +12069,7 @@
                                     "css": "",
                                     "comments": "",
                                     "lock": false,
-                                    "props": "{\n  \"variables\": { \"name\": \"velocity\", \"n\": @{parent.variables} }\n}",
+                                    "props": "{\n  \"variables\": { \"name\": \"velocity\", \"n\": @{parent.variables.n} }\n}",
                                     "widgetId": "slider",
                                     "scoped": false,
                                     "address": "auto",
