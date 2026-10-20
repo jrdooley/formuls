@@ -411,16 +411,24 @@ python3 src/tools/quantise-probe.py --rev <commit>         # an older quantiser
 - **Microtonal gamuts:** only the integer pitches are checked for "in the
   gamut"; every pitch is checked for "nearest".
 
-At the time of writing it fails. The quantiser picks gamut notes by
-**rank**, as if the gamut were evenly spaced across the octave:
-- major: F → E;
-- pentatonic: D → C, G → E.
+The original quantiser failed it in three ways:
+- it picked gamut notes by **rank**, as if the gamut were evenly spaced
+  (major: F → E; pentatonic: D → C and G → E);
+- it added the root **after** snapping, so changing the root transposed
+  everything (C E F with root F: F → A);
+- it **truncated** (nudged by float rounding, an exact C gave B3).
 
-It adds the root **after** snapping instead of measuring the input from
-the root, so changing the root transposes everything. With C E F and root
-F, an F comes out as A. And
-it **truncates**: nudged by float rounding, an exact C gives B3, and the
-whole chromatic gamut comes out one semitone low. Plain Pd only, with no
+The reworked `f.util.keyselector` passes, on all 132 notes. It snaps the
+pitch to the nearest gamut pitch relative to the root, then applies
+NOTE_GEN's offset in gamut steps. The probe recognises the original
+one-inlet keyselector and models the `NOTE_SNAP` of its own time, so
+`--rev` before/after comparisons stay fair:
+
+```bash
+python3 src/tools/quantise-probe.py --rev dd3c2a6          # the original: fails
+```
+
+Plain Pd only, with no
 externals, audio or app; one case takes about a second.
 
 ## automater-load-bench.py

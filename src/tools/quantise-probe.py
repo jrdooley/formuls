@@ -3,8 +3,11 @@
 
 Builds a throwaway Pd patch that does what NOTE_SNAP in f.util.oscinparse
 does with the quantiser on: every MIDI note n from 0 to 131 is sent as the
-0..1 GUI value n/132, scaled to a gamut index by `* (gamut length * 11)`,
-and fed to the real f.util.keyselector, with master-pitch-gamut,
+0..1 GUI value n/132, scaled back to a pitch by `* 132`, and fed to the
+real f.util.keyselector. (Before the rework, NOTE_SNAP sent a gamut index,
+`* (gamut length * 11)`, to a one-inlet keyselector; the probe recognises
+that version and models its NOTE_SNAP instead, so --rev before/after
+comparisons stay fair.) The keyselector gets with master-pitch-gamut,
 pitch-gamut-length and scale-root-note set as pitch-gamut-parse and
 f.util.masterkey would set them. With the quantiser off, the same value
 plays the pitch n (x * 132), so n is the pitch the quantiser is given.
@@ -69,7 +72,14 @@ CASES = {
 DEFAULT_NUDGE = 1e-7            # about the float32 rounding of a GUI value near 0.45
 
 
-def build_patch(path, gamut, root, nudge):
+def takes_pitch(search_path):
+    """True for the reworked keyselector (pitch in, gamut steps on a second
+    inlet); False for the original, which took a gamut index on one inlet."""
+    with open(os.path.join(search_path, "f.util.keyselector.pd")) as fh:
+        return len(re.findall(r"^#X obj \S+ \S+ inlet;", fh.read(), re.M)) > 1
+
+
+def build_patch(path, gamut, root, nudge, pitch_input=True):
     p = probe.Patch()
     length = len(gamut)
     values = " ".join("%g" % g for g in gamut)
@@ -103,7 +113,7 @@ def build_patch(path, gamut, root, nudge):
     p.connect(stop, 1, done, 0)
     p.connect(done, 0, until, 1)
 
-    # n -> GUI value -> gamut index -> keyselector, as NOTE_SNAP does.
+    # n -> GUI value -> pitch -> keyselector, as NOTE_SNAP does.
     split = p.obj(20, 230, "t f f")
     p.connect(stop, 0, split, 0)
     gui = p.obj(20, 260, f"/ {NOTES}")
@@ -113,7 +123,7 @@ def build_patch(path, gamut, root, nudge):
         last2 = p.obj(20, 290, "- %g" % nudge)
         p.connect(last, 0, last2, 0)
         last = last2
-    scale = p.obj(20, 320, f"* {length * 11}")
+    scale = p.obj(20, 320, f"* {NOTES if pitch_input else length * 11}")
     p.connect(last, 0, scale, 0)
     snap = p.obj(20, 350, "f.util.keyselector 0")
     p.connect(scale, 0, snap, 0)
@@ -232,12 +242,13 @@ def main():
             label = search_path
         if not os.path.isdir(search_path):
             sys.exit(f"no such directory: {search_path}")
-        print(f"quantise probe: {label}")
+        pitch_input = takes_pitch(search_path)
+        print(f"quantise probe: {label}" + ("" if pitch_input else " (original keyselector: gamut-index input)"))
 
         for case, (gamut, root) in cases.items():
             for nudge in nudges:
                 patch = os.path.join(tmp, f"{case}-{nudge:g}.pd")
-                build_patch(patch, gamut, root, nudge)
+                build_patch(patch, gamut, root, nudge, pitch_input)
                 log = probe.run(pd, patch, search_path, timeout=30)
                 errors = [l.strip() for l in log.splitlines()
                           if "error" in l.lower() or "couldn't create" in l]

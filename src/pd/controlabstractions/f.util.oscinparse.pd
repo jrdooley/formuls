@@ -1718,7 +1718,7 @@
 #N canvas 1050 242 390 613 NOTE_SNAP 0;
 #X obj 51 17 inlet;
 #X obj 51 546 outlet;
-#X obj 157 256 +;
+#X obj 157 256 t f;
 #X obj 138 135 r \$0-value-send;
 #X obj 78 116 t f f;
 #X obj 138 156 t b b b;
@@ -1732,8 +1732,8 @@
 #X obj 96 375 r \$0-\$1-reset;
 #X obj 51 482 spigot 1;
 #N canvas 0 38 450 300 PITCH_LENGTH_CALCULATE 0;
-#X text 104 133 <- "* 11": total number of octaves covered by the pitch range;
-#X text 87 161 <- total number of pitches covered by the 11 octave pitch range;
+#X text 104 133 <- pitch = x * 132: 11 octaves of MIDI notes \, the same pitch as with the quantiser off. f.util.keyselector snaps it to the gamut.;
+#X text 87 161 <- a gamut length change re-sends the pitch \, so it is snapped again.;
 #X obj 41 135 f;
 #X obj 41 30 inlet;
 #X obj 41 236 outlet;
@@ -1745,7 +1745,6 @@
 #X connect 3 0 2 0;
 #X connect 5 0 4 0;
 #X connect 6 0 8 0;
-#X connect 7 0 5 1;
 #X connect 8 0 2 0;
 #X connect 8 1 7 0;
 #X restore 78 91 pd PITCH_LENGTH_CALCULATE;
@@ -1800,14 +1799,13 @@
 #X connect 12 0 8 3;
 #X restore 180 234 pd NOTE_GEN______;
 #X obj 157 212 spigot;
-#X obj 157 191 i;
+#X obj 157 191 f;
 #X obj 190 188 r \$0-osc-freq-snap;
 #X obj 190 312 r \$0-osc-freq-snap;
 #X connect 0 0 16 0;
 #X connect 2 0 6 0;
 #X connect 3 0 5 0;
 #X connect 4 0 20 0;
-#X connect 4 1 6 0;
 #X connect 5 0 17 1;
 #X connect 5 1 20 0;
 #X connect 5 2 18 0;
@@ -1825,7 +1823,7 @@
 #X connect 16 0 17 0;
 #X connect 16 1 15 0;
 #X connect 17 0 14 0;
-#X connect 18 0 2 1;
+#X connect 18 0 6 1;
 #X connect 19 0 2 0;
 #X connect 20 0 19 0;
 #X connect 21 0 19 1;
