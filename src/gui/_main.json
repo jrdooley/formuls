@@ -9962,7 +9962,7 @@
                     "widgets": [
                       {
                         "type": "panel",
-                        "top": "7%",
+                        "top": "14%",
                         "left": "0%",
                         "id": "adsr@{parent.variables.n}",
                         "visible": true,
@@ -10271,7 +10271,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "0%",
+                        "top": "7%",
                         "left": "0%",
                         "id": "filterkeychaosevolvepanel@{parent.variables.n}",
                         "visible": true,
@@ -12183,7 +12183,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "34%",
+                        "top": "41%",
                         "left": "0%",
                         "lock": false,
                         "id": "seqrhythmcontrols",
@@ -12366,7 +12366,7 @@
                       },
                       {
                         "type": "modal",
-                        "top": "66%",
+                        "top": "73%",
                         "left": "0%",
                         "lock": false,
                         "id": "sequencer@{parent.variables.n}",
@@ -14762,7 +14762,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "34%",
+                        "top": "41%",
                         "left": "50%",
                         "id": "freqgen@{parent.variables.n}",
                         "visible": true,
@@ -15132,7 +15132,7 @@
                       },
                       {
                         "type": "clone",
-                        "top": "74%",
+                        "top": "81%",
                         "left": "0%",
                         "id": "seqrandomadddrop",
                         "visible": true,
@@ -15151,7 +15151,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "93%",
+                        "top": "0%",
                         "left": "0%",
                         "id": "seqonpanel@{parent.variables.n}",
                         "visible": true,
