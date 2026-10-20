@@ -426,9 +426,9 @@ int OpenStageControlProcess::killStrayServers (const juce::File& resourceRoot)
     return killed;
 }
 
-juce::StringArray OpenStageControlProcess::getBrowserAddresses()
+juce::StringArray OpenStageControlProcess::getBrowserAddresses (int portNumber)
 {
-    const auto port = ":" + juce::String (guiPort);
+    const auto port = ":" + juce::String (portNumber);
 
     // Always first: a browser on this machine.
     juce::StringArray addresses { "http://127.0.0.1" + port };

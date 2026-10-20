@@ -70,18 +70,65 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
         return juce::Result::fail ("Could not open audio device \""
                                    + outputDeviceName + "\"");
 
-    // ------------------------------------------------------------- boot libpd
-    // queued = true: patch -> app messages go through a lock-free ring buffer
-    // and are delivered on the message thread by timerCallback().
     // libpd runs at the rate the device *actually* opened at, which may
     // differ from the rate requested above if the device can't provide it.
-    actualSampleRate = device->getCurrentSampleRate();
-
-    if (! pd.init (0, numOutputChannels, (int) actualSampleRate, true))
+    if (auto result = bootPd (numOutputChannels, device->getCurrentSampleRate(), patchDir);
+        result.failed())
     {
         deviceManager.closeAudioDevice();
-        return juce::Result::fail ("Could not initialise libpd");
+        return result;
     }
+
+    // -------------------------------------------------------------- go live
+    deviceManager.addAudioCallback (this);
+    activeDeviceManager = &deviceManager;
+    running = true;
+
+    juce::Logger::writeToLog ("formuls engine started: \"" + device->getName()
+                              + "\", " + juce::String (numOutputChannels)
+                              + " channels @ " + juce::String ((int) actualSampleRate)
+                              + " Hz");
+    return juce::Result::ok();
+}
+
+juce::Result FormulsEngine::startHosted (int numOutputChannels, double sampleRate,
+                                         int maxBlockSize, const juce::File& resourceRoot)
+{
+    if (running)
+        return juce::Result::ok();
+
+    auto patchDir = resourceRoot.getChildFile ("pd");
+
+    if (! patchDir.getChildFile ("_main.pd").existsAsFile())
+        return juce::Result::fail ("Could not find pd/_main.pd in "
+                                   + resourceRoot.getFullPathName());
+
+    if (auto result = bootPd (numOutputChannels, sampleRate, patchDir); result.failed())
+        return result;
+
+    prepareRender (maxBlockSize);
+    running = true;
+
+    juce::Logger::writeToLog ("formuls engine started in a plugin host: "
+                              + juce::String (numOutputChannels) + " channels @ "
+                              + juce::String ((int) actualSampleRate) + " Hz");
+    return juce::Result::ok();
+}
+
+void FormulsEngine::processHosted (float* const* outputChannelData, int numOutputChannels, int numSamples)
+{
+    if (running)
+        render (outputChannelData, numOutputChannels, numSamples);
+}
+
+juce::Result FormulsEngine::bootPd (int numOutputChannels, double sampleRate, const juce::File& patchDir)
+{
+    // queued = true: patch -> app messages go through a lock-free ring buffer
+    // and are delivered on the message thread by timerCallback().
+    actualSampleRate = sampleRate;
+
+    if (! pd.init (0, numOutputChannels, (int) actualSampleRate, true))
+        return juce::Result::fail ("Could not initialise libpd");
 
     pdOutputChannels = numOutputChannels;
 
@@ -102,10 +149,14 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
     {
         oscOut.stop();   // its receiver must not outlive the Pd it is bound in
         pd.clear();
-        deviceManager.closeAudioDevice();
         return juce::Result::fail ("libpd could not open "
                                    + patchDir.getChildFile ("_main.pd").getFullPathName());
     }
+
+    // Log what the patch printed while loading (externals, errors) now,
+    // rather than at the first timer tick: a plugin host may never run one
+    // before rendering, and a missing external should show up straight away.
+    pd.receiveMessages();
 
     // From here on the patch hands its GUI-bound OSC to oscOut rather than
     // sending it from inside Pd (_main.pd, O-S-C_&_FORMULS_SEND).
@@ -121,16 +172,7 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
              oscResult.failed())
         juce::Logger::writeToLog (oscResult.getErrorMessage());
 
-    // -------------------------------------------------------------- go live
     startTimer (messagePumpIntervalMs);
-    deviceManager.addAudioCallback (this);
-    activeDeviceManager = &deviceManager;
-    running = true;
-
-    juce::Logger::writeToLog ("formuls engine started: \"" + device->getName()
-                              + "\", " + juce::String (numOutputChannels)
-                              + " channels @ " + juce::String ((int) actualSampleRate)
-                              + " Hz");
     return juce::Result::ok();
 }
 
@@ -173,19 +215,22 @@ void FormulsEngine::stop()
 //==============================================================================
 void FormulsEngine::audioDeviceAboutToStart (juce::AudioIODevice* device)
 {
+    prepareRender (device != nullptr ? device->getCurrentBufferSizeSamples() : 0);
+}
+
+void FormulsEngine::prepareRender (int maxBlockSize)
+{
     const auto blockSize = libpd_blocksize();   // always 64 frames
 
     pdInputBuffer.assign ((size_t) blockSize, 0.0f);   // no input channels used
     pdOutputBuffer.assign ((size_t) (blockSize * juce::jmax (1, pdOutputChannels)), 0.0f);
     samplesLeftInTick = 0;
 
-    // Allocate the recording tap here, on the message thread, generously
-    // enough that a device buffer size change still fits without the audio
-    // callback ever having to allocate.
-    const auto deviceBufferSize = device != nullptr ? device->getCurrentBufferSizeSamples() : 0;
-
+    // Allocate the recording tap here, not on the audio thread, generously
+    // enough that a buffer size change still fits without the audio callback
+    // ever having to allocate.
     recordChannels.assign ((size_t) juce::jmax (1, pdOutputChannels), nullptr);
-    recordSilence.assign ((size_t) juce::jmax (8192, deviceBufferSize * 4), 0.0f);
+    recordSilence.assign ((size_t) juce::jmax (8192, maxBlockSize * 4), 0.0f);
 }
 
 void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
@@ -193,6 +238,11 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
                                                       int numOutputChannels,
                                                       int numSamples,
                                                       const juce::AudioIODeviceCallbackContext&)
+{
+    render (outputChannelData, numOutputChannels, numSamples);
+}
+
+void FormulsEngine::render (float* const* outputChannelData, int numOutputChannels, int numSamples)
 {
     const auto blockSize = libpd_blocksize();
 

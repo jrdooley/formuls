@@ -90,6 +90,18 @@ public:
                         double sampleRate,
                         const juce::File& resourceRoot);
 
+    /** Boots libpd and loads pd/_main.pd without opening an audio device,
+        for a plugin: the host then drives the audio through processHosted().
+        maxBlockSize is the most frames one processHosted() call will ask for. */
+    juce::Result startHosted (int numOutputChannels, double sampleRate,
+                              int maxBlockSize, const juce::File& resourceRoot);
+
+    /** Audio thread, after startHosted(). Renders numSamples frames of the
+        patch into the host's buffers (any block size; libpd's 64-frame ticks
+        are carried across calls). Does nothing when not running, so the
+        caller clears the buffers first. */
+    void processHosted (float* const* outputChannelData, int numOutputChannels, int numSamples);
+
     /** Attaches the recorder that each rendered block is copied to, or
         nullptr to detach. Call this from the message thread while the engine
         is stopped (MainComponent does it once, at construction); the
@@ -150,6 +162,11 @@ private:
                          const pd::List& list) override;
 
     void handleQuitRequest();
+
+    // Shared by start() and startHosted().
+    juce::Result bootPd (int numOutputChannels, double sampleRate, const juce::File& patchDir);
+    void prepareRender (int maxBlockSize);   // not on the audio thread
+    void render (float* const* outputChannelData, int numOutputChannels, int numSamples);
 
     pd::PdBase pd;
     pd::Patch patch;

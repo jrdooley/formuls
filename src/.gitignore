@@ -6,6 +6,8 @@
 # app/Source are the sources of truth)
 app/Builds/
 app/JuceLibraryCode/
+plugin/Builds/
+plugin/JuceLibraryCode/
 
 #OS files
 .DS_Store
