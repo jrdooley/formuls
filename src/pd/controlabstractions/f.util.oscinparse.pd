@@ -1499,6 +1499,10 @@
 #X obj 120 260 s to-o-s-c-interface;
 #X obj 30 110 loadbang;
 #X obj 440 160 r \$0-key-note;
+#X obj 330 215 t f b b;
+#X obj 250 245 s \$0-midi-note;
+#X obj 250 270 s \$0-timer;
+#X obj 250 295 s \$0-one-bang;
 #X connect 1 0 3 0;
 #X connect 3 0 4 1;
 #X connect 3 1 10 2;
@@ -1506,7 +1510,10 @@
 #X connect 5 0 6 0;
 #X connect 5 1 6 1;
 #X connect 6 0 4 0;
-#X connect 4 0 7 0;
+#X connect 4 0 24 0;
+#X connect 24 0 25 0;
+#X connect 24 1 26 0;
+#X connect 24 2 27 0;
 #X connect 23 0 7 0;
 #X connect 7 1 8 0;
 #X connect 8 0 9 0;
