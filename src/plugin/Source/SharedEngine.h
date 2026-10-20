@@ -65,7 +65,7 @@ public:
     bool isPatchReady() const noexcept   { return patchReady; }
 
     /** Appends to plugin.log (via JUCE's logger): ~/Library/Logs/formuls on macOS,
-        ~/.config/formuls on Linux. */
+        ~/.config/formuls on Linux, %APPDATA%\formuls on Windows. */
     static void log (const juce::String& message);
 
     static constexpr int numOutputChannels = 2;

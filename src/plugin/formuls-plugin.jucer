@@ -65,7 +65,7 @@
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
     <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="0"/>
   </MODULES>
-  <JUCEOPTIONS JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <JUCEOPTIONS JUCE_VST3_CAN_REPLACE_VST2="0" JUCE_USE_CURL="0" JUCE_WEB_BROWSER="0"/>
   <EXPORTFORMATS>
     <XCODE_MAC targetFolder="Builds/MacOSX" externalLibraries="pd" extraLinkerFlags="-Wl,-rpath,@loader_path/../Frameworks -Wl,-rpath,@loader_path/../../../../../../../../libs/libpd/libs">
       <CONFIGURATIONS>
@@ -117,5 +117,31 @@
         <MODULEPATH id="juce_gui_extra" path="../../../../JUCE/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
+    <VS2022 targetFolder="Builds/VisualStudio2022" externalLibraries="libpd.lib&#10;delayimp.lib"
+            extraLinkerFlags="/DELAYLOAD:libpd.dll">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="formuls"
+                       headerPath="../../../app/Source&#10;../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../libs/libpd/libs" enablePluginBinaryCopyStep="0"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="formuls"
+                       headerPath="../../../app/Source&#10;../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+                       libraryPath="../../../libs/libpd/libs" enablePluginBinaryCopyStep="0"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors_headless" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_osc" path="../../../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../../../JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
   </EXPORTFORMATS>
 </JUCERPROJECT>

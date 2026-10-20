@@ -20,6 +20,10 @@ on:
     paths:
       - 'build-linux.sh'
       - 'build-windows.bat'
+      - 'build-plugin-linux.sh'
+      - 'build-plugin-windows.bat'
+      - 'src/plugin/**'
+      - 'src/tools/plugin-probe/**'
       - '.github/workflows/release.yml'
 
 permissions:
@@ -105,6 +109,31 @@ jobs:
           name: linux-x64
           path: formuls-*-linux-x64.tar.gz
 
+      # The plugins (VST3, LV2) reuse the app folder's pd/ and gui/.
+      - name: Build the plugins
+        run: xvfb-run -a ./build-plugin-linux.sh
+
+      - name: Check the plugins in a test host
+        run: |
+          cmake -S src/tools/plugin-probe -B build-probe -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-probe -j"$(nproc)"
+          for b in formuls.vst3 formuls.lv2; do
+            echo "::group::$b"
+            PROBE_MIN_PEAK=0.05 PROBE_NO_EDITOR=1 \
+              build-probe/plugin_probe_artefacts/Release/plugin_probe \
+              "$PWD/formuls-${{ needs.version.outputs.version }}-linux-x64-plugins/$b" 4 9001
+            echo "::endgroup::"
+          done
+          cat ~/.config/formuls/plugin.log
+
+      - name: Package the plugins
+        run: tar -czf "formuls-${{ needs.version.outputs.version }}-linux-x64-plugins.tar.gz" "formuls-${{ needs.version.outputs.version }}-linux-x64-plugins"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64-plugins
+          path: formuls-*-linux-x64-plugins.tar.gz
+
   windows:
     needs: version
     runs-on: windows-2022
@@ -144,6 +173,30 @@ jobs:
         with:
           name: windows-x64
           path: formuls-*-windows-x64.zip
+
+      # The plugin (VST3) reuses the app folder's pd\ and gui\.
+      - name: Build the plugin
+        shell: cmd
+        run: build-plugin-windows.bat
+
+      - name: Check the plugin in a test host
+        shell: bash
+        run: |
+          cmake -S src/tools/plugin-probe -B build-probe -A x64
+          cmake --build build-probe --config Release
+          PROBE_MIN_PEAK=0.05 PROBE_NO_EDITOR=1 \
+            build-probe/plugin_probe_artefacts/Release/plugin_probe.exe \
+            "$PWD/formuls-${{ needs.version.outputs.version }}-windows-x64-plugins/formuls.vst3" 4 9001
+          cat "$APPDATA/formuls/plugin.log"
+
+      - name: Package the plugin
+        shell: pwsh
+        run: Compress-Archive -Path "formuls-${{ needs.version.outputs.version }}-windows-x64-plugins" -DestinationPath "formuls-${{ needs.version.outputs.version }}-windows-x64-plugins.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64-plugins
+          path: formuls-*-windows-x64-plugins.zip
 
   release:
     if: github.ref_type == 'tag'

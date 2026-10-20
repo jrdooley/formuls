@@ -8,6 +8,11 @@
 
 #if JUCE_MAC || JUCE_LINUX
  #include <dlfcn.h>
+#elif JUCE_WINDOWS
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
+ #include <windows.h>
 #endif
 
 namespace formuls
@@ -30,6 +35,29 @@ namespace
     // `-undefined dynamic_lookup` and expect to find them there, as they do
     // in the app (where libpd is linked at launch). Re-opening the already
     // loaded libpd with RTLD_GLOBAL promotes it. Harmless if already global.
+    // Windows resolves a DLL's imports from the host's folder, not the
+    // plugin's, so the plugin delay-loads libpd.dll (/DELAYLOAD in the .jucer)
+    // and loads its own copy, next to formuls.vst3's binary, by full path
+    // before anything calls libpd. LOAD_WITH_ALTERED_SEARCH_PATH finds
+    // pthreadVC3.dll beside it. The externals import "libpd.dll" by name, and
+    // Windows hands them the module of that name already loaded: this one.
+    // Returns an error to log once the logger is up, or an empty string.
+    juce::String loadBundledLibpd()
+    {
+       #if JUCE_WINDOWS
+        if (GetModuleHandleW (L"libpd.dll") != nullptr)
+            return {};
+
+        const auto dll = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+                             .getSiblingFile ("libpd.dll");
+        if (LoadLibraryExW (dll.getFullPathName().toWideCharPointer(), nullptr,
+                            LOAD_WITH_ALTERED_SEARCH_PATH) == nullptr)
+            return "could not load " + dll.getFullPathName()
+                   + " (Windows error " + juce::String ((int) GetLastError()) + ")";
+       #endif
+        return {};
+    }
+
     void makeLibpdSymbolsGlobal()
     {
        #if JUCE_MAC || JUCE_LINUX
@@ -47,7 +75,11 @@ std::shared_ptr<SharedEngine> SharedEngine::acquire()
     auto engine = sharedInstance.lock();
     if (engine == nullptr)
     {
+        // Before the engine: its pd::PdBase member calls libpd_init().
+        const auto libpdError = loadBundledLibpd();
         engine.reset (new SharedEngine());
+        if (libpdError.isNotEmpty())
+            log (libpdError);
         sharedInstance = engine;
     }
     return engine;

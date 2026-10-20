@@ -38,6 +38,26 @@ The bundles keep the plain name `formuls`: a Linux VST3 host looks for
 The LV2 URI is `urn:net.formuls:formuls`; hosts save projects against it, so
 it must not change.
 
+On Windows, VST3, from a Developer Command Prompt for VS 2022:
+
+```bat
+build-windows.bat           :: once: the app folder, whose pd\ and gui\ the plugin reuses
+build-plugin-windows.bat    :: formuls-0.3.1-windows-x64-plugins\formuls.vst3
+```
+
+`set INSTALL=1` first also copies it into
+`%LOCALAPPDATA%\Programs\Common\VST3` (the per-user VST3 folder; the
+all-users `C:\Program Files\Common Files\VST3` needs an administrator).
+The bundle holds `Contents\x86_64-win\{formuls.vst3, libpd.dll,
+pthreadVC3.dll}` and `Contents\Resources\{pd, gui}`.
+
+Windows resolves a DLL's imports from the *host's* folder, so the plugin
+delay-loads `libpd.dll` (`/DELAYLOAD` in the .jucer) and
+`SharedEngine::acquire()` loads the bundle's copy by full path before the
+engine exists. The externals import `libpd.dll` by name and get that copy:
+Windows reuses an already loaded module of the same name. The .bat files
+are checked out with CRLF (`.gitattributes`).
+
 Sources: `src/plugin/` (processor and editor) plus the app's own
 `FormulsEngine`, `OscBridge`, `PdOscOut`, `EmbeddedGuiServer` and
 `WebSocketServer`, compiled into the plugin unchanged
@@ -119,10 +139,16 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   `/testtone` output peaks at 0.0998. Not yet run: the editor window (the VM
   has no display), a real Linux DAW, MIDI input.
 
+- CI (`.github/workflows/release.yml`): the Linux and Windows jobs build the
+  plugins after the app and run `src/tools/plugin-probe` on every bundle,
+  failing below a 0.05 peak. The plugins are uploaded as their own artifacts
+  (and land in the draft release on a tag).
+
 ## Diagnostics
 
 Every instance logs to `~/Library/Logs/formuls/plugin.log` on macOS and
-`~/.config/formuls/plugin.log` on Linux (1 MB, trimmed):
+`~/.config/formuls/plugin.log` on Linux and `%APPDATA%\formuls\plugin.log`
+on Windows (1 MB, trimmed):
 creation and host, `prepareToPlay` (rate, block size, channels), engine and
 GUI start-up, Pd's own messages (externals, Link, errors), and every 5 s how
 many blocks the host called, how many this instance rendered, and the peak.
@@ -158,7 +184,8 @@ ids with their modals, now end in `panel`.)
   and Ableton Link).
 - No CLAP: JUCE 9.0.1's Projucer has no CLAP target; it needs a CMake build
   with clap-juce-extensions.
-- macOS and Linux so far; no Windows build yet.
+- Windows: VST3 only, built and checked by CI (below); not yet tried in a
+  real Windows DAW.
 
 ## Max-based hosts (SoundDesk)
 

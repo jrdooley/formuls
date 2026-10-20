@@ -7,6 +7,9 @@
 
 #if JUCE_MAC || JUCE_LINUX
  #include <unistd.h>
+#elif JUCE_WINDOWS
+ #include <process.h>
+ #define getpid _getpid
 #endif
 
 namespace formuls

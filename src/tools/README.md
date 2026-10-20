@@ -444,3 +444,31 @@ python3 src/tools/automater-load-bench.py -n 400 --modes chaos --rev HEAD~1
 ```
 
 See `docs/efficiency/automater-modulation.md` for the results it produced.
+
+## plugin-probe
+
+A minimal plugin host for the plugin builds: it loads a bundle the way a DAW
+does, renders a few seconds at 48 kHz, and connects to the plugin's GUI
+WebSocket as a tablet would to send `/testtone` (the patch's 0.1 test tone).
+VST3 everywhere, plus AU on macOS and LV2 on Linux.
+
+```bash
+cmake -S src/tools/plugin-probe -B build/plugin-probe -DCMAKE_BUILD_TYPE=Release
+cmake --build build/plugin-probe --config Release
+PROBE_MIN_PEAK=0.05 build/plugin-probe/plugin_probe_artefacts/Release/plugin_probe <bundle> 4 9001
+```
+
+Arguments: the bundle, the seconds to render, and the GUI port (9001 for
+the first formuls in a process). A healthy build prints
+`rendered 375 blocks, peak 0.0998...`. Environment options:
+
+- `PROBE_MIN_PEAK=x`: exit 3 if the output never reaches `x` (CI uses 0.05).
+- `PROBE_NO_EDITOR=1`: skip opening the editor (machines with no display).
+- `PROBE_BLOCK=n`: the block size (default 512).
+- `PROBE_NOTES_AT="secs:note,..."`: MIDI note-ons; `PROBE_GUI_AT="secs:address:value,..."`:
+  tablet messages instead of the test tone; `PROBE_SEGMENTS="a,b,..."`: peaks between times.
+- `PROBE_IDLE_FIRST=1`, `PROBE_CYCLES=n`, `PROBE_PATH2`, `PROBE_SAVE`, `PROBE_LOAD`,
+  `PROBE_REALTIME=1`: host behaviours (an idle extra instance, reloading,
+  saving and restoring state, real-time pacing).
+
+The release workflow runs it on the Linux and Windows plugin builds.
