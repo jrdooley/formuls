@@ -65,6 +65,15 @@ for ext in vst3 component; do
     cp -R "$RES/pd" "$BUNDLE/Contents/Resources/pd"
     rsync -a --exclude node "$RES/gui/" "$BUNDLE/Contents/Resources/gui/"
     cp "$LIBPD" "$BUNDLE/Contents/Frameworks/"
+    # Bind the externals' Pd symbols to this libpd. Linked flat-namespace,
+    # they would take whichever image exports class_new, gensym, post... first:
+    # in a Max-based host (SoundDesk) that is Max, and every external fails.
+    python3 "$ROOT/src/tools/bind-externals-to-libpd.py" --arch "$(uname -m)" \
+        "$BUNDLE/Contents/Frameworks/libpd.dylib" @loader_path/../../../Frameworks/libpd.dylib \
+        "$BUNDLE"/Contents/Resources/pd/externals/*.pd_darwin
+    # --deep below does not reach code under Resources/, and rebinding removed
+    # the externals' signatures: unsigned, arm64 refuses to load them.
+    codesign --force -s - "$BUNDLE"/Contents/Resources/pd/externals/*.pd_darwin
     codesign --force --deep -s - "$BUNDLE"
     echo "Built $BUNDLE"
 done

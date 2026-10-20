@@ -124,3 +124,21 @@ ids with their modals, now end in `panel`.)
 - No CLAP: JUCE 9.0.1's Projucer has no CLAP target; it needs a CMake build
   with clap-juce-extensions.
 - macOS only so far.
+
+## Max-based hosts (SoundDesk)
+
+Pd externals are linked flat-namespace: they look up `class_new`, `gensym`,
+`outlet_new`, `post` and the rest of Pd's API in whichever loaded image
+exports them first. Max-based hosts such as SoundDesk export Max's C API,
+which uses the same names, from their own executable, so the externals
+registered their classes with Max. Pd never saw `formuls~`, the Faust
+effects or `abl_link~`, logged `maximum object loading depth 1000 reached`
+for each one, and the patch ran silent with no Link clock.
+
+`build-plugin-macOS.sh` runs `src/tools/bind-externals-to-libpd.py` on the
+bundle's externals. The tool binds every symbol that libpd exports to the
+bundle's libpd, and leaves all other symbols as they were. It patches the
+binaries in place, so `abl_link~` stays the prebuilt binary. Each external
+keeps only the build architecture and is signed again. A test host whose
+executable exports Max-like stand-ins reproduced the failure. With the
+rebound externals, everything loads and the test tone plays.
