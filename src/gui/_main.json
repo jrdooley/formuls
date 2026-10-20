@@ -9962,7 +9962,7 @@
                     "widgets": [
                       {
                         "type": "panel",
-                        "top": "14%",
+                        "top": "7%",
                         "left": "0%",
                         "id": "adsr@{parent.variables.n}",
                         "visible": true,
@@ -10271,7 +10271,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "7%",
+                        "top": "0%",
                         "left": "0%",
                         "id": "filterkeychaosevolvepanel@{parent.variables.n}",
                         "visible": true,
@@ -12183,7 +12183,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "41%",
+                        "top": "49%",
                         "left": "0%",
                         "lock": false,
                         "id": "seqrhythmcontrols",
@@ -12366,7 +12366,7 @@
                       },
                       {
                         "type": "modal",
-                        "top": "73%",
+                        "top": "41%",
                         "left": "0%",
                         "lock": false,
                         "id": "sequencer@{parent.variables.n}",
@@ -15151,7 +15151,7 @@
                       },
                       {
                         "type": "panel",
-                        "top": "0%",
+                        "top": "34%",
                         "left": "0%",
                         "id": "seqonpanel@{parent.variables.n}",
                         "visible": true,
