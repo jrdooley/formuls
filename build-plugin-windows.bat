@@ -123,7 +123,12 @@ REM Only VST3: the .jucer also lists AU (macOS) and LV2 (Linux). The VST3
 REM manifest helper loads the plugin to write moduleinfo.json; libpd.dll is on
 REM PATH for it in case it needs to.
 set "PATH=%LIBPD%;%PATH%"
-msbuild "%SLN%" /t:formuls_VST3 /p:Configuration=Release /p:Platform=x64 /m
+REM The solution names the project "formuls - VST3"; msbuild turns that into
+REM the target formuls_-_VST3. (A name that is not a project target, such as
+REM formuls_VST3, is passed on to every project instead: MSB4057.) Through the
+REM solution, its dependencies build first, including the manifest helper,
+REM which JUCE builds for Win32 only.
+msbuild "%SLN%" /t:formuls_-_VST3 /p:Configuration=Release /p:Platform=x64 /m
 if errorlevel 1 (
     echo plugin build failed
     exit /b 1
