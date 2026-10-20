@@ -37,6 +37,11 @@ MainComponent::MainComponent()
 {
     setSize (style::windowWidth, style::windowHeight);
 
+    // ------------------------------------------------------- MIDI keyboards
+    enableAllMidiInputs();
+    deviceManager.addMidiInputDeviceCallback ({}, this);   // {} = every enabled input
+    midiDeviceListConnection = juce::MidiDeviceListConnection::make ([this] { enableAllMidiInputs(); });
+
     // ------------------------------------------------- audio device combo box
     audioDeviceBox.setTextWhenNothingSelected ("Select audio output...");
     populateDeviceList();
@@ -207,10 +212,31 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    deviceManager.removeMidiInputDeviceCallback ({}, this);
+
     // The app is closing, so there is nowhere to show a save dialog: any
     // take in progress is simply finished where it was being recorded.
     stopEverything (false);
     engine.setRecorder (nullptr);
+}
+
+//==============================================================================
+void MainComponent::enableAllMidiInputs()
+{
+    for (const auto& input : juce::MidiInput::getAvailableDevices())
+        if (! deviceManager.isMidiInputDeviceEnabled (input.identifier))
+        {
+            deviceManager.setMidiInputDeviceEnabled (input.identifier, true);
+            juce::Logger::writeToLog ("MIDI input: " + input.name);
+        }
+}
+
+void MainComponent::handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage& message)
+{
+    // MIDI thread. The engine queues the note for its next audio tick; notes
+    // that arrive while it is stopped are cleared when it starts.
+    if (message.isNoteOn())   // velocity 0 counts as a note-off
+        engine.queueNoteOn (message.getChannel() - 1, message.getNoteNumber(), message.getVelocity());
 }
 
 //==============================================================================

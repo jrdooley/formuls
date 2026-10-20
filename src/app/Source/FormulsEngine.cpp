@@ -131,6 +131,7 @@ juce::Result FormulsEngine::bootPd (int numOutputChannels, double sampleRate, co
         return juce::Result::fail ("Could not initialise libpd");
 
     pdOutputChannels = numOutputChannels;
+    noteFifo.reset();   // nothing renders yet: notes from before a restart are stale
 
     pd.setReceiver (this);
 
@@ -243,6 +244,25 @@ void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
     render (outputChannelData, numOutputChannels, numSamples);
 }
 
+void FormulsEngine::queueNoteOn (int channel, int note, int velocity) noexcept
+{
+    const juce::SpinLock::ScopedLockType sl (notePushLock);
+    const auto scope = noteFifo.write (1);
+    if (scope.blockSize1 > 0)
+        noteQueue[(size_t) scope.startIndex1] = { channel, note, velocity };
+    // A full queue drops the note: 256 notes waiting is far more than any player.
+}
+
+void FormulsEngine::sendNextQueuedNote()
+{
+    const auto scope = noteFifo.read (1);
+    if (scope.blockSize1 > 0)
+    {
+        const auto& n = noteQueue[(size_t) scope.startIndex1];
+        pd.sendNoteOn (n.channel, n.note, n.velocity);
+    }
+}
+
 void FormulsEngine::render (float* const* outputChannelData, int numOutputChannels, int numSamples)
 {
     const auto blockSize = libpd_blocksize();
@@ -257,6 +277,7 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
     {
         if (samplesLeftInTick == 0)
         {
+            sendNextQueuedNote();
             pd.processFloat (1, pdInputBuffer.data(), pdOutputBuffer.data());
             samplesLeftInTick = blockSize;
         }

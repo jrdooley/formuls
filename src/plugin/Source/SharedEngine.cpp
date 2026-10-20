@@ -173,7 +173,7 @@ void SharedEngine::stop()
 }
 
 //==============================================================================
-bool SharedEngine::render (const void* instance, juce::AudioBuffer<float>& buffer) noexcept
+bool SharedEngine::render (const void* instance, juce::AudioBuffer<float>& buffer, const juce::MidiBuffer& midi) noexcept
 {
     const auto now = juce::Time::getMillisecondCounter();
     auto current = renderer.load();
@@ -192,7 +192,15 @@ bool SharedEngine::render (const void* instance, juce::AudioBuffer<float>& buffe
     ++rendersInFlight;
     const bool rendered = engineRunning.load();
     if (rendered)
+    {
+        for (const auto metadata : midi)
+        {
+            const auto message = metadata.getMessage();
+            if (message.isNoteOn())   // velocity 0 counts as a note-off
+                engine.queueNoteOn (message.getChannel() - 1, message.getNoteNumber(), message.getVelocity());
+        }
         engine.processHosted (buffer.getArrayOfWritePointers(), buffer.getNumChannels(), buffer.getNumSamples());
+    }
     --rendersInFlight;
     return rendered;
 }

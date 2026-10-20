@@ -148,3 +148,48 @@ binaries in place, so `abl_link~` stays the prebuilt binary. Each external
 keeps only the build architecture and is signed again. A test host whose
 executable exports Max-like stand-ins reproduced the failure. With the
 rebound externals, everything loads and the test tone plays.
+
+## MIDI keyboard input
+
+Each synth has a **Keyboard** button on its main panel, under **Freq Snap**.
+It opens the keyboard popup (the on-screen keyboard, RECORD and TRANSPOSE),
+which also holds two buttons per synth:
+
+- **MIDI IN**: off by default, and switched off again on every reset. While
+  it is on, every MIDI note-on, on any channel, sets the synth's pitch and
+  triggers it, just like a tap on the on-screen keyboard. Several synths
+  with MIDI IN on play the same notes, layered.
+- **MIDI QUANTISE**:
+  - *off* (free): every note plays at its equal-tempered pitch;
+  - *on*: a note whose pitch class (counted from the root) is active in the
+    PITCH GAMUT takes that slot's tuning, in the note's own octave; notes on
+    inactive pitch classes keep their equal-tempered pitch.
+
+  Root F with C, E and F active is F, A and B♭, each at its slot's tuning.
+
+**Where the notes come from:**
+- the plugin plays the host's MIDI;
+- the app listens to every connected MIDI input, including ones plugged in
+  while it runs.
+
+**Note handling:**
+- Note-offs and velocity are ignored: a triggered note plays the synth's own
+  envelope at formuls's own velocity.
+- MIDI notes are not recorded into the on-screen keyboard's performance
+  recording.
+- MIDI notes don't use the oscillator's Freq Snap; MIDI QUANTISE decides
+  their tuning.
+
+A synth trigger is a toggle that Faust reads once per 64-sample tick, so two
+triggers in one tick cancel out. The engine therefore hands Pd at most one
+note-on per tick (`FormulsEngine::queueNoteOn`). A chord is spread over a few
+ticks (1.3 ms each at 48 kHz), and every note sounds. In the plugin, notes
+are taken at the start of the host block they arrive in, not at their exact
+sample position.
+
+Implementation: `MIDI_KEYBOARD___` in `f.util.oscinparse.pd` (one per synth,
+in the ADSR_VEL_TRIG message chain); `SharedEngine::render` (plugin);
+`MainComponent::handleIncomingMidiMessage` (app).
+
+Parameter control from the host (automation, MIDI CC) is deliberately not
+offered: formuls's parameters are played from the tablet.

@@ -57,7 +57,8 @@
 namespace formuls
 {
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component,
+                      private juce::MidiInputCallback
 {
 public:
     MainComponent();
@@ -138,6 +139,13 @@ private:
     void updateAddressPanel (bool guiIsRunning);
 
     juce::AudioDeviceManager deviceManager;
+
+    // MIDI keyboards: every MIDI input is listened to, including ones plugged
+    // in later. Note-ons go to the engine; the synths with MIDI IN switched
+    // on play them (by default none do).
+    void enableAllMidiInputs();
+    void handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage&) override;
+    juce::MidiDeviceListConnection midiDeviceListConnection;
 
     // Serves the GUI from inside the app instead of node + Open Stage Control
     // (ws-prototype), wired to the engine in-process: no OSC ports. Set

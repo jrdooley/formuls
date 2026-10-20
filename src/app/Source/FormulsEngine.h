@@ -143,6 +143,15 @@ public:
 
     bool isRunning() const noexcept   { return running; }
 
+    /** Any thread. Queues a MIDI note-on for the patch's [notein], which the
+        synths with MIDI IN switched on play (see f.util.oscinparse,
+        MIDI_KEYBOARD). Notes reach Pd at most one per 64-frame tick: a synth
+        trigger is a toggle that Faust reads once per tick, so two in one
+        tick would cancel out and a chord would not sound. A chord is
+        therefore spread over a few ticks (1.3 ms each at 48 kHz). Note-offs
+        are not queued: a triggered note plays its own envelope. */
+    void queueNoteOn (int channel, int note, int velocity) noexcept;
+
     /** Peak levels for the first two output channels, updated on the audio
         thread. Read from the GUI thread to drive VU meters. */
     std::array<std::atomic<float>, 2> peakLevels {{ 0.0f, 0.0f }};
@@ -199,6 +208,16 @@ private:
     std::vector<float> pdInputBuffer;       // dummy interleaved input (0 channels)
     std::vector<float> pdOutputBuffer;      // one Pd tick of interleaved output
     int samplesLeftInTick = 0;              // unconsumed frames in pdOutputBuffer
+
+    // Note-ons waiting for the next tick (queueNoteOn). Several MIDI inputs
+    // may push at once, so pushes take the spin lock; only the audio thread
+    // pops.
+    struct NoteOn { int channel, note, velocity; };
+    static constexpr int noteQueueSize = 256;
+    juce::AbstractFifo noteFifo { noteQueueSize };
+    std::array<NoteOn, noteQueueSize> noteQueue {};
+    juce::SpinLock notePushLock;
+    void sendNextQueuedNote();   // audio thread, before each tick
 
     // Recording tap. recordChannels/recordSilence are sized in
     // audioDeviceAboutToStart() so the audio callback never allocates;

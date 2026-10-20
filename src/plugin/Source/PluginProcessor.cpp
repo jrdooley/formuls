@@ -75,7 +75,7 @@ void FormulsPluginProcessor::prepareToPlay (double sampleRate, int maximumExpect
     engine->prepare (sampleRate, maximumExpectedSamplesPerBlock);
 }
 
-void FormulsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
+void FormulsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
@@ -84,7 +84,7 @@ void FormulsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     lastNumChannels.store (buffer.getNumChannels(), std::memory_order_relaxed);
     lastNumSamples.store (buffer.getNumSamples(), std::memory_order_relaxed);
 
-    if (engine->render (this, buffer))
+    if (engine->render (this, buffer, midi))
     {
         ++blocksRendered;
         const auto peak = buffer.getMagnitude (0, buffer.getNumSamples());

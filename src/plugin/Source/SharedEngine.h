@@ -45,8 +45,9 @@ public:
 
     /** Audio thread. Renders into `buffer` if `instance` is the one playing,
         taking over from an instance that has gone quiet; leaves the buffer
-        untouched (silent, cleared by the caller) otherwise. */
-    bool render (const void* instance, juce::AudioBuffer<float>& buffer) noexcept;
+        untouched (silent, cleared by the caller) otherwise. The playing
+        instance's MIDI note-ons go to the patch (FormulsEngine::queueNoteOn). */
+    bool render (const void* instance, juce::AudioBuffer<float>& buffer, const juce::MidiBuffer& midi) noexcept;
 
     /** An instance going away: if it was the one playing, nobody is. */
     void forget (const void* instance) noexcept;

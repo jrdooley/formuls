@@ -15,7 +15,9 @@
  *   - one formuls per host process: two instances that are both playing
  *     cannot each have one; the second stays silent and says so;
  *   - the engine always runs 2 output channels;
- *   - no MIDI or host automation yet.
+ *   - MIDI: note-ons only, played by the synths with MIDI IN on; formuls's
+ *     parameters are deliberately not exposed to host automation or MIDI CC
+ *     (they are played from the tablet).
  */
 
 #pragma once
