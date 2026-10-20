@@ -405,7 +405,10 @@ void MainComponent::startEverything()
     }
 
     // 2. the Open Stage Control GUI server
-    auto oscResult = openStageControl.start (resourceRoot);
+    auto oscResult = useNodeGui
+                         ? openStageControl.start (resourceRoot)
+                         : embeddedGui.start (resourceRoot, OpenStageControlProcess::guiPort,
+                                              OpenStageControlProcess::patchOscPort);
 
     startStopButton.setButtonText (kStopText);
 
@@ -441,6 +444,7 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
         finishRecording (offerToSaveRecording);
 
     openStageControl.stop();
+    embeddedGui.stop();
     engine.stop();
 
     startStopButton.setButtonText (kStartText);

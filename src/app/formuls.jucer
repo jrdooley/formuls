@@ -27,6 +27,11 @@
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
       <FILE id="srcOB0" name="OscBridge.h" compile="0" resource="0" file="Source/OscBridge.h"/>
       <FILE id="srcOB1" name="OscBridge.cpp" compile="1" resource="0" file="Source/OscBridge.cpp"/>
+      <FILE id="srcWS0" name="WebSocketServer.h" compile="0" resource="0" file="Source/WebSocketServer.h"/>
+      <FILE id="srcWS1" name="WebSocketServer.cpp" compile="1" resource="0" file="Source/WebSocketServer.cpp"/>
+      <FILE id="srcEG0" name="EmbeddedGuiServer.h" compile="0" resource="0" file="Source/EmbeddedGuiServer.h"/>
+      <FILE id="srcEG1" name="EmbeddedGuiServer.cpp" compile="1" resource="0"
+            file="Source/EmbeddedGuiServer.cpp"/>
     </GROUP>
     <GROUP id="frmAst" name="Assets">
       <FILE id="astIc0" name="formuls-app-icon-blackwhite.png" compile="0" resource="1"

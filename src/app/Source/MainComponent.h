@@ -51,6 +51,7 @@
 #include "AudioRecorder.h"
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"
+#include "EmbeddedGuiServer.h"
 #include "StereoMeter.h"
 
 namespace formuls
@@ -142,6 +143,11 @@ private:
     AudioRecorder recorder;
     FormulsEngine engine;
     OpenStageControlProcess openStageControl;
+
+    // Serves the GUI from inside the app instead of node + Open Stage Control
+    // (ws-prototype). FORMULS_NODE_GUI=1 in the environment goes back to node.
+    EmbeddedGuiServer embeddedGui;
+    const bool useNodeGui = juce::SystemStats::getEnvironmentVariable ("FORMULS_NODE_GUI", {}) == "1";
 
     juce::ComboBox audioDeviceBox;
     juce::ComboBox channelsBox;
