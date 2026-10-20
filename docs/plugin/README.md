@@ -36,6 +36,28 @@ Sources: `src/plugin/` (processor and editor) plus the app's own
 - `ResourceLocator` finds `pd/` and `gui/` in the plugin's own
   `Contents/Resources`.
 
+## Saved with the host project
+
+`getStateInformation` stores two things (`EmbeddedGuiServer`, capture on):
+
+- **the GUI state**: what the tablets show, as o-s-c state JSON. o-s-c keeps
+  widget values in the browser, so after a tablet's change the server asks
+  one tablet for its state (o-s-c's own `/STATE/SAVE`, answered to the server
+  instead of written to a file), at most once a second;
+- **the patch state**: the last message the patch was sent on each address,
+  recorded as it goes by (tablet gestures, state loads, canvas recalls after
+  the compounds module; not the `/GET` poll or `/STATE/*`).
+
+On load the patch messages are replayed to Pd straight away, so the project
+sounds right with no tablet open, and tablets that connect later are shown
+the GUI state (`stateLoad` with `send: false`; the patch already has it).
+
+Replaying what the patch actually received, rather than working it out again
+from the session, is deliberate: matrix children, rounding to each widget's
+`decimals` and string values only exist in the browser. A first version that
+derived the messages from the session sent 2,343 values with 187 Pd errors
+and missed 947 matrix-child addresses; the replay is exact by construction.
+
 ## Verified
 
 - `auval -v aumu Fmls Frml`: AU VALIDATION SUCCEEDED.
@@ -45,7 +67,30 @@ Sources: `src/plugin/` (processor and editor) plus the app's own
   output peaks at 0.0998 (the patch's 0.1 test tone), editor opens, clean
   unload. VST3 and AU alike.
 
+- State, with the test host saving and restoring as a DAW does, and the GUI
+  in a browser: a project saved after changing Mono and Repeater Level
+  restores 5,105 patch messages with no Pd errors and no tablet connected;
+  a tablet that connects afterwards gets the saved GUI state; saving the
+  restored project again gives the same 3,445 GUI values and 5,105 messages.
+
 Not yet tried in a DAW.
+
+### Known gaps in the GUI half
+
+These only affect what a tablet *shows* after a restore; the patch state is
+replayed exactly either way.
+
+- 8 controls share their id with the panel around them (7 faders and the
+  Rolling Freezer transpose switch, e.g. `rollingfreezertranspose`). o-s-c
+  keys state by id, so the panel's value overwrites the control's. The app's
+  own Save State has the same problem; renaming those panels in the session
+  fixes it.
+- A widget with an explicit `value` in the session (5 faders, 18 switches,
+  135 menus, ...) can show that value instead of the restored one, as
+  `repeaterlevel` (`value: 0`) did while `repeatermono` (no `value`) showed
+  the restored state. Likely o-s-c re-applying the property after the load;
+  not yet confirmed.
+- The GUI copy can be up to ~2 s behind the last gesture when the host saves.
 
 ## Limits of this first version
 
@@ -54,8 +99,6 @@ Not yet tried in a DAW.
   with `PDINSTANCE`, and the Faust and abl_link~ externals rebuilt for it
   (the prebuilt abl_link~ cannot be).
 - 2 output channels only (the app also offers 14).
-- The GUI state is not saved with the host project
-  (`getStateInformation` is empty).
 - No MIDI, no host automation, no tempo sync from the host (the patch has
   its own clock and Ableton Link).
 - No CLAP: JUCE 9.0.1's Projucer has no CLAP target; it needs a CMake build

@@ -39,13 +39,13 @@
 namespace formuls
 {
 
-class EmbeddedGuiServer
+class EmbeddedGuiServer : private juce::Timer
 {
 public:
     using PatchSender = std::function<void (const juce::OSCMessage&)>;
 
     EmbeddedGuiServer() = default;
-    ~EmbeddedGuiServer()   { stop(); }
+    ~EmbeddedGuiServer() override   { stop(); }
 
     /** Serves resourceRoot/gui on tcp httpPort. Messages for the patch go to
         toPatch; defaultTarget is the o-s-c target string they are addressed
@@ -62,6 +62,42 @@ public:
     /** Any thread. A message from the app itself (e.g. /STATE/SAVE), handled
         exactly like one from the patch. */
     void receiveFromApp (const juce::OSCMessage& message);
+
+    //==========================================================================
+    // State kept by the server, for a plugin to save with the host project.
+    // It has two parts:
+    //
+    //   - the GUI state: what the tablets show. o-s-c keeps widget values in
+    //     the browser, so after a tablet's change the server asks one
+    //     connected tablet for its state (o-s-c's /STATE/SAVE, answered with a
+    //     stateSave the server keeps instead of writing a file), at most once
+    //     a second; it can be a couple of seconds behind the last gesture;
+    //   - the patch state: the last message the patch was sent on each
+    //     address, recorded as it goes by. Restoring replays exactly those, so
+    //     the patch is back where it was without a tablet, and without
+    //     re-deriving OSC from the session (matrix children, rounding to each
+    //     widget's decimals and string values all live in the browser). An
+    //     address never sent keeps the patch's own default, as it did before.
+    //
+    // The patch's own poll (/GET) and /STATE/* commands are neither changes
+    // nor recorded.
+
+    /** Message thread, before start(). Off by default (the app). */
+    void setStateCapture (bool shouldCapture)   { capture = shouldCapture; }
+
+    /** Any thread. The GUI state as o-s-c state JSON ({widget id: value});
+        empty if none has been captured or restored yet. */
+    juce::String getStateJson() const;
+
+    /** Any thread. The patch state as JSON: [[address, args...], ...] in the
+        order the addresses were first sent; empty if nothing was sent. */
+    juce::String getPatchStateJson() const;
+
+    /** Message thread. Restores both parts: the patch messages are replayed
+        to the patch (if running), open tablets are told to show the GUI state
+        without sending it, and tablets that connect later load it instead of
+        the default state. Either part may be empty. */
+    void setState (const juce::String& guiJson, const juce::String& patchJson);
 
 private:
     struct Client
@@ -83,6 +119,10 @@ private:
 
     // Patch / app side. Call with `lock` held.
     void receiveOsc (const juce::String& address, const juce::Array<juce::var>& args);
+
+    // State capture / restore. Call with `lock` held, except timerCallback.
+    void timerCallback() override;
+    void rememberPatchMessage (const juce::String& address, const juce::OSCMessage&);
 
     // "receiveOsc" to clients. Only one of `onlyTo` / `except` is used;
     // neither means everyone.
@@ -114,6 +154,16 @@ private:
     std::map<juce::String, std::unique_ptr<Client>> clients;
     std::map<WebSocketServer::Connection*, juce::String> clientByConnection;
     juce::var clipboard;
+
+    bool capture = false;
+    juce::String stateJson;                   // under lock
+    std::map<juce::String, juce::Array<juce::var>> patchValues;   // address -> last args
+    juce::StringArray patchOrder;             // first-sent order
+    bool replaying = false;
+    bool stateDirty = false, captureInFlight = false;
+    juce::String lastChangedBy;               // client id
+    juce::uint32 captureRequestedAt = 0;
+    static constexpr const char* captureSentinelPath = "__formuls_host_project__.state";
 
     std::atomic<bool> running { false };
 

@@ -13,7 +13,6 @@
  *     Faust and abl_link~ externals are not built for multi-instance Pd, so a
  *     second instance stays silent and says why;
  *   - the engine always runs 2 output channels;
- *   - the GUI state is not yet saved with the host project;
  *   - no MIDI or host automation yet.
  */
 
@@ -52,8 +51,10 @@ public:
     const juce::String getProgramName (int) override   { return {}; }
     void changeProgramName (int, const juce::String&) override {}
 
-    void getStateInformation (juce::MemoryBlock&) override {}
-    void setStateInformation (const void*, int) override {}
+    // The GUI and patch state (see EmbeddedGuiServer) are saved with the host
+    // project and restored on load, tablet or not.
+    void getStateInformation (juce::MemoryBlock&) override;
+    void setStateInformation (const void*, int) override;
 
     // For the editor (message thread).
     juce::String getStatus() const;
@@ -76,6 +77,11 @@ private:
     double runningSampleRate = 0;
     int guiPort = 0;
     juce::String status;
+
+    // A state the host restored before the engine was running (the usual
+    // order), or kept across an engine restart; applied when it starts.
+    juce::String pendingGuiState, pendingPatchState;
+    juce::CriticalSection stateLock;   // getStateInformation may come from any thread
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FormulsPluginProcessor)
 };

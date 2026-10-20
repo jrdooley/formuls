@@ -103,6 +103,8 @@ juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpP
                                    + " (is another copy of formuls running?)");
 
     running = true;
+    if (capture)
+        startTimer (1000);
     juce::Logger::writeToLog ("Embedded GUI server on port " + juce::String (httpPort)
                               + (compounds.isObject() ? " (compounds module on)" : ""));
     return juce::Result::ok();
@@ -114,6 +116,7 @@ void EmbeddedGuiServer::stop()
         return;
 
     running = false;
+    stopTimer();
     http.stop();   // joins every connection thread, so no handler runs after this
 
     const juce::ScopedLock sl (lock);   // waits out a packet or app command in flight
@@ -122,6 +125,7 @@ void EmbeddedGuiServer::stop()
     toPatch = nullptr;
     clients.clear();
     clientByConnection.clear();
+    captureInFlight = stateDirty = false;   // stateJson itself is kept across a restart
 }
 
 //==============================================================================
@@ -306,7 +310,16 @@ void EmbeddedGuiServer::onIpc (Client& client, const juce::String& event, const 
         // o-s-c: Callbacks.sessionOpened, with --state set. The state is only
         // *sent* (to the patch) by the first client, so a second tablet joining
         // does not reset the instrument; it takes the others' values instead.
-        if (stateFile.existsAsFile())
+        if (capture && stateJson.isNotEmpty())
+        {
+            // The patch already has these values (restored from the host
+            // project, or played in by the tablets): show them, send nothing.
+            auto payload = obj();
+            payload.getDynamicObject()->setProperty ("state", juce::JSON::parse (stateJson));
+            payload.getDynamicObject()->setProperty ("send", false);
+            send (client, "stateLoad", payload);
+        }
+        else if (stateFile.existsAsFile())
         {
             bool alone = true;
             for (auto& [id, other] : clients)
@@ -325,6 +338,12 @@ void EmbeddedGuiServer::onIpc (Client& client, const juce::String& event, const 
                     send (*other, "stateSend", {});
 
         send (client, "setTitle", sessionFile.getFileName());
+    }
+    else if (event == "stateSave" && data["path"].toString() == captureSentinelPath)
+    {
+        // The answer to a capture request (timerCallback), not a file to write.
+        stateJson = data["session"].toString();
+        captureInFlight = false;
     }
     else if (event == "stateSave")
     {
@@ -376,6 +395,16 @@ void EmbeddedGuiServer::onSendOsc (Client& client, const juce::var& t, bool sync
     if (auto* props = t.getDynamicObject())
         for (auto& p : props->getProperties())
             i.getDynamicObject()->setProperty (p.name, p.value);
+
+    if (capture && ! syncOnly)
+    {
+        const auto address = i["address"].toString();
+        if (address != "/GET" && ! address.startsWith ("/STATE/"))   // the patch's poll, not a change
+        {
+            stateDirty = true;
+            lastChangedBy = client.id;
+        }
+    }
 
     juce::Array<juce::var> args;
     if (auto* pre = i["preArgs"].getArray()) { args.addArray (*pre); concatInto (args, t["v"]); }
@@ -460,6 +489,9 @@ void EmbeddedGuiServer::sendToPatch (const juce::String& hostPort, const juce::S
 
         if (hostPort == defaultTarget)
         {
+            if (capture && ! replaying && address != "/GET" && ! address.startsWith ("/STATE/"))
+                rememberPatchMessage (address, message);
+
             if (toPatch) toPatch (message);   // in-process: FormulsEngine::sendToPatch
             return;
         }
@@ -595,6 +627,135 @@ void EmbeddedGuiServer::receiveOsc (const juce::String& address, const juce::Arr
     data.getDynamicObject()->setProperty ("host", defaultTarget.upToLastOccurrenceOf (":", false, false));
     data.getDynamicObject()->setProperty ("port", defaultTarget.fromLastOccurrenceOf (":", false, false).getIntValue());
     deliver (data);
+}
+
+//==============================================================================
+// GUI state for the host project.
+juce::String EmbeddedGuiServer::getStateJson() const
+{
+    const juce::ScopedLock sl (lock);
+    return stateJson;
+}
+
+juce::String EmbeddedGuiServer::getPatchStateJson() const
+{
+    const juce::ScopedLock sl (lock);
+    juce::Array<juce::var> entries;
+    for (auto& address : patchOrder)
+    {
+        juce::Array<juce::var> entry { address };
+        entry.addArray (patchValues.at (address));
+        entries.add (entry);
+    }
+    return entries.isEmpty() ? juce::String() : toJson (entries);
+}
+
+void EmbeddedGuiServer::rememberPatchMessage (const juce::String& address, const juce::OSCMessage& message)
+{
+    juce::Array<juce::var> args;
+    for (auto& a : message)
+    {
+        if (a.isString())       args.add (a.getString());
+        else if (a.isInt32())   args.add (a.getInt32());
+        else if (a.isFloat32()) args.add ((double) a.getFloat32());
+    }
+
+    auto [it, isNew] = patchValues.insert_or_assign (address, args);
+    if (isNew)
+        patchOrder.add (address);
+}
+
+void EmbeddedGuiServer::setState (const juce::String& guiJson, const juce::String& patchJson)
+{
+    const auto gui = juce::JSON::parse (guiJson);
+    const auto patch = juce::JSON::parse (patchJson);
+
+    const juce::ScopedLock sl (lock);
+
+    if (gui.isObject())
+    {
+        stateJson = guiJson;
+        stateDirty = false;
+    }
+
+    // The patch: the messages it was sent last time, again, in the same order.
+    patchValues.clear();
+    patchOrder.clear();
+    int replayed = 0;
+
+    if (auto* entries = patch.getArray())
+    {
+        replaying = true;
+        for (auto& entry : *entries)
+        {
+            auto* e = entry.getArray();
+            if (e == nullptr || e->isEmpty())
+                continue;
+
+            const auto address = e->getFirst().toString();
+            juce::Array<juce::var> args;
+            for (int i = 1; i < e->size(); ++i)
+                args.add (e->getReference (i));
+
+            if (patchValues.insert_or_assign (address, args).second)
+                patchOrder.add (address);
+
+            if (running)
+            {
+                // Ints were floats to Pd anyway (OscBridge), so typeTags only
+                // need to keep strings strings.
+                juce::String tags;
+                for (auto& a : args) tags << (a.isString() ? 's' : 'f');
+                sendToPatch (defaultTarget, address, args, tags);
+                ++replayed;
+            }
+        }
+        replaying = false;
+    }
+
+    // Open tablets show the restored values. 0 = do not send them on: the
+    // patch has them.
+    if (running && gui.isObject())
+    {
+        auto data = obj();
+        data.getDynamicObject()->setProperty ("address", "/STATE/SET");
+        data.getDynamicObject()->setProperty ("args", juce::Array<juce::var> { guiJson, 0 });
+        deliver (data);
+    }
+
+    if (running)
+        juce::Logger::writeToLog ("GUI state restored: " + juce::String (replayed) + " messages replayed to the patch");
+}
+
+void EmbeddedGuiServer::timerCallback()
+{
+    const juce::ScopedLock sl (lock);
+
+    if (captureInFlight && juce::Time::getMillisecondCounter() - captureRequestedAt < 5000)
+        return;   // still waiting (a lost answer is retried after 5 s)
+
+    if (! stateDirty)
+        return;
+
+    // Ask the tablet that made the change, or else any connected one.
+    Client* from = nullptr;
+    if (auto it = clients.find (lastChangedBy); it != clients.end() && it->second->connected())
+        from = it->second.get();
+    for (auto it = clients.begin(); from == nullptr && it != clients.end(); ++it)
+        if (it->second->connected())
+            from = it->second.get();
+
+    if (from == nullptr)
+        return;   // stays dirty until a tablet is back
+
+    auto data = obj();
+    data.getDynamicObject()->setProperty ("address", "/STATE/SAVE");
+    data.getDynamicObject()->setProperty ("args", captureSentinelPath);
+    deliver (data, from->id);
+
+    stateDirty = false;
+    captureInFlight = true;
+    captureRequestedAt = juce::Time::getMillisecondCounter();
 }
 
 //==============================================================================
