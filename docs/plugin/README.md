@@ -81,7 +81,19 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   a tablet that connects afterwards gets the saved GUI state; saving the
   restored project again gives the same 3,445 GUI values and 5,105 messages.
 
-Not yet tried in a DAW.
+- Hosts that keep an idle instance: the test host creating and preparing a
+  first instance it never processes, then playing a second at 128-sample
+  blocks, gets the test tone at 0.0999 (silent before `SharedEngine`); auval's
+  log shows the instance it drives rendering every block.
+
+## Diagnostics
+
+Every instance logs to `~/Library/Logs/formuls/plugin.log` (1 MB, trimmed):
+creation and host, `prepareToPlay` (rate, block size, channels), engine and
+GUI start-up, Pd's own messages (externals, Link, errors), and every 5 s how
+many blocks the host called, how many this instance rendered, and the peak.
+Hosts run plugins in their own process, so this is the place to look when a
+host misbehaves.
 
 ### Known gaps in the GUI half
 
@@ -97,10 +109,15 @@ ids with their modals, now end in `panel`.)
 
 ## Limits of this first version
 
-- **One formuls per host process.** libpd keeps its state in globals. A
-  second instance stays silent and says so. Lifting this needs libpd built
-  with `PDINSTANCE`, and the Faust and abl_link~ externals rebuilt for it
-  (the prebuilt abl_link~ cannot be).
+- **One formuls per host process.** libpd keeps its state in globals, so
+  the engine and its GUI server belong to the process (`SharedEngine`), not
+  to an instance. Whichever instance the host actually plays renders it: if
+  the one that rendered last has not been called for 250 ms, the next one
+  takes over. Hosts that keep an extra instance alive (auval does; SoundDesk
+  evidently did) therefore work. Two instances that are both playing cannot
+  each have a formuls: the second stays silent and says so. Lifting this
+  needs libpd built with `PDINSTANCE`, and the Faust and abl_link~ externals
+  rebuilt for it (the prebuilt abl_link~ cannot be).
 - 2 output channels only (the app also offers 14).
 - No MIDI, no host automation, no tempo sync from the host (the patch has
   its own clock and Ableton Link).

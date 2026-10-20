@@ -4,11 +4,9 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "OpenStageControlProcess.h"   // patchOscPort, getBrowserAddresses
-#include "ResourceLocator.h"
 
 #if JUCE_MAC || JUCE_LINUX
- #include <dlfcn.h>
+ #include <unistd.h>
 #endif
 
 namespace formuls
@@ -16,53 +14,49 @@ namespace formuls
 
 namespace
 {
-    // One formuls per process: libpd keeps its state in globals.
-    std::atomic<bool> instanceSlotTaken { false };
-
-    // A host loads the plugin with RTLD_LOCAL, so libpd -- loaded as the
-    // plugin's dependency -- is not in the global symbol scope. The Faust and
-    // abl_link~ externals are built against Pd's symbols with
-    // `-undefined dynamic_lookup` and expect to find them there, as they do
-    // in the app (where libpd is linked at launch). Re-opening the already
-    // loaded libpd with RTLD_GLOBAL promotes it. Harmless if already global.
-    void makeLibpdSymbolsGlobal()
-    {
-       #if JUCE_MAC || JUCE_LINUX
-        Dl_info info {};
-        if (dladdr ((const void*) &libpd_init, &info) != 0 && info.dli_fname != nullptr)
-        {
-            if (dlopen (info.dli_fname, RTLD_NOW | RTLD_NOLOAD | RTLD_GLOBAL) == nullptr)
-                juce::Logger::writeToLog ("formuls plugin: could not make libpd global: "
-                                          + juce::String (dlerror()));
-        }
-       #endif
-    }
+    std::atomic<int> instancesCreated { 0 };
 }
 
 FormulsPluginProcessor::FormulsPluginProcessor()
-    : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true))
+    : AudioProcessor (BusesProperties().withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+      engine (SharedEngine::acquire()),
+      instanceNumber (++instancesCreated)
 {
-    bool expected = false;
-    ownsTheInstanceSlot = instanceSlotTaken.compare_exchange_strong (expected, true);
+    const auto format = juce::PluginHostType::getPluginLoadedAs();
+    log ("created in " + juce::String (juce::PluginHostType().getHostDescription())
+         + " (" + (format == AudioProcessor::wrapperType_AudioUnit ? "AU" :
+                   format == AudioProcessor::wrapperType_VST3 ? "VST3" : "other")
+         + ", pid " + juce::String ((int) getpid()) + ")");
 
-    if (ownsTheInstanceSlot)
-    {
-        makeLibpdSymbolsGlobal();
-        status = "Waiting for the host to start audio.";
-    }
-    else
-    {
-        status = "Another formuls is already running in this session. "
-                 "Only one instance is supported for now; this one stays silent.";
-    }
+    statsTimer.tick = [this] { logStats(); };
+    statsTimer.startTimer (5000);
 }
 
 FormulsPluginProcessor::~FormulsPluginProcessor()
 {
-    stopEngine();
+    statsTimer.stopTimer();
+    logStats();
+    engine->forget (this);
+    log ("destroyed");
+}
 
-    if (ownsTheInstanceSlot)
-        instanceSlotTaken = false;
+void FormulsPluginProcessor::log (const juce::String& message) const
+{
+    SharedEngine::log ("[formuls #" + juce::String (instanceNumber) + "] " + message);
+}
+
+void FormulsPluginProcessor::logStats()
+{
+    const auto processed = blocksProcessed.load(), rendered = blocksRendered.load();
+    log ("audio: " + juce::String (processed - processedAtLastLog) + " blocks called, "
+         + juce::String (rendered - renderedAtLastLog) + " rendered by this instance in the last interval, "
+         + juce::String (lastNumChannels.load()) + " ch x " + juce::String (lastNumSamples.load())
+         + " samples, peak " + juce::String (peakSinceLastLog.exchange (0.0f), 4)
+         + "; engine " + (engine->isRunning() ? "running" : "stopped")
+         + ", patch " + (engine->isPatchReady() ? "ready" : "not ready")
+         + ", GUI port " + juce::String (engine->getGuiPort()) + "; " + getStatus());
+    processedAtLastLog = processed;
+    renderedAtLastLog = rendered;
 }
 
 bool FormulsPluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -74,85 +68,11 @@ bool FormulsPluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts)
 //==============================================================================
 void FormulsPluginProcessor::prepareToPlay (double sampleRate, int maximumExpectedSamplesPerBlock)
 {
-    if (! ownsTheInstanceSlot)
-        return;
+    log ("prepareToPlay " + juce::String (sampleRate) + " Hz, up to " + juce::String (maximumExpectedSamplesPerBlock)
+         + " samples, " + juce::String (getTotalNumInputChannels()) + " in / "
+         + juce::String (getTotalNumOutputChannels()) + " out");
 
-    // libpd runs at one rate for its whole life; a host rate change restarts it.
-    if (engineRunning && sampleRate != runningSampleRate)
-        stopEngine();
-
-    if (! engineRunning)
-        if (auto result = startEngine (sampleRate, maximumExpectedSamplesPerBlock); result.failed())
-            status = result.getErrorMessage();
-}
-
-juce::Result FormulsPluginProcessor::startEngine (double sampleRate, int maxBlockSize)
-{
-    const auto resourceRoot = findResourceRoot();
-    if (! resourceRoot.isDirectory())
-        return juce::Result::fail ("formuls could not find its pd/ and gui/ resources "
-                                   "inside the plugin bundle.");
-
-    gui.setStateCapture (true);
-    patchReady = false;
-    engine.onGlobalReset = [this] (float value)
-    {
-        if (value == 0.0f && ! patchReady)   // the end of the start-up pulse
-            patchIsReady();
-    };
-    engine.setDirectGui ([this] (const juce::uint8* data, int size)
-                         { gui.receivePatchPacket (data, size); });
-
-    if (auto result = engine.startHosted (numOutputChannels, sampleRate, maxBlockSize, resourceRoot);
-        result.failed())
-        return result;
-
-    // The first free port from 9001 up, so formuls in two hosts at once (or
-    // next to the app) still each get a GUI.
-    const auto patchTarget = "127.0.0.1:" + juce::String (OpenStageControlProcess::patchOscPort);
-    juce::Result guiResult = juce::Result::fail ("no port");
-
-    for (int port = firstGuiPort; port <= lastGuiPort; ++port)
-    {
-        guiResult = gui.start (resourceRoot, port, patchTarget,
-                               [this] (const juce::OSCMessage& m) { engine.sendToPatch (m); });
-        if (guiResult.wasOk())
-        {
-            guiPort = port;
-            break;
-        }
-    }
-
-    runningSampleRate = sampleRate;
-    engineRunning = true;
-
-    startTimer (patchReadyFallbackMs);
-
-    status = guiResult.wasOk()
-                 ? "Running at " + juce::String ((int) sampleRate) + " Hz."
-                 : "Running, but the control GUI could not start: " + guiResult.getErrorMessage();
-    return juce::Result::ok();
-}
-
-void FormulsPluginProcessor::stopEngine()
-{
-    // Not while processBlock() can run: hosts call prepareToPlay() and the
-    // destructor with processing stopped.
-    engineRunning = false;
-    stopTimer();
-    patchReady = false;
-    engine.onGlobalReset = nullptr;
-    {
-        // Keep what the tablets did, so a restart (sample rate change) restores it.
-        const juce::ScopedLock sl (stateLock);
-        if (auto current = gui.getStateJson(); current.isNotEmpty())
-            pendingGuiState = current;
-        if (auto current = gui.getPatchStateJson(); current.isNotEmpty())
-            pendingPatchState = current;
-    }
-    gui.stop();
-    engine.stop();
-    guiPort = 0;
+    engine->prepare (sampleRate, maximumExpectedSamplesPerBlock);
 }
 
 void FormulsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer&)
@@ -160,83 +80,25 @@ void FormulsPluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
 
-    if (engineRunning)
-        engine.processHosted (buffer.getArrayOfWritePointers(),
-                              buffer.getNumChannels(), buffer.getNumSamples());
-}
+    ++blocksProcessed;
+    lastNumChannels.store (buffer.getNumChannels(), std::memory_order_relaxed);
+    lastNumSamples.store (buffer.getNumSamples(), std::memory_order_relaxed);
 
-void FormulsPluginProcessor::patchIsReady()
-{
-    stopTimer();
-    if (patchReady)
-        return;
-    patchReady = true;
-
-    const juce::ScopedLock sl (stateLock);
-    if (gui.isRunning() && (pendingGuiState.isNotEmpty() || pendingPatchState.isNotEmpty()))
-        gui.setState (pendingGuiState, pendingPatchState);
-}
-
-//==============================================================================
-void FormulsPluginProcessor::getStateInformation (juce::MemoryBlock& destData)
-{
-    juce::String guiJson, patchJson;
+    if (engine->render (this, buffer))
     {
-        const juce::ScopedLock sl (stateLock);
-        // Until a restored project has been applied, it is still the state.
-        const bool restorePending = ! patchReady && (pendingGuiState.isNotEmpty() || pendingPatchState.isNotEmpty());
-        guiJson   = restorePending ? pendingGuiState   : gui.getStateJson();
-        patchJson = restorePending ? pendingPatchState : gui.getPatchStateJson();
-        if (guiJson.isEmpty())   guiJson = pendingGuiState;
-        if (patchJson.isEmpty()) patchJson = pendingPatchState;
-    }
-
-    juce::ValueTree tree ("formuls");
-    tree.setProperty ("version", 1, nullptr);
-    tree.setProperty ("guiState", guiJson, nullptr);
-    tree.setProperty ("patchState", patchJson, nullptr);
-
-    juce::MemoryOutputStream out (destData, false);
-    tree.writeToStream (out);
-}
-
-void FormulsPluginProcessor::setStateInformation (const void* data, int sizeInBytes)
-{
-    const auto tree = juce::ValueTree::readFromData (data, (size_t) sizeInBytes);
-    if (! tree.hasType ("formuls"))
-        return;
-
-    const auto guiJson = tree["guiState"].toString();
-    const auto patchJson = tree["patchState"].toString();
-    if (guiJson.isEmpty() && patchJson.isEmpty())
-        return;
-
-    const juce::ScopedLock sl (stateLock);
-    pendingGuiState = guiJson;
-    pendingPatchState = patchJson;
-
-    // Hosts call this on the message thread; the server must be told there.
-    // Before the patch is ready it waits for patchIsReady().
-    if (engineRunning && gui.isRunning() && patchReady)
-    {
-        if (juce::MessageManager::getInstance()->isThisTheMessageThread())
-            gui.setState (guiJson, patchJson);
-        else
-            juce::MessageManager::callAsync ([this, guiJson, patchJson] { gui.setState (guiJson, patchJson); });
+        ++blocksRendered;
+        const auto peak = buffer.getMagnitude (0, buffer.getNumSamples());
+        if (peak > peakSinceLastLog.load (std::memory_order_relaxed))
+            peakSinceLastLog.store (peak, std::memory_order_relaxed);
     }
 }
 
 //==============================================================================
 juce::String FormulsPluginProcessor::getStatus() const
 {
-    return status;
-}
-
-juce::StringArray FormulsPluginProcessor::getGuiAddresses() const
-{
-    if (guiPort == 0 || ! gui.isRunning())
-        return {};
-    return OpenStageControlProcess::getBrowserAddresses (guiPort);
+    if (engine->isAnotherInstancePlaying (this))
+        return "Another formuls in this session is playing; only one can, so this one is silent.";
+    return engine->getStatus();
 }
 
 juce::AudioProcessorEditor* FormulsPluginProcessor::createEditor()

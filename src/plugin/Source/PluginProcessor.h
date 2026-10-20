@@ -1,17 +1,19 @@
 /*
  * PluginProcessor.h
  *
- * formuls as an instrument plugin (VST3 / AU). The plugin hosts the same
+ * formuls as an instrument plugin (VST3 / AU). The plugin runs the same
  * FormulsEngine (libpd running pd/_main.pd) and EmbeddedGuiServer as the
  * standalone app, but the host drives the audio: there is no device, no
  * recorder and no node process. The control GUI is served by the plugin
  * itself and opened in a browser or on a tablet, exactly as with the app;
  * the plugin's own window just says where.
  *
- * Limits of this first version (see docs/plugin/README.md):
- *   - one formuls per host process. libpd is built single-instance, and the
- *     Faust and abl_link~ externals are not built for multi-instance Pd, so a
- *     second instance stays silent and says why;
+ * The engine belongs to the host process, not to an instance (SharedEngine):
+ * whichever instance the host actually plays renders it.
+ *
+ * Limits (see docs/plugin/README.md):
+ *   - one formuls per host process: two instances that are both playing
+ *     cannot each have one; the second stays silent and says so;
  *   - the engine always runs 2 output channels;
  *   - no MIDI or host automation yet.
  */
@@ -19,14 +21,12 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "FormulsEngine.h"
-#include "EmbeddedGuiServer.h"
+#include "SharedEngine.h"
 
 namespace formuls
 {
 
-class FormulsPluginProcessor : public juce::AudioProcessor,
-                               private juce::Timer
+class FormulsPluginProcessor : public juce::AudioProcessor
 {
 public:
     FormulsPluginProcessor();
@@ -54,43 +54,29 @@ public:
 
     // The GUI and patch state (see EmbeddedGuiServer) are saved with the host
     // project and restored on load, tablet or not.
-    void getStateInformation (juce::MemoryBlock&) override;
-    void setStateInformation (const void*, int) override;
+    void getStateInformation (juce::MemoryBlock& destData) override   { engine->getState (destData); }
+    void setStateInformation (const void* data, int size) override    { engine->setState (data, size); }
 
     // For the editor (message thread).
     juce::String getStatus() const;
-    juce::StringArray getGuiAddresses() const;
-
-    static constexpr int numOutputChannels = 2;
-    static constexpr int firstGuiPort = 9001, lastGuiPort = 9020;
+    juce::StringArray getGuiAddresses() const   { return engine->getGuiAddresses(); }
 
 private:
-    juce::Result startEngine (double sampleRate, int maxBlockSize);
-    void stopEngine();
+    std::shared_ptr<SharedEngine> engine;
 
-    // A restored project is applied once the patch has finished its own
-    // start-up reset (FormulsEngine::resetReceiverName), or it would be reset
-    // straight away. timerCallback is the fallback if that never comes.
-    void patchIsReady();
-    void timerCallback() override   { patchIsReady(); }
-    bool patchReady = false;          // message thread
-    static constexpr int patchReadyFallbackMs = 10000;
-
-    // Declared before the engine so it outlives it (the engine's PdOscOut
-    // thread hands it packets until the engine stops).
-    EmbeddedGuiServer gui;
-    FormulsEngine engine;
-
-    bool ownsTheInstanceSlot = false;
-    std::atomic<bool> engineRunning { false };
-    double runningSampleRate = 0;
-    int guiPort = 0;
-    juce::String status;
-
-    // A state the host restored before the engine was running (the usual
-    // order), or kept across an engine restart; applied when it starts.
-    juce::String pendingGuiState, pendingPatchState;
-    juce::CriticalSection stateLock;   // getStateInformation may come from any thread
+    // Diagnostics for this instance, in ~/Library/Logs/formuls/plugin.log.
+    void log (const juce::String& message) const;
+    void logStats();
+    const int instanceNumber;
+    std::atomic<juce::int64> blocksProcessed { 0 }, blocksRendered { 0 };
+    std::atomic<int> lastNumChannels { 0 }, lastNumSamples { 0 };
+    std::atomic<float> peakSinceLastLog { 0.0f };
+    juce::int64 processedAtLastLog = 0, renderedAtLastLog = 0;
+    struct StatsTimer : juce::Timer
+    {
+        std::function<void()> tick;
+        void timerCallback() override   { tick(); }
+    } statsTimer;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FormulsPluginProcessor)
 };

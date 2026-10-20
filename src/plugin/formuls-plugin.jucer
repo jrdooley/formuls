@@ -17,6 +17,9 @@
       <FILE id="plgPE0" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
       <FILE id="plgPE1" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
+      <FILE id="plgSE0" name="SharedEngine.h" compile="0" resource="0" file="Source/SharedEngine.h"/>
+      <FILE id="plgSE1" name="SharedEngine.cpp" compile="1" resource="0"
+            file="Source/SharedEngine.cpp"/>
     </GROUP>
     <GROUP id="appSrc" name="Shared with the app">
       <FILE id="shFE0" name="FormulsEngine.h" compile="0" resource="0" file="../app/Source/FormulsEngine.h"/>
