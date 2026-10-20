@@ -375,6 +375,47 @@ silently changing the result.
   straight through; whether a step is audible depends entirely on whether the
   Faust parameter carries `si.smoo`.
 
+## quantise-probe.py
+
+Checks what the pitch quantiser (`f.util.keyselector`) snaps each note to,
+against the nearest pitch of the PITCH GAMUT. It builds a throwaway patch
+that copies `NOTE_SNAP` in `f.util.oscinparse` with the quantiser on. Each
+MIDI note *n* goes in as the GUI value *n*/132 and is scaled to a gamut
+index (`* (gamut length * 11)`). That index goes into the real
+abstraction, with `master-pitch-gamut`, `pitch-gamut-length` and
+`scale-root-note` set as `pitch-gamut-parse` and `f.util.masterkey` set
+them. With the quantiser off, the same value plays *n*, so *n* is the pitch
+the quantiser is given.
+
+```bash
+python3 src/tools/quantise-probe.py                        # built-in gamuts, exact and nudged
+python3 src/tools/quantise-probe.py --gamut "0 2 4 7 9" --root 2 --show
+python3 src/tools/quantise-probe.py --all-notes            # all 132 notes, not just C4..B4
+python3 src/tools/quantise-probe.py --rev <commit>         # an older quantiser
+```
+
+- **Failure:** a note that is in the gamut comes out as a different pitch.
+  The tool exits 1.
+- **Also reported:** other notes that don't come out as their nearest gamut
+  pitch. On an exact tie, either neighbour counts as nearest.
+- **Built-in cases:** major (with root C and root D), pentatonic, whole
+  tone, a single note, a microtonal gamut and chromatic.
+- **Nudge:** each case also runs with the GUI value 1e-7 low (`--nudge`
+  sets a different amount). That is float32 rounding on its way over OSC,
+  and it catches truncation where rounding is needed.
+- **Microtonal gamuts:** only the integer pitches are checked for "in the
+  gamut"; every pitch is checked for "nearest".
+
+At the time of writing it fails. The quantiser picks gamut notes by
+**rank**, as if the gamut were evenly spaced across the octave:
+- major: F → E;
+- pentatonic: D → C, G → E.
+
+It adds the root **after** snapping, so every note shifts by the root. And
+it **truncates**: nudged by float rounding, an exact C gives B3, and the
+whole chromatic gamut comes out one semitone low. Plain Pd only, with no
+externals, audio or app; one case takes about a second.
+
 ## automater-load-bench.py
 
 Measures what N `f.seq.automater` instances cost while they modulate (automation
