@@ -80,11 +80,11 @@ Not yet tried in a DAW.
 These only affect what a tablet *shows* after a restore; the patch state is
 replayed exactly either way.
 
-- 8 controls share their id with the panel around them (7 faders and the
-  Rolling Freezer transpose switch, e.g. `rollingfreezertranspose`). o-s-c
-  keys state by id, so the panel's value overwrites the control's. The app's
-  own Save State has the same problem; renaming those panels in the session
-  fixes it.
+(Fixed: 8 controls, e.g. the Rolling Freezer transpose switch, shared their
+id with the panel around them, so in o-s-c's id-keyed state the panel's value
+overwrote theirs. Those panels, and the sequencer / swing panels that shared
+ids with their modals, now end in `panel`.)
+
 - A widget with an explicit `value` in the session (5 faders, 18 switches,
   135 menus, ...) can show that value instead of the restored one, as
   `repeaterlevel` (`value: 0`) did while `repeatermono` (no `value`) showed
