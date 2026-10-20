@@ -10273,7 +10273,7 @@
                         "type": "panel",
                         "top": "0%",
                         "left": "0%",
-                        "id": "filterkeychaosevolvepanel",
+                        "id": "filterkeychaosevolvepanel@{parent.variables.n}",
                         "visible": true,
                         "interaction": true,
                         "width": "100%",
