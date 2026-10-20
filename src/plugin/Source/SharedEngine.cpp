@@ -103,7 +103,7 @@ juce::Result SharedEngine::start (double sampleRate, int maxBlockSize)
         return juce::Result::fail ("formuls could not find its pd/ and gui/ resources "
                                    "inside the plugin bundle.");
 
-    gui.setStateCapture (true);
+    gui.setStateCapture (saveProjectState);
     patchReady = false;
     engine.onGlobalReset = [this] (float value)
     {
@@ -158,6 +158,7 @@ void SharedEngine::stop()
     stopTimer();
     patchReady = false;
     engine.onGlobalReset = nullptr;
+    if (saveProjectState)
     {
         // Keep what the tablets did, so a restart (sample rate change) restores it.
         const juce::ScopedLock sl (stateLock);
@@ -225,6 +226,9 @@ void SharedEngine::patchIsReady()
 
 void SharedEngine::getState (juce::MemoryBlock& destData)
 {
+    if (! saveProjectState)
+        return;   // nothing stored in the project
+
     juce::String guiJson, patchJson;
     {
         const juce::ScopedLock sl (stateLock);
@@ -247,6 +251,12 @@ void SharedEngine::getState (juce::MemoryBlock& destData)
 
 void SharedEngine::setState (const void* data, int sizeInBytes)
 {
+    if (! saveProjectState)
+    {
+        log ("ignoring the state stored in the project (project state is switched off)");
+        return;
+    }
+
     const auto tree = juce::ValueTree::readFromData (data, (size_t) sizeInBytes);
     if (! tree.hasType ("formuls"))
         return;

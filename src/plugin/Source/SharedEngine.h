@@ -19,7 +19,8 @@
  * second one stays silent and says so.
  *
  * The project state (GUI + patch, see EmbeddedGuiServer) is the engine's, so
- * any instance can save or restore it.
+ * any instance can save or restore it. It is switched off for now
+ * (saveProjectState): formuls always starts from its defaults.
  */
 
 #pragma once
@@ -68,6 +69,12 @@ public:
     static constexpr int numOutputChannels = 2;
     static constexpr int firstGuiPort = 9001, lastGuiPort = 9020;
     static constexpr juce::uint32 handoverMs = 250;
+
+    /** Saving the GUI and patch state with the host project, and restoring it.
+        Off for now: it does not restore reliably yet. Off, formuls stores
+        nothing in the project, ignores anything an older version stored, and
+        every load starts from the defaults the patch's start-up reset sets. */
+    static constexpr bool saveProjectState = false;
 
 private:
     SharedEngine();

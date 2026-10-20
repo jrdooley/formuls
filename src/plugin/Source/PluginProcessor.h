@@ -52,8 +52,9 @@ public:
     const juce::String getProgramName (int) override   { return {}; }
     void changeProgramName (int, const juce::String&) override {}
 
-    // The GUI and patch state (see EmbeddedGuiServer) are saved with the host
-    // project and restored on load, tablet or not.
+    // The GUI and patch state (see EmbeddedGuiServer) saved with the host
+    // project and restored on load. Switched off for now: see
+    // SharedEngine::saveProjectState.
     void getStateInformation (juce::MemoryBlock& destData) override   { engine->getState (destData); }
     void setStateInformation (const void* data, int size) override    { engine->setState (data, size); }
 

@@ -38,6 +38,12 @@ Sources: `src/plugin/` (processor and editor) plus the app's own
 
 ## Saved with the host project
 
+> **Switched off for now** (`SharedEngine::saveProjectState = false`): the
+> restore is not reliable yet. formuls stores nothing in the host project,
+> ignores state stored by an earlier build, and every load starts from the
+> defaults set by the patch's start-up reset (`resetglobal-in`). The rest of
+> this section describes the feature as it works when switched back on.
+
 `getStateInformation` stores two things (`EmbeddedGuiServer`, capture on):
 
 - **the GUI state**: what the tablets show, as o-s-c state JSON. o-s-c keeps
