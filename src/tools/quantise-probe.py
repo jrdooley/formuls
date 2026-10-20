@@ -9,8 +9,11 @@ pitch-gamut-length and scale-root-note set as pitch-gamut-parse and
 f.util.masterkey would set them. With the quantiser off, the same value
 plays the pitch n (x * 132), so n is the pitch the quantiser is given.
 
-Each result is checked against the nearest pitch of the gamut (transposed
-by the root, in every octave):
+The gamut is relative to the root: root F with C E F active is F A Bb. So
+the quantiser must give root + the gamut pitch nearest to (n - root), and a
+pitch that is in the gamut under both the old and the new root must not
+move when the root changes. Each result is checked against the nearest
+pitch of the gamut (transposed by the root, in every octave):
   - a note that is in the gamut must come out unchanged (failure otherwise:
     "exact C does not give C");
   - any other note should come out as its nearest gamut pitch (reported;
@@ -52,6 +55,11 @@ NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 CASES = {
     "major":            ([0, 2, 4, 5, 7, 9, 11], 0),
     "major-root-D":     ([0, 2, 4, 5, 7, 9, 11], 2),
+    # The gamut is relative to the root: C E F with root C, then root F
+    # (F A Bb). F is in both, so a pitch held on F must stay F when the root
+    # changes, not be transposed with it.
+    "CEF-root-C":       ([0, 4, 5], 0),
+    "CEF-root-F":       ([0, 4, 5], 5),
     "pentatonic":       ([0, 2, 4, 7, 9], 0),
     "whole-tone":       ([0, 2, 4, 6, 8, 10], 0),
     "C-only":           ([0], 0),

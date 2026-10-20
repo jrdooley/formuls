@@ -398,8 +398,13 @@ python3 src/tools/quantise-probe.py --rev <commit>         # an older quantiser
   The tool exits 1.
 - **Also reported:** other notes that don't come out as their nearest gamut
   pitch. On an exact tie, either neighbour counts as nearest.
-- **Built-in cases:** major (with root C and root D), pentatonic, whole
-  tone, a single note, a microtonal gamut and chromatic.
+- **The root:** the gamut is relative to it. Root F with C, E and F active
+  means F, A and B♭, so the expected result is root + the gamut pitch
+  nearest to (*n* − root). A pitch that is in the gamut under both the old
+  and the new root must not move when the root changes.
+- **Built-in cases:** major (with root C and root D); C E F with root C and
+  with root F (the root-change case); pentatonic; whole tone; a single
+  note; a microtonal gamut; chromatic.
 - **Nudge:** each case also runs with the GUI value 1e-7 low (`--nudge`
   sets a different amount). That is float32 rounding on its way over OSC,
   and it catches truncation where rounding is needed.
@@ -411,7 +416,9 @@ At the time of writing it fails. The quantiser picks gamut notes by
 - major: F → E;
 - pentatonic: D → C, G → E.
 
-It adds the root **after** snapping, so every note shifts by the root. And
+It adds the root **after** snapping instead of measuring the input from
+the root, so changing the root transposes everything. With C E F and root
+F, an F comes out as A. And
 it **truncates**: nudged by float rounding, an exact C gives B3, and the
 whole chromatic gamut comes out one semitone low. Plain Pd only, with no
 externals, audio or app; one case takes about a second.
