@@ -89,6 +89,7 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
 
     // Bind the GUI sender before the patch opens; the patch switches over to it
     // once told to, below. If it can't start, the patch keeps its [netsend].
+    oscOut.setPacketSink (directGuiSink);
     const bool appSendsOsc = oscOut.start (OpenStageControlProcess::guiPort);
     if (! appSendsOsc)
         juce::Logger::writeToLog ("OSC out: could not open a UDP socket; the patch sends to the GUI itself");
@@ -114,8 +115,10 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
     // Listen for the GUI's OSC before going live. A failure here is not
     // fatal -- the engine still makes sound, it just cannot be driven from
     // the GUI -- so it is reported rather than aborting the start.
-    if (auto oscResult = oscBridge.start (pd, OpenStageControlProcess::patchOscPort);
-        oscResult.failed())
+    if (directGuiSink)
+        oscBridge.startDirect (pd);
+    else if (auto oscResult = oscBridge.start (pd, OpenStageControlProcess::patchOscPort);
+             oscResult.failed())
         juce::Logger::writeToLog (oscResult.getErrorMessage());
 
     // -------------------------------------------------------------- go live

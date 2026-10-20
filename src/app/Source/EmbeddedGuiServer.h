@@ -19,14 +19,16 @@
  *   - formuls-module.js (oscInFilter / oscOutFilter for the compiled
  *     slider canvases, from gui/compounds.json), ported to C++.
  *
- * Towards the patch it speaks UDP OSC exactly as o-s-c did: it sends to
- * 127.0.0.1:9000 (OscBridge) and listens on udp 9001, where PdOscOut and
- * MainComponent's state save/open commands already send. So nothing on the
- * Pd side changed for this prototype; the OSC hop can be replaced with
- * direct libpd calls later.
+ * Towards the patch there is no network: messages for the default target
+ * (o-s-c's --send 127.0.0.1:9000) go to the `toPatch` callback, which the app
+ * points at FormulsEngine::sendToPatch (OscBridge, on the message thread);
+ * the patch's own OSC packets come in through receivePatchPacket(), which
+ * PdOscOut calls from its background thread. Any other host:port target in
+ * the session is still sent over UDP, as o-s-c would.
  *
  * Threading: WebSocket events arrive on each connection's reader thread,
- * OSC from the patch on the message thread. Both go through `lock`.
+ * patch packets on PdOscOut's thread, app commands on the message thread.
+ * All of them go through `lock`.
  */
 
 #pragma once
@@ -37,18 +39,29 @@
 namespace formuls
 {
 
-class EmbeddedGuiServer : private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>,
-                          private juce::Timer
+class EmbeddedGuiServer
 {
 public:
-    EmbeddedGuiServer() = default;
-    ~EmbeddedGuiServer() override   { stop(); }
+    using PatchSender = std::function<void (const juce::OSCMessage&)>;
 
-    /** Serves resourceRoot/gui on tcp httpPort and listens for the patch's
-        OSC on udp httpPort; sends GUI OSC to 127.0.0.1:patchPort. */
-    juce::Result start (const juce::File& resourceRoot, int httpPort, int patchPort);
+    EmbeddedGuiServer() = default;
+    ~EmbeddedGuiServer()   { stop(); }
+
+    /** Serves resourceRoot/gui on tcp httpPort. Messages for the patch go to
+        toPatch; defaultTarget is the o-s-c target string they are addressed
+        to (the GUI is told it as its server target). */
+    juce::Result start (const juce::File& resourceRoot, int httpPort,
+                        const juce::String& defaultTarget, PatchSender toPatch);
     void stop();
     bool isRunning() const noexcept   { return running; }
+
+    /** Any thread. One OSC packet (message or bundle) from the patch, as its
+        [oscformat] built it. Ignored while stopped. */
+    void receivePatchPacket (const juce::uint8* data, int size);
+
+    /** Any thread. A message from the app itself (e.g. /STATE/SAVE), handled
+        exactly like one from the patch. */
+    void receiveFromApp (const juce::OSCMessage& message);
 
 private:
     struct Client
@@ -68,9 +81,8 @@ private:
     void onIpc (Client&, const juce::String& event, const juce::var& data);
     void onSendOsc (Client&, const juce::var& data, bool syncOnly);
 
-    // Patch side (message thread)
-    void oscMessageReceived (const juce::OSCMessage&) override;
-    void oscBundleReceived (const juce::OSCBundle&) override;
+    // Patch / app side. Call with `lock` held.
+    void receiveOsc (const juce::String& address, const juce::Array<juce::var>& args);
 
     // "receiveOsc" to clients. Only one of `onlyTo` / `except` is used;
     // neither means everyone.
@@ -92,22 +104,18 @@ private:
     juce::String envJson;                // window.ENV, from --client-options
 
     WebSocketServer http;
-    juce::OSCReceiver fromPatch;
-    juce::OSCSender toPatch;
-    juce::String toPatchTarget;
+    PatchSender toPatch;
+
+    // Only for session targets other than the patch.
+    juce::OSCSender udpOut;
+    juce::String udpOutTarget;
 
     juce::CriticalSection lock;
     std::map<juce::String, std::unique_ptr<Client>> clients;
     std::map<WebSocketServer::Connection*, juce::String> clientByConnection;
     juce::var clipboard;
 
-    // Traffic counters, logged every few seconds while they change.
-    void timerCallback() override;
-    std::atomic<int> fromPatchCount { 0 }, toPatchCount { 0 }, framesOut { 0 }, clientEvents { 0 };
-    int lastLogged[4] = {};
-    std::map<juce::String, int> toPatchByAddress, fromPatchByAddress;   // under lock, reset each log
-
-    bool running = false;
+    std::atomic<bool> running { false };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (EmbeddedGuiServer)
 };

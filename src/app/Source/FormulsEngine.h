@@ -105,6 +105,17 @@ public:
         provide it. */
     double getActualSampleRate() const noexcept   { return actualSampleRate; }
 
+    /** Connects the patch to an in-process GUI server instead of UDP: the
+        patch's GUI-bound OSC packets go to `sink` (called on PdOscOut's
+        background thread), and messages for the patch come in through
+        sendToPatch(). Pass nullptr for the UDP ports o-s-c uses. Call while
+        stopped; it takes effect at the next start(). */
+    void setDirectGui (PdOscOut::PacketSink sink)   { directGuiSink = std::move (sink); }
+
+    /** Thread-safe. Queues a GUI message for the patch (direct mode); it is
+        delivered on the message thread, as OscBridge delivers UDP ones. */
+    void sendToPatch (const juce::OSCMessage& message)   { oscBridge.post (message); }
+
     /** Stops audio, closes the patch and releases the audio device.
         Safe to call when not running. */
     void stop();
@@ -154,6 +165,7 @@ private:
     // holding it). Declared after pd so it is destroyed first: it has a
     // receiver bound inside Pd. See PdOscOut.h.
     PdOscOut oscOut;
+    PdOscOut::PacketSink directGuiSink;
     juce::AudioDeviceManager* activeDeviceManager = nullptr;
 
     int pdOutputChannels = 0;               // channels libpd was initialised with

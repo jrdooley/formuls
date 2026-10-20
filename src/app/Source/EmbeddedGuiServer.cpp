@@ -66,7 +66,8 @@ namespace
 }
 
 //==============================================================================
-juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpPort, int patchPort)
+juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpPort,
+                                       const juce::String& patchTarget, PatchSender sender)
 {
     stop();
 
@@ -88,7 +89,8 @@ juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpP
     if (auto map = guiDir.getChildFile ("compounds.json"); map.existsAsFile())
         compounds = juce::JSON::parse (map);
 
-    defaultTarget = "127.0.0.1:" + juce::String (patchPort);
+    defaultTarget = patchTarget;
+    toPatch = std::move (sender);
     envJson = R"({"framerate":"25","hdpi":"0"})";   // --client-options framerate=25 hdpi=0
 
     http.onHttpRequest = [this] (auto& r) { return handleHttp (r); };
@@ -96,20 +98,11 @@ juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpP
     http.onMessage = [this] (auto c, auto& m) { handleMessage (c, m); };
     http.onClose   = [this] (auto c) { handleClose (c); };
 
-    if (! fromPatch.connect (httpPort))
-        return juce::Result::fail ("Could not listen for patch OSC on udp " + juce::String (httpPort)
-                                   + " (is another copy of formuls running?)");
-    fromPatch.addListener (this);
-
     if (! http.start (httpPort))
-    {
-        fromPatch.removeListener (this);
-        fromPatch.disconnect();
-        return juce::Result::fail ("Could not serve the GUI on port " + juce::String (httpPort));
-    }
+        return juce::Result::fail ("Could not serve the GUI on port " + juce::String (httpPort)
+                                   + " (is another copy of formuls running?)");
 
     running = true;
-    startTimer (5000);
     juce::Logger::writeToLog ("Embedded GUI server on port " + juce::String (httpPort)
                               + (compounds.isObject() ? " (compounds module on)" : ""));
     return juce::Result::ok();
@@ -121,15 +114,12 @@ void EmbeddedGuiServer::stop()
         return;
 
     running = false;
-    stopTimer();
-    timerCallback();
     http.stop();   // joins every connection thread, so no handler runs after this
-    fromPatch.removeListener (this);
-    fromPatch.disconnect();
-    toPatch.disconnect();
-    toPatchTarget = {};
 
-    const juce::ScopedLock sl (lock);
+    const juce::ScopedLock sl (lock);   // waits out a packet or app command in flight
+    udpOut.disconnect();
+    udpOutTarget = {};
+    toPatch = nullptr;
     clients.clear();
     clientByConnection.clear();
 }
@@ -243,7 +233,6 @@ void EmbeddedGuiServer::handleMessage (WebSocketServer::ConnectionPtr connection
         return;
     }
 
-    ++clientEvents;
     const juce::ScopedLock sl (lock);
     auto found = clientByConnection.find (connection.get());
     if (found == clientByConnection.end())
@@ -438,8 +427,8 @@ void EmbeddedGuiServer::deliver (const juce::var& data, const juce::String& only
     {
         if ((onlyTo.isNotEmpty() && id != onlyTo) || (except.isNotEmpty() && id == except))
             continue;
-        if (client->connected() && client->connection->sendText (utf8, size))
-            ++framesOut;
+        if (client->connected())
+            client->connection->sendText (utf8, size);
     }
 }
 
@@ -448,14 +437,6 @@ void EmbeddedGuiServer::deliver (const juce::var& data, const juce::String& only
 void EmbeddedGuiServer::sendToPatch (const juce::String& hostPort, const juce::String& address,
                                      const juce::Array<juce::var>& args, const juce::String& typeTags)
 {
-    if (hostPort != toPatchTarget)
-    {
-        toPatch.disconnect();
-        toPatch.connect (hostPort.upToLastOccurrenceOf (":", false, false),
-                         hostPort.fromLastOccurrenceOf (":", false, false).getIntValue());
-        toPatchTarget = hostPort;
-    }
-
     try
     {
         juce::OSCMessage message { juce::OSCAddressPattern (address) };
@@ -477,11 +458,21 @@ void EmbeddedGuiServer::sendToPatch (const juce::String& hostPort, const juce::S
         for (auto& a : args)
             add (a);
 
-        if (toPatch.send (message))
+        if (hostPort == defaultTarget)
         {
-            ++toPatchCount;
-            ++toPatchByAddress[address];
+            if (toPatch) toPatch (message);   // in-process: FormulsEngine::sendToPatch
+            return;
         }
+
+        // Some other target in the session: send it over UDP, as o-s-c would.
+        if (hostPort != udpOutTarget)
+        {
+            udpOut.disconnect();
+            udpOut.connect (hostPort.upToLastOccurrenceOf (":", false, false),
+                            hostPort.fromLastOccurrenceOf (":", false, false).getIntValue());
+            udpOutTarget = hostPort;
+        }
+        udpOut.send (message);
     }
     catch (const juce::OSCException& e)
     {
@@ -489,18 +480,97 @@ void EmbeddedGuiServer::sendToPatch (const juce::String& hostPort, const juce::S
     }
 }
 
-void EmbeddedGuiServer::oscBundleReceived (const juce::OSCBundle& bundle)
+namespace
 {
-    for (auto& element : bundle)
+    // A minimal OSC 1.0 reader for what [oscformat] produces: messages (and
+    // bundles of them) with f / i / s arguments. Blobs and the data-less tags
+    // are skipped; anything else ends the message. JUCE keeps its own parser
+    // private, and this runs on PdOscOut's thread, so it must not throw.
+    struct OscReader
     {
-        if (element.isMessage())     oscMessageReceived (element.getMessage());
-        else if (element.isBundle()) oscBundleReceived (element.getBundle());
+        const juce::uint8* p;
+        const juce::uint8* end;
+
+        bool string (juce::String& out)
+        {
+            auto* start = p;
+            while (p < end && *p != 0) ++p;
+            if (p >= end) return false;
+            out = juce::String::fromUTF8 ((const char*) start, (int) (p - start));
+            p = start + ((p - start) / 4 + 1) * 4;   // NUL included, padded to 4
+            return p <= end;
+        }
+
+        bool int32 (juce::int32& out)
+        {
+            if (end - p < 4) return false;
+            out = (juce::int32) ((juce::uint32) p[0] << 24 | (juce::uint32) p[1] << 16
+                                 | (juce::uint32) p[2] << 8 | p[3]);
+            p += 4;
+            return true;
+        }
+    };
+
+    template <typename Callback>
+    void readOscPacket (const juce::uint8* data, int size, Callback&& onMessage, int depth = 0)
+    {
+        OscReader r { data, data + size };
+        juce::String address;
+        if (depth > 8 || ! r.string (address))
+            return;
+
+        if (address == "#bundle")
+        {
+            r.p += 8;   // time tag
+            juce::int32 length;
+            while (r.p < r.end && r.int32 (length) && length > 0 && length <= r.end - r.p)
+            {
+                readOscPacket (r.p, length, onMessage, depth + 1);
+                r.p += length;
+            }
+            return;
+        }
+
+        juce::String tags;
+        juce::Array<juce::var> args;
+
+        if (r.p < r.end && r.string (tags) && tags.startsWithChar (','))
+        {
+            for (int i = 1; i < tags.length(); ++i)
+            {
+                const auto tag = tags[i];
+                juce::int32 n;
+
+                if (tag == 'f')      { if (! r.int32 (n)) break; float f; std::memcpy (&f, &n, 4); args.add ((double) f); }
+                else if (tag == 'i') { if (! r.int32 (n)) break; args.add ((int) n); }
+                else if (tag == 's') { juce::String s; if (! r.string (s)) break; args.add (s); }
+                else if (tag == 'b') { if (! r.int32 (n) || n < 0 || n > r.end - r.p) break; r.p += (n + 3) / 4 * 4; }
+                else if (tag == 'T' || tag == 'F' || tag == 'N' || tag == 'I') continue;
+                else break;
+            }
+        }
+
+        onMessage (address, args);
     }
 }
 
-void EmbeddedGuiServer::oscMessageReceived (const juce::OSCMessage& message)
+void EmbeddedGuiServer::receivePatchPacket (const juce::uint8* data, int size)
 {
-    // o-s-c: OscServer -> Callbacks.receiveOsc. One argument is sent bare.
+    if (! running)
+        return;
+
+    const juce::ScopedLock sl (lock);
+    readOscPacket (data, size, [this] (const juce::String& address, const juce::Array<juce::var>& args)
+    {
+        receiveOsc (address, args);
+    });
+}
+
+void EmbeddedGuiServer::receiveFromApp (const juce::OSCMessage& message)
+{
+    if (! running)
+        return;
+
     juce::Array<juce::var> args;
     for (auto& a : message)
     {
@@ -509,48 +579,22 @@ void EmbeddedGuiServer::oscMessageReceived (const juce::OSCMessage& message)
         else if (a.isString()) args.add (a.getString());
     }
 
-    const auto address = message.getAddressPattern().toString();
-    ++fromPatchCount;
-
     const juce::ScopedLock sl (lock);
-    ++fromPatchByAddress[address];
+    receiveOsc (message.getAddressPattern().toString(), args);
+}
 
+void EmbeddedGuiServer::receiveOsc (const juce::String& address, const juce::Array<juce::var>& args)
+{
+    // o-s-c: OscServer -> Callbacks.receiveOsc. One argument is sent bare.
     if (! moduleInFilter (address, args))
         return;
 
     auto data = obj();
     data.getDynamicObject()->setProperty ("address", address);
     data.getDynamicObject()->setProperty ("args", args.size() == 1 ? args[0] : juce::var (args));
-    data.getDynamicObject()->setProperty ("host", "127.0.0.1");
+    data.getDynamicObject()->setProperty ("host", defaultTarget.upToLastOccurrenceOf (":", false, false));
     data.getDynamicObject()->setProperty ("port", defaultTarget.fromLastOccurrenceOf (":", false, false).getIntValue());
     deliver (data);
-}
-
-void EmbeddedGuiServer::timerCallback()
-{
-    const int now[4] = { clientEvents.load(), toPatchCount.load(), fromPatchCount.load(), framesOut.load() };
-    if (std::equal (now, now + 4, lastLogged))
-        return;
-    std::copy (now, now + 4, lastLogged);
-    juce::Logger::writeToLog ("Embedded GUI traffic: " + juce::String (now[0]) + " client events, "
-                              + juce::String (now[1]) + " OSC to patch, " + juce::String (now[2])
-                              + " OSC from patch, " + juce::String (now[3]) + " receiveOsc frames out");
-
-    // The busiest addresses since the last line, to spot loops and bursts.
-    auto top = [] (std::map<juce::String, int>& counts)
-    {
-        std::vector<std::pair<int, juce::String>> v;
-        for (auto& [a, n] : counts) v.push_back ({ n, a });
-        std::sort (v.rbegin(), v.rend());
-        juce::String out;
-        for (size_t i = 0; i < v.size() && i < 4; ++i)
-            out << v[i].second << " x" << v[i].first << "  ";
-        counts.clear();
-        return out;
-    };
-    const juce::ScopedLock sl (lock);
-    juce::Logger::writeToLog ("   to patch:   " + top (toPatchByAddress));
-    juce::Logger::writeToLog ("   from patch: " + top (fromPatchByAddress));
 }
 
 //==============================================================================

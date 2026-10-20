@@ -139,15 +139,18 @@ private:
 
     juce::AudioDeviceManager deviceManager;
 
+    // Serves the GUI from inside the app instead of node + Open Stage Control
+    // (ws-prototype), wired to the engine in-process: no OSC ports. Set
+    // FORMULS_NODE_GUI=1 in the environment to go back to node and UDP.
+    // Declared before the engine so it outlives it: the engine's PdOscOut
+    // thread hands it packets until the engine stops.
+    const bool useNodeGui = juce::SystemStats::getEnvironmentVariable ("FORMULS_NODE_GUI", {}) == "1";
+    EmbeddedGuiServer embeddedGui;
+
     // Declared before the engine so it outlives the engine's recording tap.
     AudioRecorder recorder;
     FormulsEngine engine;
     OpenStageControlProcess openStageControl;
-
-    // Serves the GUI from inside the app instead of node + Open Stage Control
-    // (ws-prototype). FORMULS_NODE_GUI=1 in the environment goes back to node.
-    EmbeddedGuiServer embeddedGui;
-    const bool useNodeGui = juce::SystemStats::getEnvironmentVariable ("FORMULS_NODE_GUI", {}) == "1";
 
     juce::ComboBox audioDeviceBox;
     juce::ComboBox channelsBox;

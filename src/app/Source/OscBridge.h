@@ -69,7 +69,8 @@ namespace pd { class PdBase; }
 namespace formuls
 {
 
-class OscBridge : private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>
+class OscBridge : private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>,
+                  private juce::AsyncUpdater
 {
 public:
     OscBridge() = default;
@@ -85,6 +86,15 @@ public:
         pdToFeed must outlive the bridge. */
     juce::Result start (pd::PdBase& pdToFeed, int udpPort);
 
+    /** Feeds pdToFeed from post() only, with no socket: the embedded GUI
+        server hands messages over in-process (EmbeddedGuiServer.h). */
+    void startDirect (pd::PdBase& pdToFeed);
+
+    /** Thread-safe. Queues one message; the queue is drained on the message
+        thread, through the same forward() a UDP message takes, so the patch
+        is still never run from the caller's thread. Dropped when stopped. */
+    void post (const juce::OSCMessage& message);
+
     /** Stops listening. Safe to call when not started, and safe twice. */
     void stop();
 
@@ -99,8 +109,14 @@ private:
     void oscBundleReceived (const juce::OSCBundle& bundle) override;
 
     void forward (const juce::OSCMessage& message);
+    void handleAsyncUpdate() override;   // drains `posted`
 
     juce::OSCReceiver receiver;
+    bool direct = false;
+
+    juce::CriticalSection postLock;
+    std::vector<juce::OSCMessage> posted;
+    bool accepting = false;   // under postLock
     pd::PdBase* pd = nullptr;
     bool listening = false;
     int messageCount = 0;

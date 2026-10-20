@@ -394,7 +394,14 @@ void MainComponent::startEverything()
     const auto numChannels = channelsBox.getSelectedId();
     const auto requestedRate = sampleRateBox.getSelectedId();
 
-    // 1. the audio engine (libpd running _main.pd)
+    // 1. the audio engine (libpd running _main.pd). With the embedded GUI the
+    //    patch's GUI-bound OSC goes straight to the server, not to udp 9001.
+    if (useNodeGui)
+        engine.setDirectGui (nullptr);
+    else
+        engine.setDirectGui ([this] (const juce::uint8* data, int size)
+                             { embeddedGui.receivePatchPacket (data, size); });
+
     if (auto result = engine.start (deviceManager, outputDeviceNames[deviceIndex],
                                     outputDeviceTypes[deviceIndex],
                                     numChannels, requestedRate, resourceRoot);
@@ -408,7 +415,8 @@ void MainComponent::startEverything()
     auto oscResult = useNodeGui
                          ? openStageControl.start (resourceRoot)
                          : embeddedGui.start (resourceRoot, OpenStageControlProcess::guiPort,
-                                              OpenStageControlProcess::patchOscPort);
+                                              "127.0.0.1:" + juce::String (OpenStageControlProcess::patchOscPort),
+                                              [this] (const juce::OSCMessage& m) { engine.sendToPatch (m); });
 
     startStopButton.setButtonText (kStopText);
 
@@ -886,6 +894,14 @@ juce::File MainComponent::presetDirectory()
 
 bool MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
 {
+    if (! useNodeGui)
+    {
+        if (! embeddedGui.isRunning())
+            return false;
+        embeddedGui.receiveFromApp (juce::OSCMessage (juce::OSCAddressPattern (address), value));
+        return true;
+    }
+
     // Construct a minimal OSC message: address + ",s" type tag + string value.
     // Sent as UDP to the O-S-C server's OSC receive port, which is the port the
     // GUI is served on: o-s-c's --osc-port defaults to --port.

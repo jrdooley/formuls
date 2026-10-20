@@ -49,16 +49,22 @@ public:
     // Message thread, with the audio callback not yet running (or already
     // removed): binds the receiver and starts the sender. Returns false if the
     // socket could not be created; the patch then keeps its own [netsend].
+    //
+    // With a packet sink set (setPacketSink), packets go to it instead and no
+    // socket is opened; destinationPort is then ignored.
     bool start (int destinationPort)
     {
         stop();
         port = destinationPort;
 
-        socket = std::make_unique<juce::DatagramSocket> (false);
-        if (! socket->bindToPort (0))
+        if (! sink)
         {
-            socket.reset();
-            return false;
+            socket = std::make_unique<juce::DatagramSocket> (false);
+            if (! socket->bindToPort (0))
+            {
+                socket.reset();
+                return false;
+            }
         }
 
         if (receiverClass == nullptr)
@@ -89,6 +95,12 @@ public:
         stopThread (1000);
         socket.reset();
     }
+
+    // Hands each packet to `sink` (on this class's background thread) instead
+    // of sending it over UDP: the embedded GUI server takes them in-process.
+    // Set it while stopped; nullptr goes back to UDP.
+    using PacketSink = std::function<void (const juce::uint8* data, int size)>;
+    void setPacketSink (PacketSink newSink)   { sink = std::move (newSink); }
 
     // Packets dropped because the FIFO was full, or because one was too
     // large, since the last call (then reset). For the diagnostics summary.
@@ -161,7 +173,9 @@ private:
                 const auto length = (int) (header[0] | (header[1] << 8) | (header[2] << 16) | ((juce::uint32) header[3] << 24));
                 read (packet.get(), length);   // written in the same record, so already there
 
-                if (socket != nullptr)
+                if (sink)
+                    sink (packet.get(), length);
+                else if (socket != nullptr)
                     socket->write ("127.0.0.1", port, packet.get(), length);
 
                 sent.fetch_add (1, std::memory_order_relaxed);
@@ -188,6 +202,7 @@ private:
     juce::AbstractFifo fifo { fifoBytes };
     std::vector<juce::uint8> buffer = std::vector<juce::uint8> ((size_t) fifoBytes);
     std::unique_ptr<juce::DatagramSocket> socket;
+    PacketSink sink;
     int port = 0;
     Receiver* receiver = nullptr;
     std::atomic<int> dropped { 0 }, sent { 0 };
