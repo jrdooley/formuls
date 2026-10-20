@@ -149,23 +149,36 @@ keeps only the build architecture and is signed again. A test host whose
 executable exports Max-like stand-ins reproduced the failure. With the
 rebound externals, everything loads and the test tone plays.
 
-## MIDI keyboard input
+## Keyboard input (on-screen and MIDI)
 
 Each synth has a **Keyboard** button on its main panel, under **Freq Snap**.
-It opens the keyboard popup (the on-screen keyboard, RECORD and TRANSPOSE),
-which also holds two buttons per synth:
+It opens the keyboard popup (the on-screen keyboard, RECORD, RECORD CLEAR
+and TRANSPOSE), which also holds two buttons per synth:
 
 - **MIDI IN**: off by default, and switched off again on every reset. While
-  it is on, every MIDI note-on, on any channel, sets the synth's pitch and
-  triggers it, just like a tap on the on-screen keyboard. Several synths
-  with MIDI IN on play the same notes, layered.
-- **MIDI QUANTISE**:
-  - *off* (free): every note plays at its equal-tempered pitch;
+  it is on, every MIDI note-on, on any channel, plays the synth like a tap
+  on the on-screen keyboard. Several synths with MIDI IN on play the same
+  notes, layered. The on-screen keyboard always plays.
+- **QUANTISE** decides the tuning for both keyboards:
+  - *off*: every note plays at its equal-tempered pitch;
   - *on*: a note whose pitch class (counted from the root) is active in the
-    PITCH GAMUT takes that slot's tuning, in the note's own octave; notes on
+    PITCH GAMUT takes that slot's tuning, in its own octave; notes on
     inactive pitch classes keep their equal-tempered pitch.
 
-  Root F with C, E and F active is F, A and B♭, each at its slot's tuning.
+  It is off by default and on every reset. Root F with C, E and F active is
+  F, A and B♭, each at its slot's tuning.
+
+**How keyboard notes reach the oscillator:**
+- They enter its pitch chain after Freq Snap, so Freq Snap never re-snaps
+  them.
+- They update the tablet's pitch display and Filter Pitch Track, and
+  trigger the synth, as the on-screen keyboard always did.
+- The keyboard performance recording plays back through the same QUANTISE
+  setting.
+
+**Reset:** a synth's reset, and the global reset, clear that synth's
+keyboard recording, as RECORD CLEAR does. The recorder used to listen for
+`resetGlobal`, which nothing sends, so it was never cleared.
 
 **Where the notes come from:**
 - the plugin plays the host's MIDI;
@@ -175,10 +188,7 @@ which also holds two buttons per synth:
 **Note handling:**
 - Note-offs and velocity are ignored: a triggered note plays the synth's own
   envelope at formuls's own velocity.
-- MIDI notes are not recorded into the on-screen keyboard's performance
-  recording.
-- MIDI notes don't use the oscillator's Freq Snap; MIDI QUANTISE decides
-  their tuning.
+- MIDI notes are not recorded into the keyboard performance recording.
 
 A synth trigger is a toggle that Faust reads once per 64-sample tick, so two
 triggers in one tick cancel out. The engine therefore hands Pd at most one
@@ -187,9 +197,15 @@ ticks (1.3 ms each at 48 kHz), and every note sounds. In the plugin, notes
 are taken at the start of the host block they arrive in, not at their exact
 sample position.
 
-Implementation: `MIDI_KEYBOARD___` in `f.util.oscinparse.pd` (one per synth,
-in the ADSR_VEL_TRIG message chain); `SharedEngine::render` (plugin);
-`MainComponent::handleIncomingMidiMessage` (app).
+**Implementation:**
+- Pd, all in `f.util.oscinparse.pd`, one per synth:
+  - `MIDI_KEYBOARD___`, in the ADSR_VEL_TRIG message chain: the
+    free/quantised step for both keyboards;
+  - `$0-key-pitch` in `FREQ_SNAP_NOTE_GEN__`: where keyboard pitches enter
+    after the snap;
+  - `$0-key-trig` in `OP1FREQ_PITCH_QUANTISE`: the trigger.
+- Plugin: `SharedEngine::render`.
+- App: `MainComponent::handleIncomingMidiMessage`.
 
 Parameter control from the host (automation, MIDI CC) is deliberately not
 offered: formuls's parameters are played from the tablet.

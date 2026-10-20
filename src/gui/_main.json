@@ -8280,7 +8280,7 @@
                                 "ignoreDefaults": false,
                                 "bypass": false,
                                 "colorTextOn": "rgba(255,255,255,1)",
-                                "label": "MIDI QUANTISE",
+                                "label": "QUANTISE",
                                 "vertical": true,
                                 "wrap": false,
                                 "on": 1,
