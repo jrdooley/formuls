@@ -151,9 +151,12 @@ rebound externals, everything loads and the test tone plays.
 
 ## Keyboard input (on-screen and MIDI)
 
-Each synth has a **Keyboard** button on its main panel, under **Freq Snap**.
-It opens the keyboard popup (the on-screen keyboard, RECORD, RECORD CLEAR
-and TRANSPOSE), which also holds two buttons per synth:
+Each synth has a small **keyboard** (icon) button next to **CHAOS SLEW** and
+**EVOLVE TIME**, at the top of its sequencer column. The keyboard is a
+secondary way of playing the oscillator, so its button sits with the other
+secondary popups, and the main panel is unchanged. The button opens the
+keyboard popup (the on-screen keyboard, RECORD, RECORD CLEAR and TRANSPOSE),
+which also holds two buttons per synth:
 
 - **MIDI IN**: off by default, and switched off again on every reset. While
   it is on, every MIDI note-on, on any channel, plays the synth like a tap
