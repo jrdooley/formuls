@@ -11,13 +11,20 @@ nothing personal is written down either.
 | download | built | signed | file |
 |---|---|---|---|
 | macOS (Apple Silicon) | on your Mac, `build-macOS.sh` | Developer ID + notarised, on your Mac | `formuls-<version>-macOS-arm64.zip` |
+| macOS (Apple Silicon), CI build | GitHub Actions | ad hoc only | `formuls-<version>-macOS-arm64-unsigned.zip` |
+| macOS plugins (VST3, AU) | GitHub Actions | ad hoc only | `formuls-<version>-macOS-arm64-plugins-unsigned.zip` |
 | Linux x64 | GitHub Actions | not needed | `formuls-<version>-linux-x64.tar.gz` |
 | Windows x64 | GitHub Actions | no (see [Windows](#7-windows)) | `formuls-<version>-windows-x64.zip` |
 | Linux x64 plugins (VST3, LV2) | GitHub Actions | not needed | `formuls-<version>-linux-x64-plugins.tar.gz` |
 | Windows x64 plugin (VST3) | GitHub Actions | no | `formuls-<version>-windows-x64-plugins.zip` |
 
-The Mac build is signed on your own Mac so the certificate's private key never
-leaves it. GitHub only ever builds Linux and Windows.
+GitHub builds all three platforms, but the Mac builds it makes are signed ad hoc
+(`codesign -s -`), never with your Developer ID: the certificate's private key
+never leaves your own Mac. Gatekeeper blocks an ad-hoc app downloaded from the
+web (right-click → Open, or `xattr -dr com.apple.quarantine`, gets past it), so
+their zips are named `-unsigned`. They prove the Mac build works and are handy
+for testing. The Mac app players download is the one you sign and notarise
+yourself (section 2).
 
 ---
 
@@ -123,9 +130,10 @@ never in a file, a command line or the repository.
    `build-plugin-windows.bat`) and merge that to `main`. CI refuses to build if
    they differ.
 
-2. **Tag and push.** CI checks the tag matches `VERSION`, builds the Linux and
-   Windows apps and plugins, checks the plugins in a test host, and creates a
-   **draft** release with all four archives attached:
+2. **Tag and push.** CI checks the tag matches `VERSION`, builds the macOS,
+   Linux and Windows apps and plugins, checks the plugins in a test host, and
+   creates a **draft** release with all six archives attached (the two Mac ones
+   named `-unsigned`):
 
    ```bash
    git tag v0.3.2
@@ -147,11 +155,20 @@ never in a file, a command line or the repository.
    [Checking a signed build](#checking-a-signed-build)): download it, unzip,
    double-click. It should open with no warning.
 
-5. **Add the Mac zip to the draft**, write the notes, and publish on GitHub:
+5. **Swap the Mac app zip in the draft**: add the signed one and delete CI's
+   unsigned one, then write the notes and publish on GitHub:
 
    ```bash
    gh release upload v0.3.2 formuls-0.3.2-macOS-arm64.zip
    ```
+
+   ```bash
+   gh release delete-asset v0.3.2 formuls-0.3.2-macOS-arm64-unsigned.zip
+   ```
+
+   The Mac plugins have no Developer ID build yet, so
+   `formuls-0.3.2-macOS-arm64-plugins-unsigned.zip` is the only one; keep it, or
+   remove it the same way if only signed Mac downloads should be published.
 
 Release zips, `.tar.gz` files and the Linux/Windows output folders are in
 `.gitignore`, so they cannot be committed by accident.
@@ -288,9 +305,9 @@ Choose **Always Allow** in the dialog, not Allow.
 
 | trigger | builds | release |
 |---|---|---|
-| a tag `v*` is pushed | Linux, Windows | a draft, with both attached |
-| a pull request changes a build script or the workflow | Linux, Windows | no; builds kept as downloads on the run |
-| **Run workflow** in the Actions tab (once the file is on `main`) | Linux, Windows | no |
+| a tag `v*` is pushed | macOS, Linux, Windows | a draft, with all attached |
+| a pull request changes a build script or the workflow | macOS, Linux, Windows | no; builds kept as downloads on the run |
+| **Run workflow** in the Actions tab (on `main`, or any branch once the file is on `main`) | macOS, Linux, Windows | no |
 
 A run that only changes the workflow on a branch cannot be started by hand until
 the file is on `main`; that is why pull requests that touch the build trigger it.
@@ -307,10 +324,19 @@ the file is on `main`; that is why pull requests that touch the build trigger it
   `.tar.gz`.
 - **`windows`** (Windows Server 2022): downloads JUCE, installs Faust silently, sets
   up a Visual Studio developer environment, runs `build-windows.bat`, zips the
-  result. Both jobs then build the plugins and check them with
-  `src/tools/plugin-probe` (audio, editor window, MIDI). A failure in either
-  job stops the release, so a draft always has all four archives.
-- **`release`** (tags only): downloads the four archives (not the editor
+  result.
+- **`macos`** (macOS 15, Apple Silicon): builds Faust from source (cached, as on
+  Linux: Homebrew's Faust is newer than the pinned one), downloads JUCE, runs
+  `SIGN_IDENTITY=- ./build-macOS.sh` (an ad-hoc signature with the release
+  build's hardened runtime and entitlements, so it behaves like the signed app
+  apart from Gatekeeper), and renames the zip `-unsigned`. Its plugins are the
+  VST3 and AU from `build-plugin-macOS.sh`, zipped with `ditto`.
+- All three jobs then build the plugins and check them with
+  `src/tools/plugin-probe` (audio and MIDI everywhere; the editor window on
+  Linux and Windows. On macOS only the VST3 is probed: an AU has to be
+  installed to be found). A failure in any job stops the release, so a draft
+  always has all six archives.
+- **`release`** (tags only): downloads the six archives (not the editor
   snapshots) and creates the draft with `gh release create --draft`.
 
 Versions are pinned to the ones the Mac is built with: **JUCE 9.0.1**, **Faust
@@ -323,6 +349,7 @@ From the run's page in the Actions tab, or:
 ```bash
 gh run download <run id> -n linux-x64
 gh run download <run id> -n windows-x64
+gh run download <run id> -n macos-arm64
 ```
 
 ---
