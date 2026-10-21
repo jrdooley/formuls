@@ -1,14 +1,18 @@
-# Builds formuls for Linux and Windows on GitHub's machines.
+# Builds formuls (app and plugins) for macOS, Linux and Windows on GitHub's
+# machines.
 #
-# - Push a tag like v0.3.2 (matching VERSION in the build scripts): both are
-#   built and attached to a draft GitHub release, to check and publish.
-# - Or run it by hand from the Actions tab ("Run workflow"): both are built and
-#   kept as downloadable artifacts, with no release.
-# - A pull request that changes a build script or this file builds both too,
+# - Push a tag like v0.3.2 (matching VERSION in the build scripts): all three
+#   are built and attached to a draft GitHub release, to check and publish.
+# - Or run it by hand from the Actions tab ("Run workflow", e.g. on main): all
+#   three are built and kept as downloadable artifacts, with no release.
+# - A pull request that changes a build script or this file builds them too,
 #   so a broken build shows up before it reaches main.
 #
-# The macOS build is signed and notarised on your own Mac and added to the
-# release by hand; see docs/release.md.
+# The macOS builds here are signed ad hoc, not with a Developer ID: the
+# certificate's private key stays on your own Mac. Their zips are named
+# *-unsigned so they cannot be mistaken for a release download. For a public
+# release, sign and notarise on your Mac and add those zips to the draft in
+# their place; see docs/release.md.
 
 name: release
 
@@ -19,9 +23,12 @@ on:
   pull_request:
     paths:
       - 'build-linux.sh'
+      - 'build-macOS.sh'
       - 'build-windows.bat'
       - 'build-plugin-linux.sh'
+      - 'build-plugin-macOS.sh'
       - 'build-plugin-windows.bat'
+      - 'src/tools/sign-macos.sh'
       - 'src/plugin/**'
       - 'src/tools/plugin-probe/**'
       - '.github/workflows/release.yml'
@@ -246,17 +253,101 @@ jobs:
           name: windows-x64-plugins
           path: formuls-*-windows-x64-plugins.zip
 
+  macos:
+    needs: version
+    runs-on: macos-15   # Apple Silicon, as the hand-made build (docs/release.md section 8)
+    env:
+      V: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Built from source, as on Linux, so every platform has the same Faust
+      # (Homebrew's is newer than the pinned version).
+      - name: Cache Faust
+        id: faust-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/faust
+          key: faust-${{ env.FAUST_VERSION }}-macos-15-arm64
+
+      - name: Build Faust ${{ env.FAUST_VERSION }}
+        if: steps.faust-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -sSL -o faust.tar.gz "https://github.com/grame-cncm/faust/releases/download/$FAUST_VERSION/faust-$FAUST_VERSION.tar.gz"
+          tar -xzf faust.tar.gz
+          cd "faust-$FAUST_VERSION"
+          make -j"$(sysctl -n hw.ncpu)"
+          make install PREFIX="$HOME/faust"
+
+      - name: Download JUCE ${{ env.JUCE_VERSION }}
+        run: |
+          curl -sSL -o juce.zip "https://github.com/juce-framework/JUCE/releases/download/$JUCE_VERSION/juce-$JUCE_VERSION-osx.zip"
+          unzip -q juce.zip -d "$HOME"
+          ls "$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer"
+
+      - name: Build
+        run: |
+          command -v wget > /dev/null || brew install wget
+          export PATH="$HOME/faust/bin:$PATH"
+          faust --version | head -1
+          # "-": an ad-hoc signature with the release build's hardened runtime
+          # and entitlements, zipped as formuls-$V-macOS-arm64.zip.
+          SIGN_IDENTITY=- ./build-macOS.sh
+
+      - name: Package
+        run: mv "formuls-$V-macOS-arm64.zip" "formuls-$V-macOS-arm64-unsigned.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: formuls-*-macOS-arm64-unsigned.zip
+
+      # The plugins (VST3, AU) reuse the app bundle's pd/ and gui/.
+      - name: Build the plugins
+        run: ./build-plugin-macOS.sh
+
+      - name: Check the plugin in a test host
+        run: |
+          cmake -S src/tools/plugin-probe -B build-probe -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-probe -j"$(sysctl -n hw.ncpu)"
+          PROBE=build-probe/plugin_probe_artefacts/Release/plugin_probe
+          PROBE_MIN_PEAK=0.05 "$PROBE" "$PWD/formuls-$V.vst3" 4 9001
+          # MIDI: as on Linux.
+          PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 PROBE_LINGER=5 PROBE_WATCH=/midikeyboard1,/reset1 \
+            PROBE_NOTES_AT="1:60,4:67,5:67,6:67" PROBE_GUI_AT="3:/midikeyboard1:1" \
+            PROBE_FORBID_GUI="/oscpitchgui1:0.5:3" PROBE_EXPECT_GUI="/oscpitchgui1:3.5:7.5" \
+            "$PROBE" "$PWD/formuls-$V.vst3" 60 9001
+
+      - name: Show the plugin log
+        if: always()
+        run: cat ~/Library/Logs/formuls/plugin.log || true
+
+      - name: Package the plugins
+        run: |
+          mkdir "formuls-$V-macOS-arm64-plugins"
+          cp -R "formuls-$V.vst3" "formuls-$V-macOS-arm64-plugins/formuls.vst3"
+          cp -R "formuls-$V.component" "formuls-$V-macOS-arm64-plugins/formuls.component"
+          # ditto keeps the bundles' symlinks and signatures intact.
+          ditto -c -k --keepParent "formuls-$V-macOS-arm64-plugins" "formuls-$V-macOS-arm64-plugins-unsigned.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64-plugins
+          path: formuls-*-macOS-arm64-plugins-unsigned.zip
+
   release:
     if: github.ref_type == 'tag'
-    needs: [version, linux, windows]
+    needs: [version, linux, windows, macos]
     runs-on: ubuntu-24.04
     steps:
-      # The app and plugin archives (linux-x64, linux-x64-plugins, windows-x64,
-      # windows-x64-plugins), not the editor snapshots.
+      # The app and plugin archives (linux-x64, windows-x64, macos-arm64, each
+      # with its -plugins), not the editor snapshots.
       - uses: actions/download-artifact@v4
         with:
           path: dist
-          pattern: "*-x64*"
+          pattern: "*64*"
           merge-multiple: true
       - name: Create a draft release
         env:
@@ -265,4 +356,4 @@ jobs:
           ls -la dist
           gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft \
             --title "formuls ${{ needs.version.outputs.version }}" \
-            --notes "Draft: add the signed macOS zip (docs/release.md), write the notes, then publish."
+            --notes "Draft: replace the two *-macOS-arm64*-unsigned.zip files with the signed and notarised zips (docs/release.md), write the notes, then publish."
