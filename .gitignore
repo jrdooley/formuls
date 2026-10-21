@@ -7,12 +7,16 @@ build/
 
 # Packaged applications produced by the build scripts
 /formuls-*.app/
+/formuls-*.vst3/
+/formuls-*.component/
 /formuls-*-linux-*/
 *.app/
 
 # JUCE: Projucer regenerates both of these from src/app/formuls.jucer
 src/app/Builds/
 src/app/JuceLibraryCode/
+src/plugin/Builds/
+src/plugin/JuceLibraryCode/
 
 # ---------------------------------------------------------------
 # Dependencies downloaded by the build scripts

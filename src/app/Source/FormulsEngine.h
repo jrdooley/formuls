@@ -63,6 +63,15 @@ public:
     /** Called on the message thread when the patch sends to "formuls-quit". */
     std::function<void()> onQuitRequested;
 
+    /** The patch's global reset (_main.pd: [s resetglobal-in]). Its
+        INIT_PARAMETER_SET subpatch pulses it 1 then 0, 5 s after loading, and
+        the GUI's Global Reset does the same; every parameter goes back to its
+        default. Anything sent to the patch before the start-up pulse is lost. */
+    static constexpr const char* resetReceiverName = "resetglobal-in";
+
+    /** Called on the message thread with each value sent to resetglobal-in. */
+    std::function<void (float)> onGlobalReset;
+
     /** Opens the requested output device, boots libpd and loads pd/_main.pd
         from the given resource root. Returns Result::ok() or a failure with a
         user-displayable message.
@@ -90,6 +99,18 @@ public:
                         double sampleRate,
                         const juce::File& resourceRoot);
 
+    /** Boots libpd and loads pd/_main.pd without opening an audio device,
+        for a plugin: the host then drives the audio through processHosted().
+        maxBlockSize is the most frames one processHosted() call will ask for. */
+    juce::Result startHosted (int numOutputChannels, double sampleRate,
+                              int maxBlockSize, const juce::File& resourceRoot);
+
+    /** Audio thread, after startHosted(). Renders numSamples frames of the
+        patch into the host's buffers (any block size; libpd's 64-frame ticks
+        are carried across calls). Does nothing when not running, so the
+        caller clears the buffers first. */
+    void processHosted (float* const* outputChannelData, int numOutputChannels, int numSamples);
+
     /** Attaches the recorder that each rendered block is copied to, or
         nullptr to detach. Call this from the message thread while the engine
         is stopped (MainComponent does it once, at construction); the
@@ -105,11 +126,31 @@ public:
         provide it. */
     double getActualSampleRate() const noexcept   { return actualSampleRate; }
 
+    /** Connects the patch to an in-process GUI server instead of UDP: the
+        patch's GUI-bound OSC packets go to `sink` (called on PdOscOut's
+        background thread), and messages for the patch come in through
+        sendToPatch(). Pass nullptr for the UDP ports o-s-c uses. Call while
+        stopped; it takes effect at the next start(). */
+    void setDirectGui (PdOscOut::PacketSink sink)   { directGuiSink = std::move (sink); }
+
+    /** Thread-safe. Queues a GUI message for the patch (direct mode); it is
+        delivered on the message thread, as OscBridge delivers UDP ones. */
+    void sendToPatch (const juce::OSCMessage& message)   { oscBridge.post (message); }
+
     /** Stops audio, closes the patch and releases the audio device.
         Safe to call when not running. */
     void stop();
 
     bool isRunning() const noexcept   { return running; }
+
+    /** Any thread. Queues a MIDI note-on for the patch's [notein], which the
+        synths with MIDI IN switched on play (see f.util.oscinparse,
+        MIDI_KEYBOARD). Notes reach Pd at most one per 64-frame tick: a synth
+        trigger is a toggle that Faust reads once per tick, so two in one
+        tick would cancel out and a chord would not sound. A chord is
+        therefore spread over a few ticks (1.3 ms each at 48 kHz). Note-offs
+        are not queued: a triggered note plays its own envelope. */
+    void queueNoteOn (int channel, int note, int velocity) noexcept;
 
     /** Peak levels for the first two output channels, updated on the audio
         thread. Read from the GUI thread to drive VU meters. */
@@ -140,6 +181,11 @@ private:
 
     void handleQuitRequest();
 
+    // Shared by start() and startHosted().
+    juce::Result bootPd (int numOutputChannels, double sampleRate, const juce::File& patchDir);
+    void prepareRender (int maxBlockSize);   // not on the audio thread
+    void render (float* const* outputChannelData, int numOutputChannels, int numSamples);
+
     pd::PdBase pd;
     pd::Patch patch;
 
@@ -154,6 +200,7 @@ private:
     // holding it). Declared after pd so it is destroyed first: it has a
     // receiver bound inside Pd. See PdOscOut.h.
     PdOscOut oscOut;
+    PdOscOut::PacketSink directGuiSink;
     juce::AudioDeviceManager* activeDeviceManager = nullptr;
 
     int pdOutputChannels = 0;               // channels libpd was initialised with
@@ -161,6 +208,16 @@ private:
     std::vector<float> pdInputBuffer;       // dummy interleaved input (0 channels)
     std::vector<float> pdOutputBuffer;      // one Pd tick of interleaved output
     int samplesLeftInTick = 0;              // unconsumed frames in pdOutputBuffer
+
+    // Note-ons waiting for the next tick (queueNoteOn). Several MIDI inputs
+    // may push at once, so pushes take the spin lock; only the audio thread
+    // pops.
+    struct NoteOn { int channel, note, velocity; };
+    static constexpr int noteQueueSize = 256;
+    juce::AbstractFifo noteFifo { noteQueueSize };
+    std::array<NoteOn, noteQueueSize> noteQueue {};
+    juce::SpinLock notePushLock;
+    void sendNextQueuedNote();   // audio thread, before each tick
 
     // Recording tap. recordChannels/recordSilence are sized in
     // audioDeviceAboutToStart() so the audio callback never allocates;

@@ -40,6 +40,15 @@ inline juce::File findResourceRoot()
     if (containsResources (bundleResources))
         return bundleResources;
 
+    // 1a'. A plugin bundle (formuls.vst3 / formuls.component): JUCE resolves
+    //      currentExecutableFile to the plugin's own binary in Contents/MacOS,
+    //      while currentApplicationFile above is the host.
+    auto pluginResources = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
+                               .getParentDirectory().getSiblingFile ("Resources");
+
+    if (containsResources (pluginResources))
+        return pluginResources;
+
     // 1b. Windows / Linux flat layout: resources sit next to the executable.
     auto exeDir = juce::File::getSpecialLocation (juce::File::currentExecutableFile)
                       .getParentDirectory();

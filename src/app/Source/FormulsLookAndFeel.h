@@ -24,15 +24,18 @@
  *   Change the window title      -> edit style::windowTitle
  *   Change the window size       -> edit style::windowWidth / windowHeight
  *   Make the window resizable    -> set style::windowResizable to true
- *   Change the background colour -> edit style::background
- *   Restyle the address panel    -> edit style::addressFill / addressText /
- *                                   addressFontHeight (the read-only box
+ *   Change the background colour -> edit style::background (keep it the
+ *                                   same as PluginEditor::paint)
+ *   Restyle the address panel    -> edit style::addressText /
+ *                                   addressFontHeight (the read-only text
  *                                   listing the control GUI's web addresses)
  *   Change the "recording" red    -> edit style::recordActive (the colour the
  *                                   Record button turns while a take is in
  *                                   progress)
- *   Change widget colours        -> edit the setColour() calls in the
- *                                   FormulsLookAndFeel constructor below.
+ *   Change widget colours        -> add setColour() calls to the
+ *                                   FormulsLookAndFeel constructor below
+ *                                   (widgets use JUCE's dark scheme, which
+ *                                   matches the plugin's window).
  *                                   Each juce widget documents its own
  *                                   ColourIds (e.g. juce::TextButton::
  *                                   buttonColourId) -- see the JUCE headers
@@ -65,45 +68,39 @@ namespace style
     // ------------------------------------------------------------------ window
     static const juce::String windowTitle   { "formuls" };
     constexpr int  windowWidth      = 450;
-    constexpr int  windowHeight     = 553;
+    constexpr int  windowHeight     = 560;
     constexpr bool windowResizable  = false;
 
     // ------------------------------------------------------------------ colours
-    // The green used by the original Tk front end. All other widget colours
-    // are derived from these in the FormulsLookAndFeel constructor.
-    static const juce::Colour background    { 0xff007a33 };   // window background
-    static const juce::Colour widgetFill    { 0xff005c26 };   // buttons / combo boxes
-    static const juce::Colour widgetOutline { 0xff003d19 };   // widget borders
-    static const juce::Colour textColour    { 0xfff2f2f2 };   // all text
-    static const juce::Colour statusColour  { 0xffdcf0dc };   // status line text
-    static const juce::Colour addressFill   { 0xff00491e };   // GUI address panel background
-    static const juce::Colour addressText   { 0xffeafbea };   // GUI address panel text
+    // The same as the plugin's window (src/plugin/Source/PluginEditor.cpp):
+    // a near-black background, white text, and JUCE's own dark widgets
+    // (LookAndFeel_V4's default scheme), which is what the plugin gets too.
+    static const juce::Colour background    { 0xff1e1f22 };   // window background
+    static const juce::Colour textColour    { juce::Colours::white };   // title, labels
+    static const juce::Colour statusColour  { juce::Colours::white.withAlpha (0.85f) };   // status line
+    static const juce::Colour addressText   { juce::Colours::white.withAlpha (0.85f) };   // GUI addresses
+    static const juce::Colour meterTrack    { 0xff2a2c30 };   // VU meter bar background
     static const juce::Colour recordActive  { 0xffb3271e };   // Record button while recording
 
     // ------------------------------------------------------------------ layout
-    constexpr int margin          = 24;    // outer margin around all controls
+    constexpr int margin          = 20;    // outer margin, as the plugin's window
+    constexpr int titleHeight     = 40;    // the "formuls" title
     constexpr int controlHeight   = 32;    // height of combo boxes
     constexpr int controlSpacing  = 14;    // vertical gap between controls
-    constexpr int comboWidth      = 280;   // width of the two combo boxes
+    constexpr int comboWidth      = 280;   // width of the device combo box
     constexpr int buttonWidth     = 150;   // width of the start/stop button
-    constexpr int buttonHeight    = 44;    // height of the start/stop button
+    constexpr int buttonHeight    = 32;    // height of start/stop and record, as the plugin's button
     constexpr int recordButtonWidth = 150; // width of the record button, which
                                            // sits to the right of start/stop
-    constexpr int buttonGap       = 14;    // horizontal gap between the two buttons
-    // Save Preset, Load Preset and Take Screenshot are stacked in a column
-    // directly above the record button and share its width, so all four
-    // right-align down the same edge.
-    constexpr int stackedButtonWidth  = recordButtonWidth;
-    constexpr int stackedButtonHeight = 28;
-    constexpr int stackedButtonGap    = 6;  // vertical gap between stacked buttons
     constexpr int meterHeight     = 20;    // height of each VU meter bar (stereo = 2x + gap)
     constexpr int meterLabelWidth = 12;    // gutter on the left holding the L / R labels
     constexpr int meterLabelGap   = 6;     // gap between a channel label and its bar
 
     // ------------------------------------------------------------------ fonts
+    constexpr float titleFontHeight   = 28.0f;   // bold, as the plugin's title
     constexpr float labelFontHeight   = 15.0f;
     constexpr float buttonFontHeight  = 16.0f;
-    constexpr float addressFontHeight = 13.0f;   // GUI address panel
+    constexpr float addressFontHeight = 16.0f;   // GUI addresses, monospaced
     constexpr float meterFontHeight   = 12.0f;   // VU meter L / R channel labels
 } // namespace style
 
@@ -116,38 +113,18 @@ class FormulsLookAndFeel : public juce::LookAndFeel_V4
 public:
     FormulsLookAndFeel()
     {
-        // window / generic
+        // Buttons, combo boxes and menus keep LookAndFeel_V4's dark scheme,
+        // as in the plugin. Only the window and the text are set here.
         setColour (juce::ResizableWindow::backgroundColourId, style::background);
         setColour (juce::DocumentWindow::textColourId,        style::textColour);
+        setColour (juce::Label::textColourId,                 style::textColour);
 
-        // combo boxes
-        setColour (juce::ComboBox::backgroundColourId, style::widgetFill);
-        setColour (juce::ComboBox::textColourId,       style::textColour);
-        setColour (juce::ComboBox::outlineColourId,    style::widgetOutline);
-        setColour (juce::ComboBox::arrowColourId,      style::textColour);
-
-        // popup menus (the drop-down lists of the combo boxes)
-        setColour (juce::PopupMenu::backgroundColourId,            style::widgetFill);
-        setColour (juce::PopupMenu::textColourId,                  style::textColour);
-        setColour (juce::PopupMenu::highlightedBackgroundColourId, style::background);
-        setColour (juce::PopupMenu::highlightedTextColourId,       style::textColour);
-
-        // buttons
-        setColour (juce::TextButton::buttonColourId,   style::widgetFill);
-        setColour (juce::TextButton::buttonOnColourId, style::widgetOutline);
-        setColour (juce::TextButton::textColourOffId,  style::textColour);
-        setColour (juce::TextButton::textColourOnId,   style::textColour);
-
-        // labels
-        setColour (juce::Label::textColourId, style::textColour);
-
-        // the read-only panel listing the control GUI's web addresses
-        setColour (juce::TextEditor::backgroundColourId,      style::addressFill);
+        // The GUI addresses read as plain text on the window, as in the
+        // plugin; still a TextEditor so they can be selected and copied.
+        setColour (juce::TextEditor::backgroundColourId,      juce::Colours::transparentBlack);
         setColour (juce::TextEditor::textColourId,            style::addressText);
-        setColour (juce::TextEditor::outlineColourId,         style::widgetOutline);
-        setColour (juce::TextEditor::focusedOutlineColourId,  style::widgetOutline);
-        setColour (juce::TextEditor::highlightColourId,       style::textColour);
-        setColour (juce::TextEditor::highlightedTextColourId, style::widgetFill);
+        setColour (juce::TextEditor::outlineColourId,         juce::Colours::transparentBlack);
+        setColour (juce::TextEditor::focusedOutlineColourId,  juce::Colours::transparentBlack);
     }
 };
 

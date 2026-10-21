@@ -37,6 +37,16 @@ MainComponent::MainComponent()
 {
     setSize (style::windowWidth, style::windowHeight);
 
+    // ------------------------------------------------------------------ title
+    titleLabel.setText ("formuls", juce::dontSendNotification);
+    titleLabel.setFont (juce::FontOptions (style::titleFontHeight, juce::Font::bold));
+    addAndMakeVisible (titleLabel);
+
+    // ------------------------------------------------------- MIDI keyboards
+    enableAllMidiInputs();
+    deviceManager.addMidiInputDeviceCallback ({}, this);   // {} = every enabled input
+    midiDeviceListConnection = juce::MidiDeviceListConnection::make ([this] { enableAllMidiInputs(); });
+
     // ------------------------------------------------- audio device combo box
     audioDeviceBox.setTextWhenNothingSelected ("Select audio output...");
     populateDeviceList();
@@ -71,22 +81,12 @@ MainComponent::MainComponent()
     addAndMakeVisible (recordButton);
     updateButtonStates();
 
-    // ---------------------------------------------------- take screenshot button
-    screenshotButton.setButtonText ("Take Screenshot");
-    screenshotButton.setEnabled (engine.isRunning());
+    // Take Screenshot, Save Preset and Load Preset are not shown: they were
+    // added in haste and how they should work has not been settled. Their
+    // code is kept, but with the buttons never on screen nothing reaches it.
     screenshotButton.onClick = [this] { screenshotClicked(); };
-    addAndMakeVisible (screenshotButton);
-
-    // ----------------------------------------------------- preset buttons
-    savePresetButton.setButtonText ("Save Preset");
-    savePresetButton.setEnabled (false);
     savePresetButton.onClick = [this] { savePresetClicked(); };
-    addAndMakeVisible (savePresetButton);
-
-    loadPresetButton.setButtonText ("Load Preset");
-    loadPresetButton.setEnabled (false);
     loadPresetButton.onClick = [this] { loadPresetClicked(); };
-    addAndMakeVisible (loadPresetButton);
 
     // -------------------------------------------------------------- VU meters
     vuMeter.setPeakLevels (engine.peakLevels.data());
@@ -95,7 +95,7 @@ MainComponent::MainComponent()
     // ------------------------------------------------------- GUI address panel
     // Read-only, but still selectable so the address can be copied out
     // (Cmd+C, or right-click for the Copy menu).
-    addressPanel.setMultiLine (true, false);
+    addressPanel.setMultiLine (true, true);   // wrapped: no sideways scrolling
     addressPanel.setReadOnly (true);
     addressPanel.setCaretVisible (false);
     addressPanel.setScrollbarsShown (true);
@@ -207,10 +207,31 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    deviceManager.removeMidiInputDeviceCallback ({}, this);
+
     // The app is closing, so there is nowhere to show a save dialog: any
     // take in progress is simply finished where it was being recorded.
     stopEverything (false);
     engine.setRecorder (nullptr);
+}
+
+//==============================================================================
+void MainComponent::enableAllMidiInputs()
+{
+    for (const auto& input : juce::MidiInput::getAvailableDevices())
+        if (! deviceManager.isMidiInputDeviceEnabled (input.identifier))
+        {
+            deviceManager.setMidiInputDeviceEnabled (input.identifier, true);
+            juce::Logger::writeToLog ("MIDI input: " + input.name);
+        }
+}
+
+void MainComponent::handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage& message)
+{
+    // MIDI thread. The engine queues the note for its next audio tick; notes
+    // that arrive while it is stopped are cleared when it starts.
+    if (message.isNoteOn())   // velocity 0 counts as a note-off
+        engine.queueNoteOn (message.getChannel() - 1, message.getNoteNumber(), message.getVelocity());
 }
 
 //==============================================================================
@@ -223,6 +244,9 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds().reduced (style::margin);
 
+    titleLabel.setBounds (area.removeFromTop (style::titleHeight));
+    area.removeFromTop (style::controlSpacing / 2);
+
     audioDeviceBox.setBounds (area.removeFromTop (style::controlHeight)
                                   .withWidth (style::comboWidth));
     area.removeFromTop (style::controlSpacing);
@@ -234,23 +258,6 @@ void MainComponent::resized()
     sampleRateBox.setBounds (area.removeFromTop (style::controlHeight)
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
-
-    // Save Preset, Load Preset and Take Screenshot stack above the record
-    // button and share its width, so the four of them right-align down the
-    // same edge. Taking the height from the top here leaves the address panel
-    // -- which fills whatever is left over -- to absorb the difference.
-    auto stackRow = [&] (juce::Component& button)
-    {
-        auto row = area.removeFromTop (style::stackedButtonHeight);
-        button.setBounds (row.removeFromRight (style::stackedButtonWidth));
-    };
-
-    stackRow (savePresetButton);
-    area.removeFromTop (style::stackedButtonGap);
-    stackRow (loadPresetButton);
-    area.removeFromTop (style::stackedButtonGap);
-    stackRow (screenshotButton);
-    area.removeFromTop (style::controlSpacing / 2);
 
     auto buttonRow = area.removeFromTop (style::buttonHeight);
     startStopButton.setBounds (buttonRow.removeFromLeft (style::buttonWidth));
@@ -394,7 +401,14 @@ void MainComponent::startEverything()
     const auto numChannels = channelsBox.getSelectedId();
     const auto requestedRate = sampleRateBox.getSelectedId();
 
-    // 1. the audio engine (libpd running _main.pd)
+    // 1. the audio engine (libpd running _main.pd). With the embedded GUI the
+    //    patch's GUI-bound OSC goes straight to the server, not to udp 9001.
+    if (useNodeGui)
+        engine.setDirectGui (nullptr);
+    else
+        engine.setDirectGui ([this] (const juce::uint8* data, int size)
+                             { embeddedGui.receivePatchPacket (data, size); });
+
     if (auto result = engine.start (deviceManager, outputDeviceNames[deviceIndex],
                                     outputDeviceTypes[deviceIndex],
                                     numChannels, requestedRate, resourceRoot);
@@ -405,7 +419,11 @@ void MainComponent::startEverything()
     }
 
     // 2. the Open Stage Control GUI server
-    auto oscResult = openStageControl.start (resourceRoot);
+    auto oscResult = useNodeGui
+                         ? openStageControl.start (resourceRoot)
+                         : embeddedGui.start (resourceRoot, OpenStageControlProcess::guiPort,
+                                              "127.0.0.1:" + juce::String (OpenStageControlProcess::patchOscPort),
+                                              [this] (const juce::OSCMessage& m) { engine.sendToPatch (m); });
 
     startStopButton.setButtonText (kStopText);
 
@@ -441,6 +459,7 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
         finishRecording (offerToSaveRecording);
 
     openStageControl.stop();
+    embeddedGui.stop();
     engine.stop();
 
     startStopButton.setButtonText (kStartText);
@@ -570,12 +589,15 @@ void MainComponent::updateButtonStates()
 
     recordButton.setButtonText (isRecording ? kStopRecordText : kRecordText);
     recordButton.setEnabled (engine.isRunning());
-    recordButton.setColour (juce::TextButton::buttonColourId,
-                            isRecording ? style::recordActive : style::widgetFill);
+    if (isRecording)
+        recordButton.setColour (juce::TextButton::buttonColourId, style::recordActive);
+    else
+        recordButton.removeColour (juce::TextButton::buttonColourId);   // back to the look and feel's
 
-    screenshotButton.setEnabled (engine.isRunning());
-    savePresetButton.setEnabled (engine.isRunning());
-    loadPresetButton.setEnabled (engine.isRunning());
+    // Not shown (see the constructor); kept disabled as well.
+    screenshotButton.setEnabled (false);
+    savePresetButton.setEnabled (false);
+    loadPresetButton.setEnabled (false);
 }
 
 void MainComponent::screenshotClicked()
@@ -882,6 +904,14 @@ juce::File MainComponent::presetDirectory()
 
 bool MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
 {
+    if (! useNodeGui)
+    {
+        if (! embeddedGui.isRunning())
+            return false;
+        embeddedGui.receiveFromApp (juce::OSCMessage (juce::OSCAddressPattern (address), value));
+        return true;
+    }
+
     // Construct a minimal OSC message: address + ",s" type tag + string value.
     // Sent as UDP to the O-S-C server's OSC receive port, which is the port the
     // GUI is served on: o-s-c's --osc-port defaults to --port.

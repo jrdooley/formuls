@@ -1,7 +1,8 @@
 /*
  * MainComponent.h
  *
- * The contents of the main formuls window:
+ * The contents of the main formuls window, styled like the plugin's
+ * (src/plugin/Source/PluginEditor.cpp): a "formuls" title, then
  *
  *   - a combo box listing the available audio output devices,
  *   - a combo box for the number of output channels (2 = stereo master mix,
@@ -21,15 +22,11 @@
  *     next press stops the take and opens a "save as" dialog. See
  *     AudioRecorder.h for where the audio is written while recording, and
  *     what happens if the dialog is cancelled,
- *   - a Take Screenshot button (top right) that captures each visible page
- *     of the control GUI as a PNG using Playwright, saving to
- *     ~/Desktop/formuls-gui/ while the engine is running,
- *   - Save Preset and Load Preset buttons to the left of it, which ask Open
- *     Stage Control to write or read a .state file (~/Documents/formuls/
- *     presets by default). Both are carried out by the browsers connected to
- *     the GUI rather than by the server, so neither does anything until the
- *     GUI is open in a browser somewhere -- a save that goes nowhere is
- *     reported as such, a load cannot be (see sendPresetLoad),
+ *   - (not shown) Take Screenshot, Save Preset and Load Preset buttons. They
+ *     were added in haste and how they should work is unsettled, so they are
+ *     never put on screen; their code is kept for when it is. Screenshot
+ *     captured the control GUI's pages with Playwright; the presets asked the
+ *     connected browsers to write or read a .state file,
  *   - horizontal stereo VU meters monitoring the first two output channels,
  *     with peak hold and a green-yellow-red gradient,
  *   - a read-only panel listing the web addresses the control GUI can be
@@ -51,12 +48,14 @@
 #include "AudioRecorder.h"
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"
+#include "EmbeddedGuiServer.h"
 #include "StereoMeter.h"
 
 namespace formuls
 {
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component,
+                      private juce::MidiInputCallback
 {
 public:
     MainComponent();
@@ -138,11 +137,27 @@ private:
 
     juce::AudioDeviceManager deviceManager;
 
+    // MIDI keyboards: every MIDI input is listened to, including ones plugged
+    // in later. Note-ons go to the engine; the synths with MIDI IN switched
+    // on play them (by default none do).
+    void enableAllMidiInputs();
+    void handleIncomingMidiMessage (juce::MidiInput*, const juce::MidiMessage&) override;
+    juce::MidiDeviceListConnection midiDeviceListConnection;
+
+    // Serves the GUI from inside the app instead of node + Open Stage Control
+    // (ws-prototype), wired to the engine in-process: no OSC ports. Set
+    // FORMULS_NODE_GUI=1 in the environment to go back to node and UDP.
+    // Declared before the engine so it outlives it: the engine's PdOscOut
+    // thread hands it packets until the engine stops.
+    const bool useNodeGui = juce::SystemStats::getEnvironmentVariable ("FORMULS_NODE_GUI", {}) == "1";
+    EmbeddedGuiServer embeddedGui;
+
     // Declared before the engine so it outlives the engine's recording tap.
     AudioRecorder recorder;
     FormulsEngine engine;
     OpenStageControlProcess openStageControl;
 
+    juce::Label titleLabel;
     juce::ComboBox audioDeviceBox;
     juce::ComboBox channelsBox;
     juce::ComboBox sampleRateBox;

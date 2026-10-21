@@ -426,9 +426,9 @@ int OpenStageControlProcess::killStrayServers (const juce::File& resourceRoot)
     return killed;
 }
 
-juce::StringArray OpenStageControlProcess::getBrowserAddresses()
+juce::StringArray OpenStageControlProcess::getBrowserAddresses (int portNumber)
 {
-    const auto port = ":" + juce::String (guiPort);
+    const auto port = ":" + juce::String (portNumber);
 
     // Always first: a browser on this machine.
     juce::StringArray addresses { "http://127.0.0.1" + port };
@@ -443,6 +443,12 @@ juce::StringArray OpenStageControlProcess::getBrowserAddresses()
         // 127.x is loopback (already listed above); 169.254.x is a
         // self-assigned address, which no other device can reach.
         if (text.startsWith ("127.") || text.startsWith ("169.254."))
+            continue;
+
+        // 224-239.x are multicast groups, not interfaces. Windows reports
+        // the groups it has joined (224.0.0.1, mDNS's 224.0.0.251, LLMNR's
+        // 224.0.0.252) alongside the real addresses.
+        if (ip.address[0] >= 224 && ip.address[0] <= 239)
             continue;
 
         addresses.addIfNotAlreadyThere ("http://" + text + port);

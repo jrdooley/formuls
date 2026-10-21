@@ -112,7 +112,7 @@ public:
         list does not depend on the wording of another program's log output.
         IPv6 is left out: the GUI is reached over IPv4 in practice, and the
         bracketed IPv6 URL form is awkward to type on a tablet. */
-    static juce::StringArray getBrowserAddresses();
+    static juce::StringArray getBrowserAddresses (int port = guiPort);
 
 private:
     juce::ChildProcess process;

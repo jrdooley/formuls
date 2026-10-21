@@ -375,6 +375,62 @@ silently changing the result.
   straight through; whether a step is audible depends entirely on whether the
   Faust parameter carries `si.smoo`.
 
+## quantise-probe.py
+
+Checks what the pitch quantiser (`f.util.keyselector`) snaps each note to,
+against the nearest pitch of the PITCH GAMUT. It builds a throwaway patch
+that copies `NOTE_SNAP` in `f.util.oscinparse` with the quantiser on. Each
+MIDI note *n* goes in as the GUI value *n*/132 and is scaled to a gamut
+index (`* (gamut length * 11)`). That index goes into the real
+abstraction, with `master-pitch-gamut`, `pitch-gamut-length` and
+`scale-root-note` set as `pitch-gamut-parse` and `f.util.masterkey` set
+them. With the quantiser off, the same value plays *n*, so *n* is the pitch
+the quantiser is given.
+
+```bash
+python3 src/tools/quantise-probe.py                        # built-in gamuts, exact and nudged
+python3 src/tools/quantise-probe.py --gamut "0 2 4 7 9" --root 2 --show
+python3 src/tools/quantise-probe.py --all-notes            # all 132 notes, not just C4..B4
+python3 src/tools/quantise-probe.py --rev <commit>         # an older quantiser
+```
+
+- **Failure:** a note that is in the gamut comes out as a different pitch.
+  The tool exits 1.
+- **Also reported:** other notes that don't come out as their nearest gamut
+  pitch. On an exact tie, either neighbour counts as nearest.
+- **The root:** the gamut is relative to it. Root F with C, E and F active
+  means F, A and B♭, so the expected result is root + the gamut pitch
+  nearest to (*n* − root). A pitch that is in the gamut under both the old
+  and the new root must not move when the root changes.
+- **Built-in cases:** major (with root C and root D); C E F with root C and
+  with root F (the root-change case); pentatonic; whole tone; a single
+  note; a microtonal gamut; chromatic.
+- **Nudge:** each case also runs with the GUI value 1e-7 low (`--nudge`
+  sets a different amount). That is float32 rounding on its way over OSC,
+  and it catches truncation where rounding is needed.
+- **Microtonal gamuts:** only the integer pitches are checked for "in the
+  gamut"; every pitch is checked for "nearest".
+
+The original quantiser failed it in three ways:
+- it picked gamut notes by **rank**, as if the gamut were evenly spaced
+  (major: F → E; pentatonic: D → C and G → E);
+- it added the root **after** snapping, so changing the root transposed
+  everything (C E F with root F: F → A);
+- it **truncated** (nudged by float rounding, an exact C gave B3).
+
+The reworked `f.util.keyselector` passes, on all 132 notes. It snaps the
+pitch to the nearest gamut pitch relative to the root, then applies
+NOTE_GEN's offset in gamut steps. The probe recognises the original
+one-inlet keyselector and models the `NOTE_SNAP` of its own time, so
+`--rev` before/after comparisons stay fair:
+
+```bash
+python3 src/tools/quantise-probe.py --rev dd3c2a6          # the original: fails
+```
+
+Plain Pd only, with no
+externals, audio or app; one case takes about a second.
+
 ## automater-load-bench.py
 
 Measures what N `f.seq.automater` instances cost while they modulate (automation
@@ -388,3 +444,84 @@ python3 src/tools/automater-load-bench.py -n 400 --modes chaos --rev HEAD~1
 ```
 
 See `docs/efficiency/automater-modulation.md` for the results it produced.
+
+## plugin-probe
+
+A minimal plugin host for the plugin builds: it loads a bundle the way a DAW
+does, renders a few seconds at 48 kHz, and connects to the plugin's GUI
+WebSocket as a tablet would to send `/testtone` (the patch's 0.1 test tone).
+VST3 everywhere, plus AU on macOS and LV2 on Linux.
+
+```bash
+cmake -S src/tools/plugin-probe -B build/plugin-probe -DCMAKE_BUILD_TYPE=Release
+cmake --build build/plugin-probe --config Release
+PROBE_MIN_PEAK=0.05 build/plugin-probe/plugin_probe_artefacts/Release/plugin_probe <bundle> 4 9001
+```
+
+Arguments: the bundle, the seconds to render, and the GUI port (9001 for
+the first formuls in a process). A healthy build prints
+`rendered 375 blocks, peak 0.0998...`. Environment options:
+
+- `PROBE_MIN_PEAK=x`: exit 3 if the output never reaches `x` (CI uses 0.05).
+- `PROBE_NO_EDITOR=1`: skip opening the editor (machines with no display).
+- `PROBE_SHOW_EDITOR=1`: show the editor in a desktop window for `PROBE_SHOW_SECS`
+  (default 2) and check it is on screen (on Windows and Linux, that the plugin created
+  its own child window); `PROBE_SNAPSHOT=<png>` saves a capture of the window (Windows and Linux);
+  on Linux, a plugin window the plugin mapped counts even when the host leaves its holder
+  window unmapped (seen with JUCE's LV2 host in an emulated x86 VM, not on CI), and no
+  snapshot is taken then. On a display with
+  no window manager (Xvfb) the probe first creates the window manager atoms JUCE 9 assumes
+  exist, or creating any window fails with BadAtom;
+  `PROBE_REQUIRE_EDITOR=1` exits 4 if there is no editor or it does not show.
+- `PROBE_BLOCK=n`: the block size (default 512).
+- `PROBE_WATCH="/addr,..."` (or `*`): print each message the plugin sends the tablet to
+  those addresses, with its time. `PROBE_EXPECT_GUI="/addr:from:to,..."`: exit 5 unless one
+  arrives between those times; `PROBE_FORBID_GUI`, same form: exit 5 if one does. CI's
+  MIDI check: with MIDI IN off a note-on must not update `/oscpitchgui1`; after
+  `/midikeyboard1 1` one must (the default patch is silent, so it checks the patch, not audio).
+- `PROBE_READY_ON="/addr"`: the times in `PROBE_GUI_AT`, `PROBE_NOTES_AT` and the
+  expect/forbid windows count from the first message the plugin sends to that address
+  (CI uses `/amphasereset1`, sent by the patch's start-up reset), and the run ends once
+  the last of them has passed (`PROBE_LINGER=s` keeps going that much longer, to show late
+  messages); exit 5 if it never arrives.
+- `PROBE_NOTES_AT="secs:note,..."`: MIDI note-ons; `PROBE_GUI_AT="secs:address:value,..."`:
+  tablet messages instead of the test tone; `PROBE_SEGMENTS="a,b,..."`: peaks between times.
+- `PROBE_AWAY="a:b"`: the tablet drops its link at `a` and reconnects (same client id) at
+  `b`, counted like `PROBE_GUI_AT`, to see what the server resyncs it with. Nothing is
+  sent while it is away, so `PROBE_GUI_AT` times inside the gap wait until it is back.
+- `PROBE_IDLE_FIRST=1`, `PROBE_CYCLES=n`, `PROBE_PATH2`, `PROBE_SAVE`, `PROBE_LOAD`,
+  `PROBE_REALTIME=1`: host behaviours (an idle extra instance, reloading,
+  saving and restoring state, real-time pacing).
+
+The release workflow runs it on the Linux and Windows plugin builds.
+
+
+## ws-stall-test
+
+Checks that `WebSocketServer` (the plugin's and app's tablet server) never
+blocks the thread that sends to a tablet, however badly the tablet keeps up.
+It connects two raw WebSocket clients. One stops reading after the handshake
+(a tablet on bad Wi-Fi, or a frozen browser tab); the other reads everything.
+It then sends patch-reset-sized bursts of `receiveOsc` frames (9,000 each,
+50 ms apart) from the main thread, which stands in for the host's message
+thread.
+
+```bash
+cmake -S src/tools/ws-stall-test -B /tmp/wsst -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/wsst
+/tmp/wsst/ws_stall_test_artefacts/Release/ws_stall_test                    # 40 resets: overflow
+WS_STALL_RESETS=1 /tmp/wsst/ws_stall_test_artefacts/Release/ws_stall_test  # 1 reset: stall timeout
+```
+
+It exits 0 only if all of these hold:
+
+- no `sendText` took longer than 50 ms;
+- one reset still fits in the stalled client's queue;
+- the good client received every message, in order;
+- the stalled client was eventually disconnected, by overflow (40 resets,
+  ~2 s) or by the 10 s stall timeout (1 reset).
+
+Before the per-connection queue, the stalled client was dropped about 7,000
+messages into the first reset; see `docs/embedded-gui/README.md`. It needs
+to bind a local port, so it does not run inside a sandbox that forbids that.
+

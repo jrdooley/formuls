@@ -56,7 +56,7 @@ public:
             g.setColour (style::textColour);
             g.drawText (channelNames[ch], label, juce::Justification::centredRight);
 
-            g.setColour (juce::Colour (0xff1a3a1a));
+            g.setColour (style::meterTrack);
             g.fillRect (bar);
 
             const float level = peakLevels != nullptr

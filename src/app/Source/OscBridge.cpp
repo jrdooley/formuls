@@ -31,9 +31,49 @@ juce::Result OscBridge::start (pd::PdBase& pdToFeed, int udpPort)
     receiver.addListener (this);
     listening = true;
     messageCount = 0;
+    {
+        const juce::ScopedLock sl (postLock);
+        accepting = true;
+    }
 
     juce::Logger::writeToLog ("OSC bridge listening on udp " + juce::String (udpPort));
     return juce::Result::ok();
+}
+
+void OscBridge::startDirect (pd::PdBase& pdToFeed)
+{
+    if (listening)
+        return;
+
+    pd = &pdToFeed;
+    direct = true;
+    listening = true;
+    messageCount = 0;
+
+    const juce::ScopedLock sl (postLock);
+    accepting = true;
+    juce::Logger::writeToLog ("OSC bridge fed in-process (no udp)");
+}
+
+void OscBridge::post (const juce::OSCMessage& message)
+{
+    const juce::ScopedLock sl (postLock);
+    if (! accepting)
+        return;
+    posted.push_back (message);
+    triggerAsyncUpdate();
+}
+
+void OscBridge::handleAsyncUpdate()
+{
+    std::vector<juce::OSCMessage> batch;
+    {
+        const juce::ScopedLock sl (postLock);
+        batch.swap (posted);
+    }
+
+    for (auto& message : batch)
+        forward (message);
 }
 
 void OscBridge::stop()
@@ -41,8 +81,19 @@ void OscBridge::stop()
     if (! listening)
         return;
 
-    receiver.removeListener (this);
-    receiver.disconnect();
+    {
+        const juce::ScopedLock sl (postLock);
+        accepting = false;
+        posted.clear();
+    }
+    cancelPendingUpdate();
+
+    if (! direct)
+    {
+        receiver.removeListener (this);
+        receiver.disconnect();
+    }
+    direct = false;
     listening = false;
     pd = nullptr;
 
