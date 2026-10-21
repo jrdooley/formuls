@@ -159,25 +159,53 @@ struct TinyWs
         socket.write (req.toRawUTF8(), (int) req.getNumBytesAsUTF8());
         juce::String head; char c;
         while (! head.endsWith ("\r\n\r\n") && socket.read (&c, 1, true) == 1) head += c;
-        return head.startsWith ("HTTP/1.1 101");
+        if (! head.startsWith ("HTTP/1.1 101")) return false;
+        startReading();
+        return true;
     }
     // Text frames the server has sent so far (unmasked, as a server sends),
-    // without blocking.
+    // without blocking. A thread of its own drains the socket: the plugin
+    // sends from its message thread, which in this probe is the main thread,
+    // and blocks while the socket buffer is full. Read only from the main
+    // thread, a burst (the start-up reset) deadlocks the two until the
+    // plugin gives up and closes the connection. A real tablet is another
+    // device and keeps reading.
     juce::MemoryBlock pending;
+    juce::CriticalSection pendingLock;
+    struct Reader : juce::Thread
+    {
+        TinyWs& ws;
+        explicit Reader (TinyWs& w) : juce::Thread ("probe ws reader"), ws (w) {}
+        void run() override
+        {
+            char chunk[65536];
+            while (! threadShouldExit())
+            {
+                const int ready = ws.socket.waitUntilReady (true, 50);
+                if (ready < 0) break;
+                if (ready == 0) continue;
+                const int n = ws.socket.read (chunk, sizeof (chunk), false);
+                if (n < 0) break;
+                if (n == 0) { if (! ws.socket.isConnected()) break; continue; }
+                const juce::ScopedLock sl (ws.pendingLock);
+                ws.pending.append (chunk, (size_t) n);
+            }
+        }
+    };
+    std::unique_ptr<Reader> reader;
+    void startReading() { if (reader == nullptr) { reader = std::make_unique<Reader> (*this); reader->startThread(); } }
+    ~TinyWs() { if (reader != nullptr) reader->stopThread (1000); }
+
     juce::StringArray poll()
     {
         juce::StringArray texts;
-        char chunk[4096];
-        while (socket.waitUntilReady (true, 0) == 1)
-        {
-            const int n = socket.read (chunk, sizeof (chunk), false);
-            if (n <= 0) break;
-            pending.append (chunk, (size_t) n);
-        }
+        startReading();
+        const juce::ScopedLock sl (pendingLock);
+        size_t used = 0;
         for (;;)
         {
-            auto* b = (const juce::uint8*) pending.getData();
-            const size_t have = pending.getSize();
+            auto* b = (const juce::uint8*) pending.getData() + used;
+            const size_t have = pending.getSize() - used;
             if (have < 2) break;
             size_t len = b[1] & 0x7f, head = 2;
             if (len == 126) { if (have < 4) break; len = ((size_t) b[2] << 8) | b[3]; head = 4; }
@@ -185,8 +213,9 @@ struct TinyWs
             if (have < head + len) break;
             if ((b[0] & 0x0f) == 1)
                 texts.add (juce::String::fromUTF8 ((const char*) b + head, (int) len));
-            pending.removeSection (0, head + len);
+            used += head + len;
         }
+        pending.removeSection (0, used);
         return texts;
     }
 
