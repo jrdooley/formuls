@@ -123,12 +123,24 @@ REM Only VST3: the .jucer also lists AU (macOS) and LV2 (Linux). The VST3
 REM manifest helper loads the plugin to write moduleinfo.json; libpd.dll is on
 REM PATH for it in case it needs to.
 set "PATH=%LIBPD%;%PATH%"
-REM The solution names the project "formuls - VST3"; msbuild turns that into
-REM the target formuls_-_VST3. (A name that is not a project target, such as
-REM formuls_VST3, is passed on to every project instead: MSB4057.) Through the
-REM solution, its dependencies build first, including the manifest helper,
-REM which JUCE builds for Win32 only.
-msbuild "%SLN%" /t:formuls_-_VST3 /p:Configuration=Release /p:Platform=x64 /m
+REM Build the three projects one at a time, in dependency order. Through the
+REM solution (/t:formuls_-_VST3) msbuild hands that target name on to every
+REM dependency, which fails with MSB4057. The dependencies are only declared in
+REM the .sln, so set SolutionDir for the output paths the projects share. The
+REM VST3 manifest helper is Win32-only in JUCE's exporter.
+set "VSDIR=%ROOT%\src\plugin\Builds\VisualStudio2022"
+set MSB=/p:Configuration=Release "/p:SolutionDir=%VSDIR%\\" /m
+msbuild "%VSDIR%\formuls_SharedCode.vcxproj" /p:Platform=x64 %MSB%
+if errorlevel 1 (
+    echo plugin build failed ^(Shared Code^)
+    exit /b 1
+)
+msbuild "%VSDIR%\formuls_VST3ManifestHelper.vcxproj" /p:Platform=Win32 %MSB%
+if errorlevel 1 (
+    echo plugin build failed ^(VST3 manifest helper^)
+    exit /b 1
+)
+msbuild "%VSDIR%\formuls_VST3.vcxproj" /p:Platform=x64 %MSB%
 if errorlevel 1 (
     echo plugin build failed
     exit /b 1
