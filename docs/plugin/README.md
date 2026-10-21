@@ -161,11 +161,11 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   uploaded as `windows-plugin-editor-snapshot`. Not yet run: a real Windows
   DAW.
 
-- MIDI input, macOS (VST3) and Linux (VST3, LV2, in the VM): a note-on
-  with synth 1's MIDI IN off changes nothing; after the tablet turns MIDI
-  IN on, a G4 note-on updates synth 1's pitch display to `G:391Hz` within
-  10 ms. CI runs the same check on Linux and Windows and fails if either
-  half does not hold.
+- MIDI input, macOS (VST3), Linux (VST3, LV2) and Windows (VST3): a
+  note-on with synth 1's MIDI IN off changes nothing; after the tablet
+  turns MIDI IN on, a G4 note-on updates synth 1's pitch display to
+  `G:391Hz` within 10 ms. CI runs this on Linux and Windows and fails if
+  either half does not hold.
 
 - CI (`.github/workflows/release.yml`): the Linux and Windows jobs build the
   plugins after the app and run `src/tools/plugin-probe` on every bundle,
