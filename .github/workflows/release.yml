@@ -184,10 +184,20 @@ jobs:
         run: |
           cmake -S src/tools/plugin-probe -B build-probe -A x64
           cmake --build build-probe --config Release
-          PROBE_MIN_PEAK=0.05 PROBE_NO_EDITOR=1 \
+          # Windows runners have a desktop, so the editor opens in a real window.
+          PROBE_MIN_PEAK=0.05 PROBE_SHOW_EDITOR=1 PROBE_REQUIRE_EDITOR=1 \
+            PROBE_SNAPSHOT="$PWD/plugin-editor-windows.png" \
             build-probe/plugin_probe_artefacts/Release/plugin_probe.exe \
             "$PWD/formuls-${{ needs.version.outputs.version }}-windows-x64-plugins/formuls.vst3" 4 9001
           cat "$APPDATA/formuls/plugin.log"
+
+      - name: Upload the editor snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-plugin-editor-snapshot
+          path: plugin-editor-windows.png
+          if-no-files-found: ignore
 
       - name: Package the plugin
         shell: pwsh

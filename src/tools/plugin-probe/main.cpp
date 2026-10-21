@@ -3,6 +3,57 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_utils/juce_audio_utils.h>
 
+#if JUCE_WINDOWS
+ #ifndef NOMINMAX
+  #define NOMINMAX
+ #endif
+ #include <windows.h>
+
+// A hosted VST3 editor draws into the plugin's own child window, not into the
+// JUCE component that holds it, so look for that window and capture it the
+// way a screenshot would.
+static HWND findPluginWindow (HWND top)
+{
+    // Lists every visible child window, and returns the deepest: the host's
+    // embedding window comes first, the plugin's own window inside it.
+    struct Search { HWND top, deepest = nullptr; int depth = 0; } search { top };
+    EnumChildWindows (top, [] (HWND child, LPARAM param) -> BOOL
+    {
+        auto& s = *(Search*) param;
+        RECT r; GetClientRect (child, &r);
+        if (! IsWindowVisible (child) || r.right <= 0 || r.bottom <= 0) return TRUE;
+        int depth = 0;
+        for (HWND w = child; w != nullptr && w != s.top; w = GetParent (w)) ++depth;
+        char name[128] {}; GetClassNameA (child, name, (int) sizeof (name));
+        std::cout << "  child window depth " << depth << " class " << name
+                  << " " << r.right << "x" << r.bottom << "\n";
+        if (depth > s.depth) { s.depth = depth; s.deepest = child; }
+        return TRUE;
+    }, (LPARAM) &search);
+    return search.deepest;
+}
+
+static juce::Image captureWindow (HWND hwnd)
+{
+    RECT r; GetClientRect (hwnd, &r);
+    const int w = r.right, h = r.bottom;
+    juce::Image image (juce::Image::ARGB, w, h, true, juce::SoftwareImageType());
+    HDC screen = GetDC (nullptr), dc = CreateCompatibleDC (screen);
+    HBITMAP bitmap = CreateCompatibleBitmap (screen, w, h);
+    auto old = SelectObject (dc, bitmap);
+    PrintWindow (hwnd, dc, PW_CLIENTONLY | 0x2 /* PW_RENDERFULLCONTENT */);
+    BITMAPINFO info {};
+    info.bmiHeader = { sizeof (BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB };
+    std::vector<juce::uint32> pixels ((size_t) (w * h));
+    GetDIBits (dc, bitmap, 0, (UINT) h, pixels.data(), &info, DIB_RGB_COLORS);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x)
+            image.setPixelAt (x, y, juce::Colour (pixels[(size_t) (y * w + x)] | 0xff000000));
+    SelectObject (dc, old); DeleteObject (bitmap); DeleteDC (dc); ReleaseDC (nullptr, screen);
+    return image;
+}
+#endif
+
 // A bare WebSocket client: enough to act as a tablet and send one message.
 struct TinyWs
 {
@@ -167,11 +218,64 @@ static int runOnce (int argc, char** argv)
         return 3;
     }
 
-    if (juce::SystemStats::getEnvironmentVariable ("PROBE_NO_EDITOR", {}) != "1")
-    if (auto* editor = plugin->createEditorIfNeeded())
+    // The editor: created and sized by default. PROBE_SHOW_EDITOR=1 also puts it
+    // in a desktop window for PROBE_SHOW_SECS (default 2) with the message loop
+    // running, as a DAW does, and checks it is on screen (on Windows, that the
+    // plugin made its own child window); PROBE_SNAPSHOT=<png> saves a capture
+    // of the window (Windows only). PROBE_REQUIRE_EDITOR=1: exit 4 if any of that fails.
+    auto env = [] (const char* name) { return juce::SystemStats::getEnvironmentVariable (name, {}); };
+    const bool requireEditor = env ("PROBE_REQUIRE_EDITOR") == "1";
+    if (env ("PROBE_NO_EDITOR") != "1")
     {
-        std::cout << "editor " << editor->getWidth() << "x" << editor->getHeight() << "\n";
-        delete editor;
+        std::unique_ptr<juce::AudioProcessorEditor> editor (plugin->createEditorAndMakeActive());
+        if (editor == nullptr)
+        {
+            std::cerr << "no editor\n";
+            if (requireEditor) return 4;
+        }
+        else
+        {
+            std::cout << "editor " << editor->getWidth() << "x" << editor->getHeight() << "\n";
+            if (requireEditor && (editor->getWidth() <= 0 || editor->getHeight() <= 0)) return 4;
+
+            if (env ("PROBE_SHOW_EDITOR") == "1")
+            {
+                juce::DocumentWindow window (plugin->getName(), juce::Colours::black,
+                                             juce::DocumentWindow::closeButton);
+                window.setUsingNativeTitleBar (true);
+                window.setContentNonOwned (editor.get(), true);
+                window.setVisible (true);
+                const int secs = env ("PROBE_SHOW_SECS").isEmpty() ? 2 : env ("PROBE_SHOW_SECS").getIntValue();
+                juce::MessageManager::getInstance()->runDispatchLoopUntil (1000 * secs);
+
+                bool onScreen = window.getPeer() != nullptr && editor->isShowing();
+                std::cout << "editor window " << (onScreen ? "showing" : "NOT showing") << " at "
+                          << editor->getScreenBounds().toString() << "\n";
+
+               #if JUCE_WINDOWS
+                // The real test: the plugin made its own window inside the host's.
+                HWND pluginWindow = onScreen ? findPluginWindow ((HWND) window.getPeer()->getNativeHandle()) : nullptr;
+                std::cout << "plugin window " << (pluginWindow != nullptr ? "found" : "NOT found") << "\n";
+                onScreen = onScreen && pluginWindow != nullptr;
+
+                if (auto png = env ("PROBE_SNAPSHOT"); png.isNotEmpty() && pluginWindow != nullptr)
+                {
+                    auto image = captureWindow ((HWND) window.getPeer()->getNativeHandle());
+                    juce::File file (png);
+                    file.deleteFile();
+                    juce::FileOutputStream out (file);
+                    juce::PNGImageFormat().writeImageToStream (image, out);
+                    std::cout << "snapshot " << image.getWidth() << "x" << image.getHeight() << " to " << png << "\n";
+                }
+               #endif
+
+                window.clearContentComponent();
+                window.setVisible (false);
+                if (requireEditor && ! onScreen) return 4;
+            }
+        }
+        editor.reset();
+        juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
     }
 
     // PROBE_SAVE=<file>: what a DAW would store in the project.
