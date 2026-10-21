@@ -3,7 +3,7 @@
 #
 #   SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 #   NOTARY_PROFILE=formuls-notary \
-#     src/tools/sign-macos.sh formuls-0.3.1.app
+#     src/tools/sign-macos.sh formuls-0.3.2.app
 #
 # SIGN_IDENTITY  required. A Developer ID Application certificate in your
 #                keychain (`security find-identity -v -p codesigning` lists

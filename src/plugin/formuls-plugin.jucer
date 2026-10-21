@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="frmlsP" name="formuls" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.3.1"
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" version="0.3.2"
               companyName="formuls" bundleIdentifier="net.formuls.formuls.plugin"
               cppLanguageStandard="17" projectLineFeed="&#10;" pluginFormats="buildVST3,buildAU,buildLV2"
               lv2Uri="urn:net.formuls:formuls"
