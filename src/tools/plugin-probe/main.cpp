@@ -61,8 +61,9 @@ static juce::Image captureWindow (void* handle)
 // On Linux the hosted editor is an X11 window of the plugin's, embedded in the
 // host's. The probe opens its own X connection to look at the window tree.
 // "mapped" is the window's own state: the plugin mapped it. "viewable" also
-// needs every window above it mapped, which is the host's job; JUCE's LV2 host
-// leaves its holder window unmapped, so an LV2 editor is mapped, not viewable.
+// needs every window above it mapped, which is the host's job. JUCE's LV2 host
+// left its holder unmapped in an emulated x86 VM (not on CI), so a mapped
+// plugin window counts.
 struct WindowSearch { int deepestMapped = 0; bool deepestViewable = false; };
 
 static void listChildren (Display* d, Window w, int depth, WindowSearch& search)

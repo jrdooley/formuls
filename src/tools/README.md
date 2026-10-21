@@ -468,7 +468,8 @@ the first formuls in a process). A healthy build prints
   (default 2) and check it is on screen (on Windows and Linux, that the plugin created
   its own child window); `PROBE_SNAPSHOT=<png>` saves a capture of the window (Windows and Linux);
   on Linux, a plugin window the plugin mapped counts even when the host leaves its holder
-  window unmapped (JUCE's LV2 host does), and no snapshot is taken then. On a display with
+  window unmapped (seen with JUCE's LV2 host in an emulated x86 VM, not on CI), and no
+  snapshot is taken then. On a display with
   no window manager (Xvfb) the probe first creates the window manager atoms JUCE 9 assumes
   exist, or creating any window fails with BadAtom;
   `PROBE_REQUIRE_EDITOR=1` exits 4 if there is no editor or it does not show.
