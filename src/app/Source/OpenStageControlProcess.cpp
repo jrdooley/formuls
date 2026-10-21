@@ -445,6 +445,12 @@ juce::StringArray OpenStageControlProcess::getBrowserAddresses (int portNumber)
         if (text.startsWith ("127.") || text.startsWith ("169.254."))
             continue;
 
+        // 224-239.x are multicast groups, not interfaces. Windows reports
+        // the groups it has joined (224.0.0.1, mDNS's 224.0.0.251, LLMNR's
+        // 224.0.0.252) alongside the real addresses.
+        if (ip.address[0] >= 224 && ip.address[0] <= 239)
+            continue;
+
         addresses.addIfNotAlreadyThere ("http://" + text + port);
     }
 

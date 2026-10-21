@@ -151,8 +151,11 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   output peaks at 0.0998 over 375 blocks, with a clean unload ("engine
   released"). JUCE's manifest helper, which loads the plugin to write
   `moduleinfo.json`, passes too. The only compiler warnings are C4458 in
-  libpd's `PdBase.hpp`. Not yet run: the editor window, a real Windows DAW,
-  MIDI input.
+  libpd's `PdBase.hpp`. The editor opens in a real desktop window (520x300)
+  with the plugin's own child window inside the host's, and CI fails if it
+  does not (`PROBE_SHOW_EDITOR`, `PROBE_REQUIRE_EDITOR`); a capture is
+  uploaded as `windows-plugin-editor-snapshot`. Not yet run: a real Windows
+  DAW, MIDI input.
 
 - CI (`.github/workflows/release.yml`): the Linux and Windows jobs build the
   plugins after the app and run `src/tools/plugin-probe` on every bundle,

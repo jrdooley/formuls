@@ -94,7 +94,8 @@ which enumerates the machine's own network interfaces via
 addresses Open Stage Control prints to its stdout, so the panel does not break
 if another program changes its log wording. Loopback (`127.x`) is listed once,
 first and explicitly; self-assigned link-local addresses (`169.254.x`) are
-skipped because no other device can reach them; IPv6 is omitted, since the GUI
+skipped because no other device can reach them; multicast groups
+(`224.x`-`239.x`, which Windows lists among its addresses) are skipped; IPv6 is omitted, since the GUI
 is used over IPv4 and bracketed IPv6 URLs are painful to type on a tablet.
 
 If the machine is on no network at all, the panel says so instead of listing
