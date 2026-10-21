@@ -130,13 +130,18 @@ jobs:
               "$PWD/formuls-${{ needs.version.outputs.version }}-linux-x64-plugins/$b" 4 9001
             # MIDI: a note with MIDI IN off must not reach synth 1; after the
             # tablet turns MIDI IN on, one must (its pitch display updates).
-            PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_GUI_AT="8:/midikeyboard1:1" PROBE_NOTES_AT="6:60,9:67" \
-              PROBE_FORBID_GUI="/oscpitchgui1:5.5:8.5" PROBE_EXPECT_GUI="/oscpitchgui1:8.5:11" \
+            # Times count from the patch's start-up reset (PROBE_READY_ON).
+            PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 \
+              PROBE_NOTES_AT="1:60,4:67,5:67,6:67" PROBE_GUI_AT="3:/midikeyboard1:1" \
+              PROBE_FORBID_GUI="/oscpitchgui1:0.5:3" PROBE_EXPECT_GUI="/oscpitchgui1:3.5:7.5" \
               build-probe/plugin_probe_artefacts/Release/plugin_probe \
-              "$PWD/formuls-${{ needs.version.outputs.version }}-linux-x64-plugins/$b" 11 9001
+              "$PWD/formuls-${{ needs.version.outputs.version }}-linux-x64-plugins/$b" 60 9001
             echo "::endgroup::"
           done
-          cat ~/.config/formuls/plugin.log
+
+      - name: Show the plugin log
+        if: always()
+        run: cat ~/.config/formuls/plugin.log || true
 
       - name: Upload the editor snapshot
         if: always()
@@ -208,11 +213,16 @@ jobs:
             build-probe/plugin_probe_artefacts/Release/plugin_probe.exe \
             "$PWD/formuls-${{ needs.version.outputs.version }}-windows-x64-plugins/formuls.vst3" 4 9001
           # MIDI: as on Linux.
-          PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_GUI_AT="8:/midikeyboard1:1" PROBE_NOTES_AT="6:60,9:67" \
-            PROBE_FORBID_GUI="/oscpitchgui1:5.5:8.5" PROBE_EXPECT_GUI="/oscpitchgui1:8.5:11" \
+          PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 \
+            PROBE_NOTES_AT="1:60,4:67,5:67,6:67" PROBE_GUI_AT="3:/midikeyboard1:1" \
+            PROBE_FORBID_GUI="/oscpitchgui1:0.5:3" PROBE_EXPECT_GUI="/oscpitchgui1:3.5:7.5" \
             build-probe/plugin_probe_artefacts/Release/plugin_probe.exe \
-            "$PWD/formuls-${{ needs.version.outputs.version }}-windows-x64-plugins/formuls.vst3" 11 9001
-          cat "$APPDATA/formuls/plugin.log"
+            "$PWD/formuls-${{ needs.version.outputs.version }}-windows-x64-plugins/formuls.vst3" 60 9001
+
+      - name: Show the plugin log
+        if: always()
+        shell: bash
+        run: cat "$APPDATA/formuls/plugin.log" || true
 
       - name: Upload the editor snapshot
         if: always()

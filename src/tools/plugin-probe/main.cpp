@@ -306,10 +306,21 @@ static int runOnce (int argc, char** argv)
     auto expectGui = parseWindows ("PROBE_EXPECT_GUI"), forbidGui = parseWindows ("PROBE_FORBID_GUI");
     for (auto& w : expectGui) watch.addIfNotAlreadyThere (w.a);
     for (auto& w : forbidGui) watch.addIfNotAlreadyThere (w.a);
+    // PROBE_READY_ON="/addr": the times above count from the first message the
+    // plugin sends to that address (the patch's start-up reset, on a machine of
+    // any speed), and the run ends once the last of them has passed.
+    const auto readyOn = juce::SystemStats::getEnvironmentVariable ("PROBE_READY_ON", {});
+    if (readyOn.isNotEmpty()) watch.addIfNotAlreadyThere (readyOn);
+    double t0 = readyOn.isEmpty() ? 0.0 : -1.0, lastTime = 0;
+    for (auto& g : guiAt) lastTime = juce::jmax (lastTime, g.t);
+    for (auto& n : notesAt) lastTime = juce::jmax (lastTime, n.t);
+    for (auto* list : { &expectGui, &forbidGui }) for (auto& w : *list) lastTime = juce::jmax (lastTime, w.to);
     TinyWs ws; bool wsOk = false;
     const int blocks = (int) (seconds * rate / block);
+    int renderedBlocks = 0;
     for (int i = 0; i < blocks; ++i)
     {
+        ++renderedBlocks;
         if (guiPort > 0 && i == 40)
             std::cout << "gui websocket on " << guiPort << ": " << ((wsOk = ws.connect (guiPort)) ? "connected" : "FAILED") << "\n";
         if (wsOk && guiAt.empty() && i > 40 && i % 47 == 0)
@@ -319,13 +330,6 @@ static int runOnce (int argc, char** argv)
         }
 
         const double now = i * (double) block / rate;
-        for (auto& g : guiAt)
-            if (! g.sent && now >= g.t && wsOk)
-            {
-                ws.sendText ("[\"sendOsc\",{\"address\":\"" + g.a + "\",\"v\":" + juce::String (g.v) + ",\"target\":[\"127.0.0.1:9000\"]}]");
-                g.sent = true;
-                std::cout << "t=" << now << " gui " << g.a << " " << g.v << "\n";
-            }
         if (wsOk && ! watch.isEmpty())
             for (auto& text : ws.poll())
             {
@@ -334,15 +338,28 @@ static int runOnce (int argc, char** argv)
                 if (! data.isArray() || data.size() < 2 || data[0].toString() != "receiveOsc") continue;
                 const auto address = data[1]["address"].toString();
                 if (! watch.contains (address) && ! watch.contains ("*")) continue;
+                const double rel = now - juce::jmax (0.0, t0);
+                if (address == readyOn && t0 < 0)
+                {
+                    t0 = now;
+                    std::cout << "t=" << now << " ready (" << readyOn << "); times count from here\n";
+                }
                 std::cout << "t=" << now << " from plugin " << address << " " << juce::JSON::toString (data[1]["args"], true).substring (0, 80) << "\n";
                 for (auto* list : { &expectGui, &forbidGui })
                     for (auto& w : *list)
-                        if (w.a == address && now >= w.from && now < w.to) ++w.count;
+                        if (w.a == address && t0 >= 0 && rel >= w.from && rel < w.to) ++w.count;
             }
 
+        for (auto& g : guiAt)
+            if (! g.sent && t0 >= 0 && now - t0 >= g.t && wsOk)
+            {
+                ws.sendText ("[\"sendOsc\",{\"address\":\"" + g.a + "\",\"v\":" + juce::String (g.v) + ",\"target\":[\"127.0.0.1:9000\"]}]");
+                g.sent = true;
+                std::cout << "t=" << now << " gui " << g.a << " " << g.v << "\n";
+            }
         midi.clear();
         for (auto& n : notesAt)
-            if (! n.sent && now >= n.t)
+            if (! n.sent && t0 >= 0 && now - t0 >= n.t)
             {
                 midi.addEvent (juce::MidiMessage::noteOn (1, (int) n.v, (juce::uint8) 100), 0);
                 n.sent = true;
@@ -356,6 +373,8 @@ static int runOnce (int argc, char** argv)
         for (int k = 0; k + 1 < segments.size(); ++k)
             if (now >= segments[k] && now < segments[k + 1]) segPeak[(size_t) k] = juce::jmax (segPeak[(size_t) k], p);
         if (p > 1.0e-6f) ++nonSilentBlocks;
+        if (readyOn.isNotEmpty() && t0 >= 0 && now - t0 > lastTime + 0.1)
+            break;
         if (realtime)   // pace like a real audio device, running the message loop meanwhile
             juce::MessageManager::getInstance()->runDispatchLoopUntil ((int) (1000.0 * block / rate));
         else if (i % 16 == 0)   // let the plugin's timers run, as a host's message loop would
@@ -363,9 +382,14 @@ static int runOnce (int argc, char** argv)
     }
     for (int k = 0; k + 1 < segments.size(); ++k)
         std::cout << "peak " << segments[k] << "-" << segments[k + 1] << " s: " << segPeak[(size_t) k] << "\n";
-    std::cout << "rendered " << blocks << " blocks, peak " << peak
+    std::cout << "rendered " << renderedBlocks << " blocks, peak " << peak
               << ", non-silent blocks " << nonSilentBlocks << ", testtone pings sent " << pings << "\n";
 
+    if (readyOn.isNotEmpty() && t0 < 0)
+    {
+        std::cerr << "never saw " << readyOn << " from the plugin\n";
+        return 5;
+    }
     for (auto& w : expectGui)
     {
         std::cout << "expected " << w.a << " in " << w.from << "-" << w.to << " s: " << w.count << " message(s)\n";
