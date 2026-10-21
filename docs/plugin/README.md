@@ -147,7 +147,7 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   CI checks both (`PROBE_SHOW_EDITOR`, `PROBE_REQUIRE_EDITOR`) and uploads
   the captures as `linux-plugin-editor-snapshot`. (In the emulated x86 VM
   the LV2 host's holder window stayed unmapped; on CI it does not.) Not yet
-  run: a real Linux DAW, MIDI input.
+  run: a real Linux DAW.
 
 - Windows (CI, `windows-latest`, MSVC 17.14), the same test host with VST3
   hosting: the bundle loads (`libpd.dll` delay-loaded from
@@ -159,7 +159,13 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   with the plugin's own child window inside the host's, and CI fails if it
   does not (`PROBE_SHOW_EDITOR`, `PROBE_REQUIRE_EDITOR`); a capture is
   uploaded as `windows-plugin-editor-snapshot`. Not yet run: a real Windows
-  DAW, MIDI input.
+  DAW.
+
+- MIDI input, macOS (VST3) and Linux (VST3, LV2, in the VM): a note-on
+  with synth 1's MIDI IN off changes nothing; after the tablet turns MIDI
+  IN on, a G4 note-on updates synth 1's pitch display to `G:391Hz` within
+  10 ms. CI runs the same check on Linux and Windows and fails if either
+  half does not hold.
 
 - CI (`.github/workflows/release.yml`): the Linux and Windows jobs build the
   plugins after the app and run `src/tools/plugin-probe` on every bundle,
@@ -269,7 +275,8 @@ keyboard recording, as RECORD CLEAR does. The recorder used to listen for
 **Note handling:**
 - Note-offs and velocity are ignored: a triggered note plays the synth's own
   envelope at formuls's own velocity.
-- MIDI notes are not recorded into the keyboard performance recording.
+- MIDI notes are recorded into the keyboard performance recording, like
+  on-screen notes, but untransposed.
 
 A synth trigger is a toggle that Faust reads once per 64-sample tick, so two
 triggers in one tick cancel out. The engine therefore hands Pd at most one

@@ -161,6 +161,35 @@ struct TinyWs
         while (! head.endsWith ("\r\n\r\n") && socket.read (&c, 1, true) == 1) head += c;
         return head.startsWith ("HTTP/1.1 101");
     }
+    // Text frames the server has sent so far (unmasked, as a server sends),
+    // without blocking.
+    juce::MemoryBlock pending;
+    juce::StringArray poll()
+    {
+        juce::StringArray texts;
+        char chunk[4096];
+        while (socket.waitUntilReady (true, 0) == 1)
+        {
+            const int n = socket.read (chunk, sizeof (chunk), false);
+            if (n <= 0) break;
+            pending.append (chunk, (size_t) n);
+        }
+        for (;;)
+        {
+            auto* b = (const juce::uint8*) pending.getData();
+            const size_t have = pending.getSize();
+            if (have < 2) break;
+            size_t len = b[1] & 0x7f, head = 2;
+            if (len == 126) { if (have < 4) break; len = ((size_t) b[2] << 8) | b[3]; head = 4; }
+            else if (len == 127) { if (have < 10) break; len = 0; for (int k = 2; k < 10; ++k) len = (len << 8) | b[k]; head = 10; }
+            if (have < head + len) break;
+            if ((b[0] & 0x0f) == 1)
+                texts.add (juce::String::fromUTF8 ((const char*) b + head, (int) len));
+            pending.removeSection (0, head + len);
+        }
+        return texts;
+    }
+
     void sendText (const juce::String& text)
     {
         const auto* utf8 = text.toRawUTF8(); const size_t n = std::strlen (utf8);
@@ -261,6 +290,22 @@ static int runOnce (int argc, char** argv)
     juce::Array<double> segments;
     for (auto t : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("PROBE_SEGMENTS", {}), ",", {})) segments.add (t.getDoubleValue());
     std::vector<float> segPeak ((size_t) juce::jmax (0, segments.size() - 1), 0.0f);
+    // PROBE_WATCH="/addr,/addr2": print each message the plugin sends the
+    // tablet to one of these addresses (* for all), with its time.
+    // PROBE_EXPECT_GUI="/addr:from:to,...": exit 5 unless such a message arrives
+    // between those times; PROBE_FORBID_GUI, same form: exit 5 if one does.
+    auto watch = juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("PROBE_WATCH", {}), ",", {});
+    struct Window { juce::String a; double from, to; int count = 0; };
+    auto parseWindows = [] (const char* name)
+    {
+        std::vector<Window> w;
+        for (auto item : juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable (name, {}), ",", {}))
+        { auto p = juce::StringArray::fromTokens (item, ":", {}); if (p.size() == 3) w.push_back ({ p[0], p[1].getDoubleValue(), p[2].getDoubleValue() }); }
+        return w;
+    };
+    auto expectGui = parseWindows ("PROBE_EXPECT_GUI"), forbidGui = parseWindows ("PROBE_FORBID_GUI");
+    for (auto& w : expectGui) watch.addIfNotAlreadyThere (w.a);
+    for (auto& w : forbidGui) watch.addIfNotAlreadyThere (w.a);
     TinyWs ws; bool wsOk = false;
     const int blocks = (int) (seconds * rate / block);
     for (int i = 0; i < blocks; ++i)
@@ -281,12 +326,27 @@ static int runOnce (int argc, char** argv)
                 g.sent = true;
                 std::cout << "t=" << now << " gui " << g.a << " " << g.v << "\n";
             }
+        if (wsOk && ! watch.isEmpty())
+            for (auto& text : ws.poll())
+            {
+                // ["receiveOsc", {"address": "/x", "args": ...}]
+                const auto data = juce::JSON::parse (text);
+                if (! data.isArray() || data.size() < 2 || data[0].toString() != "receiveOsc") continue;
+                const auto address = data[1]["address"].toString();
+                if (! watch.contains (address) && ! watch.contains ("*")) continue;
+                std::cout << "t=" << now << " from plugin " << address << " " << juce::JSON::toString (data[1]["args"], true).substring (0, 80) << "\n";
+                for (auto* list : { &expectGui, &forbidGui })
+                    for (auto& w : *list)
+                        if (w.a == address && now >= w.from && now < w.to) ++w.count;
+            }
+
         midi.clear();
         for (auto& n : notesAt)
             if (! n.sent && now >= n.t)
             {
                 midi.addEvent (juce::MidiMessage::noteOn (1, (int) n.v, (juce::uint8) 100), 0);
                 n.sent = true;
+                std::cout << "t=" << now << " note-on " << (int) n.v << "\n";
             }
 
         buffer.clear();
@@ -305,6 +365,17 @@ static int runOnce (int argc, char** argv)
         std::cout << "peak " << segments[k] << "-" << segments[k + 1] << " s: " << segPeak[(size_t) k] << "\n";
     std::cout << "rendered " << blocks << " blocks, peak " << peak
               << ", non-silent blocks " << nonSilentBlocks << ", testtone pings sent " << pings << "\n";
+
+    for (auto& w : expectGui)
+    {
+        std::cout << "expected " << w.a << " in " << w.from << "-" << w.to << " s: " << w.count << " message(s)\n";
+        if (w.count == 0) return 5;
+    }
+    for (auto& w : forbidGui)
+    {
+        std::cout << "forbidden " << w.a << " in " << w.from << "-" << w.to << " s: " << w.count << " message(s)\n";
+        if (w.count > 0) return 5;
+    }
 
     // PROBE_MIN_PEAK=x: fail (exit 3) when the output never reaches x, for CI.
     if (auto minPeak = juce::SystemStats::getEnvironmentVariable ("PROBE_MIN_PEAK", {}); minPeak.isNotEmpty()

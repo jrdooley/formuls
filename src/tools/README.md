@@ -474,6 +474,11 @@ the first formuls in a process). A healthy build prints
   exist, or creating any window fails with BadAtom;
   `PROBE_REQUIRE_EDITOR=1` exits 4 if there is no editor or it does not show.
 - `PROBE_BLOCK=n`: the block size (default 512).
+- `PROBE_WATCH="/addr,..."` (or `*`): print each message the plugin sends the tablet to
+  those addresses, with its time. `PROBE_EXPECT_GUI="/addr:from:to,..."`: exit 5 unless one
+  arrives between those times; `PROBE_FORBID_GUI`, same form: exit 5 if one does. CI's
+  MIDI check: with MIDI IN off a note-on must not update `/oscpitchgui1`; after
+  `/midikeyboard1 1` one must (the default patch is silent, so it checks the patch, not audio).
 - `PROBE_NOTES_AT="secs:note,..."`: MIDI note-ons; `PROBE_GUI_AT="secs:address:value,..."`:
   tablet messages instead of the test tone; `PROBE_SEGMENTS="a,b,..."`: peaks between times.
 - `PROBE_IDLE_FIRST=1`, `PROBE_CYCLES=n`, `PROBE_PATH2`, `PROBE_SAVE`, `PROBE_LOAD`,
