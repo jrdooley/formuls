@@ -37,6 +37,11 @@ MainComponent::MainComponent()
 {
     setSize (style::windowWidth, style::windowHeight);
 
+    // ------------------------------------------------------------------ title
+    titleLabel.setText ("formuls", juce::dontSendNotification);
+    titleLabel.setFont (juce::FontOptions (style::titleFontHeight, juce::Font::bold));
+    addAndMakeVisible (titleLabel);
+
     // ------------------------------------------------------- MIDI keyboards
     enableAllMidiInputs();
     deviceManager.addMidiInputDeviceCallback ({}, this);   // {} = every enabled input
@@ -76,22 +81,12 @@ MainComponent::MainComponent()
     addAndMakeVisible (recordButton);
     updateButtonStates();
 
-    // ---------------------------------------------------- take screenshot button
-    screenshotButton.setButtonText ("Take Screenshot");
-    screenshotButton.setEnabled (engine.isRunning());
+    // Take Screenshot, Save Preset and Load Preset are not shown: they were
+    // added in haste and how they should work has not been settled. Their
+    // code is kept, but with the buttons never on screen nothing reaches it.
     screenshotButton.onClick = [this] { screenshotClicked(); };
-    addAndMakeVisible (screenshotButton);
-
-    // ----------------------------------------------------- preset buttons
-    savePresetButton.setButtonText ("Save Preset");
-    savePresetButton.setEnabled (false);
     savePresetButton.onClick = [this] { savePresetClicked(); };
-    addAndMakeVisible (savePresetButton);
-
-    loadPresetButton.setButtonText ("Load Preset");
-    loadPresetButton.setEnabled (false);
     loadPresetButton.onClick = [this] { loadPresetClicked(); };
-    addAndMakeVisible (loadPresetButton);
 
     // -------------------------------------------------------------- VU meters
     vuMeter.setPeakLevels (engine.peakLevels.data());
@@ -100,7 +95,7 @@ MainComponent::MainComponent()
     // ------------------------------------------------------- GUI address panel
     // Read-only, but still selectable so the address can be copied out
     // (Cmd+C, or right-click for the Copy menu).
-    addressPanel.setMultiLine (true, false);
+    addressPanel.setMultiLine (true, true);   // wrapped: no sideways scrolling
     addressPanel.setReadOnly (true);
     addressPanel.setCaretVisible (false);
     addressPanel.setScrollbarsShown (true);
@@ -249,6 +244,9 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds().reduced (style::margin);
 
+    titleLabel.setBounds (area.removeFromTop (style::titleHeight));
+    area.removeFromTop (style::controlSpacing / 2);
+
     audioDeviceBox.setBounds (area.removeFromTop (style::controlHeight)
                                   .withWidth (style::comboWidth));
     area.removeFromTop (style::controlSpacing);
@@ -260,23 +258,6 @@ void MainComponent::resized()
     sampleRateBox.setBounds (area.removeFromTop (style::controlHeight)
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
-
-    // Save Preset, Load Preset and Take Screenshot stack above the record
-    // button and share its width, so the four of them right-align down the
-    // same edge. Taking the height from the top here leaves the address panel
-    // -- which fills whatever is left over -- to absorb the difference.
-    auto stackRow = [&] (juce::Component& button)
-    {
-        auto row = area.removeFromTop (style::stackedButtonHeight);
-        button.setBounds (row.removeFromRight (style::stackedButtonWidth));
-    };
-
-    stackRow (savePresetButton);
-    area.removeFromTop (style::stackedButtonGap);
-    stackRow (loadPresetButton);
-    area.removeFromTop (style::stackedButtonGap);
-    stackRow (screenshotButton);
-    area.removeFromTop (style::controlSpacing / 2);
 
     auto buttonRow = area.removeFromTop (style::buttonHeight);
     startStopButton.setBounds (buttonRow.removeFromLeft (style::buttonWidth));
@@ -608,12 +589,15 @@ void MainComponent::updateButtonStates()
 
     recordButton.setButtonText (isRecording ? kStopRecordText : kRecordText);
     recordButton.setEnabled (engine.isRunning());
-    recordButton.setColour (juce::TextButton::buttonColourId,
-                            isRecording ? style::recordActive : style::widgetFill);
+    if (isRecording)
+        recordButton.setColour (juce::TextButton::buttonColourId, style::recordActive);
+    else
+        recordButton.removeColour (juce::TextButton::buttonColourId);   // back to the look and feel's
 
-    screenshotButton.setEnabled (engine.isRunning());
-    savePresetButton.setEnabled (engine.isRunning());
-    loadPresetButton.setEnabled (engine.isRunning());
+    // Not shown (see the constructor); kept disabled as well.
+    screenshotButton.setEnabled (false);
+    savePresetButton.setEnabled (false);
+    loadPresetButton.setEnabled (false);
 }
 
 void MainComponent::screenshotClicked()
