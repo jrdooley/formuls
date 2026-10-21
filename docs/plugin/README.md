@@ -58,6 +58,12 @@ engine exists. The externals import `libpd.dll` by name and get that copy:
 Windows reuses an already loaded module of the same name. The .bat files
 are checked out with CRLF (`.gitattributes`).
 
+The .bat builds the three Visual Studio projects one at a time: Shared Code
+(x64), the VST3 manifest helper (Win32, the only platform JUCE builds it for)
+and the VST3 (x64), with `SolutionDir` set. Building the solution's
+`formuls_-_VST3` target does not work: msbuild passes that target name on to
+every dependency, which fails with MSB4057.
+
 Sources: `src/plugin/` (processor and editor) plus the app's own
 `FormulsEngine`, `OscBridge`, `PdOscOut`, `EmbeddedGuiServer` and
 `WebSocketServer`, compiled into the plugin unchanged
@@ -139,6 +145,15 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
   `/testtone` output peaks at 0.0998. Not yet run: the editor window (the VM
   has no display), a real Linux DAW, MIDI input.
 
+- Windows (CI, `windows-latest`, MSVC 17.14), the same test host with VST3
+  hosting: the bundle loads (`libpd.dll` delay-loaded from
+  `Contents\x86_64-win`), the patch becomes ready and the `/testtone`
+  output peaks at 0.0998 over 375 blocks, with a clean unload ("engine
+  released"). JUCE's manifest helper, which loads the plugin to write
+  `moduleinfo.json`, passes too. The only compiler warnings are C4458 in
+  libpd's `PdBase.hpp`. Not yet run: the editor window, a real Windows DAW,
+  MIDI input.
+
 - CI (`.github/workflows/release.yml`): the Linux and Windows jobs build the
   plugins after the app and run `src/tools/plugin-probe` on every bundle,
   failing below a 0.05 peak. The plugins are uploaded as their own artifacts
@@ -184,8 +199,8 @@ ids with their modals, now end in `panel`.)
   and Ableton Link).
 - No CLAP: JUCE 9.0.1's Projucer has no CLAP target; it needs a CMake build
   with clap-juce-extensions.
-- Windows: VST3 only, built and checked by CI (below); not yet tried in a
-  real Windows DAW.
+- Windows: VST3 only, built and checked by CI (see Verified); not yet tried
+  in a real Windows DAW.
 
 ## Max-based hosts (SoundDesk)
 
