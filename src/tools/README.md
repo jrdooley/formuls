@@ -486,8 +486,42 @@ the first formuls in a process). A healthy build prints
   messages); exit 5 if it never arrives.
 - `PROBE_NOTES_AT="secs:note,..."`: MIDI note-ons; `PROBE_GUI_AT="secs:address:value,..."`:
   tablet messages instead of the test tone; `PROBE_SEGMENTS="a,b,..."`: peaks between times.
+- `PROBE_AWAY="a:b"`: the tablet drops its link at `a` and reconnects (same client id) at
+  `b`, counted like `PROBE_GUI_AT`, to see what the server resyncs it with. Nothing is
+  sent while it is away, so `PROBE_GUI_AT` times inside the gap wait until it is back.
 - `PROBE_IDLE_FIRST=1`, `PROBE_CYCLES=n`, `PROBE_PATH2`, `PROBE_SAVE`, `PROBE_LOAD`,
   `PROBE_REALTIME=1`: host behaviours (an idle extra instance, reloading,
   saving and restoring state, real-time pacing).
 
 The release workflow runs it on the Linux and Windows plugin builds.
+
+
+## ws-stall-test
+
+Checks that `WebSocketServer` (the plugin's and app's tablet server) never
+blocks the thread that sends to a tablet, however badly the tablet keeps up.
+It connects two raw WebSocket clients. One stops reading after the handshake
+(a tablet on bad Wi-Fi, or a frozen browser tab); the other reads everything.
+It then sends patch-reset-sized bursts of `receiveOsc` frames (9,000 each,
+50 ms apart) from the main thread, which stands in for the host's message
+thread.
+
+```bash
+cmake -S src/tools/ws-stall-test -B /tmp/wsst -DCMAKE_BUILD_TYPE=Release
+cmake --build /tmp/wsst
+/tmp/wsst/ws_stall_test_artefacts/Release/ws_stall_test                    # 40 resets: overflow
+WS_STALL_RESETS=1 /tmp/wsst/ws_stall_test_artefacts/Release/ws_stall_test  # 1 reset: stall timeout
+```
+
+It exits 0 only if all of these hold:
+
+- no `sendText` took longer than 50 ms;
+- one reset still fits in the stalled client's queue;
+- the good client received every message, in order;
+- the stalled client was eventually disconnected, by overflow (40 resets,
+  ~2 s) or by the 10 s stall timeout (1 reset).
+
+Before the per-connection queue, the stalled client was dropped about 7,000
+messages into the first reset; see `docs/embedded-gui/README.md`. It needs
+to bind a local port, so it does not run inside a sandbox that forbids that.
+

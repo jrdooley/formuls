@@ -193,6 +193,15 @@ struct TinyWs
         }
     };
     std::unique_ptr<Reader> reader;
+    // Drops the link, as a tablet does in a Wi-Fi dropout; connect() again comes
+    // back with the same client id, as the o-s-c client does.
+    void disconnect()
+    {
+        if (reader != nullptr) { reader->stopThread (1000); reader.reset(); }
+        socket.close();
+        const juce::ScopedLock sl (pendingLock);
+        pending.reset();
+    }
     void startReading() { if (reader == nullptr) { reader = std::make_unique<Reader> (*this); reader->startThread(); } }
     ~TinyWs() { if (reader != nullptr) reader->stopThread (1000); }
 
@@ -349,6 +358,11 @@ static int runOnce (int argc, char** argv)
     const double linger = juce::SystemStats::getEnvironmentVariable ("PROBE_LINGER", "0.1").getDoubleValue();
     int received = 0; double lastReceived = -1;
     TinyWs ws; bool wsOk = false;
+    // PROBE_AWAY="a:b": the tablet drops its link at a and reconnects at b
+    // (counted like PROBE_GUI_AT), to see what the server resyncs it with.
+    const auto away = juce::StringArray::fromTokens (juce::SystemStats::getEnvironmentVariable ("PROBE_AWAY", {}), ":", {});
+    double awayFrom = away.size() == 2 ? away[0].getDoubleValue() : -1, awayTo = away.size() == 2 ? away[1].getDoubleValue() : -1;
+    bool isAway = false;
     const int blocks = (int) (seconds * rate / block);
     int renderedBlocks = 0;
     for (int i = 0; i < blocks; ++i)
@@ -384,6 +398,18 @@ static int runOnce (int argc, char** argv)
                         if (w.a == address && t0 >= 0 && rel >= w.from && rel < w.to) ++w.count;
             }
 
+        if (awayFrom >= 0 && t0 >= 0 && now - t0 >= awayFrom && wsOk)
+        {
+            awayFrom = -1;
+            ws.disconnect();
+            wsOk = false; isAway = true;
+            std::cout << "t=" << now << " tablet away\n";
+        }
+        if (isAway && now - t0 >= awayTo)
+        {
+            isAway = false;
+            std::cout << "t=" << now << " tablet back: " << ((wsOk = ws.connect (guiPort)) ? "reconnected" : "FAILED") << "\n";
+        }
         for (auto& g : guiAt)
             if (! g.sent && t0 >= 0 && now - t0 >= g.t && wsOk)
             {

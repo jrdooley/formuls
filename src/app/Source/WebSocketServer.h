@@ -10,6 +10,13 @@
  * and becomes a Connection that delivers text messages to the callbacks and
  * can be sent text from any thread.
  *
+ * Sending never blocks the caller (in the plugin that is the host's message
+ * thread). Each Connection queues outgoing frames and a writer thread of its
+ * own drains them in order. A client that falls too far behind (more than
+ * maxQueuedBytes waiting) or accepts nothing for stallTimeoutMs is
+ * disconnected rather than sent a gapped stream; the o-s-c client reconnects
+ * on its own, and EmbeddedGuiServer resyncs it.
+ *
  * Not supported, because the GUI client never needs them: TLS, permessage-
  * deflate, binary messages, fragmented messages from the server side.
  *
@@ -19,6 +26,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
+#include <thread>
 
 namespace formuls
 {
@@ -49,25 +60,44 @@ public:
         const juce::String path;
         const juce::String remoteAddress;
 
-        /** Sends one text frame. Thread-safe; blocks until written or the
-            socket fails. Returns false once the connection is gone. */
+        /** A reset of the patch sends ~9,000 messages, ~1.3 MB: this is room
+            for several back to back on a slow link. */
+        static constexpr size_t maxQueuedBytes = 8u << 20;
+        /** Longer than any Wi-Fi hiccup a tablet recovers from by itself. */
+        static constexpr int stallTimeoutMs = 10000;
+
+        /** Queues one text frame and returns at once. Thread-safe, and frames
+            go out in the order queued. Returns false once the connection is
+            gone, including when this frame would overflow the queue (the
+            connection is then closed). */
         bool sendText (const juce::String& text);
         bool sendText (const char* utf8, size_t numBytes);
 
         void close();
         bool isOpen() const noexcept   { return open.load(); }
 
+        ~Connection();
+
     private:
         friend class WebSocketServer;
-        Connection (std::unique_ptr<juce::StreamingSocket> s, juce::String p, juce::String addr)
-            : path (std::move (p)), remoteAddress (std::move (addr)), socket (std::move (s)) {}
+        Connection (std::unique_ptr<juce::StreamingSocket> s, juce::String p, juce::String addr);
 
         bool sendFrame (int opcode, const void* data, size_t numBytes);
-        bool writeAll (const void* data, size_t numBytes);
+        void writerLoop();
+        bool writeQueued (const juce::MemoryBlock& frame);
+        void fail();   // stop sending and wake the reader, which then closes
 
         std::unique_ptr<juce::StreamingSocket> socket;
-        juce::CriticalSection writeLock;
         std::atomic<bool> open { true };
+
+        std::mutex queueLock;
+        std::condition_variable queueChanged;
+        std::deque<juce::MemoryBlock> queue;
+        size_t queuedBytes = 0;   // includes the frame being written
+
+        std::mutex closeLock;
+        bool closed = false;
+        std::thread writer;
     };
 
     using ConnectionPtr = std::shared_ptr<Connection>;

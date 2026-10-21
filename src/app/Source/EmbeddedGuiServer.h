@@ -128,6 +128,15 @@ private:
     // neither means everyone.
     void deliver (const juce::var& data, const juce::String& onlyTo = {}, const juce::String& except = {});
     void send (Client&, const juce::String& event, const juce::var& data);
+
+    // Resync. A tablet that reconnects (Wi-Fi dropout, or dropped by
+    // WebSocketServer for falling behind) missed whatever was delivered while
+    // it was away, and the o-s-c client only asks for state when its page
+    // loads. So the last broadcast frame for each widget is kept and replayed
+    // to it on reconnect. Display only: nothing is sent to the patch.
+    void rememberForResync (const juce::var& data, const juce::String& text);
+    juce::String resyncKey (const juce::String& address, const juce::var& args) const;
+    void resync (Client&);
     void sendToPatch (const juce::String& hostPort, const juce::String& address,
                       const juce::Array<juce::var>& args, const juce::String& typeTags);
 
@@ -164,6 +173,12 @@ private:
     juce::String lastChangedBy;               // client id
     juce::uint32 captureRequestedAt = 0;
     static constexpr const char* captureSentinelPath = "__formuls_host_project__.state";
+
+    struct ResyncEntry { juce::uint64 seq; juce::String text; };
+    std::map<juce::String, ResyncEntry> resyncFrames;   // resyncKey -> last frame
+    juce::uint64 resyncSeq = 0;
+    // address -> the distinct preArgs of widgets on it, from every addWidget
+    std::map<juce::String, std::vector<juce::Array<juce::var>>> widgetPreArgs;
 
     std::atomic<bool> running { false };
 

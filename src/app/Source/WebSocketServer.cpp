@@ -2,7 +2,17 @@
  * WebSocketServer.cpp -- see WebSocketServer.h.
  */
 
+#if defined (_WIN32)
+ #include <winsock2.h>   // before anything pulls in windows.h
+#endif
+
 #include "WebSocketServer.h"
+
+#if ! defined (_WIN32)
+ #include <cerrno>
+ #include <poll.h>
+ #include <sys/socket.h>
+#endif
 
 namespace formuls
 {
@@ -60,22 +70,58 @@ namespace
 
     // The reader uses read (..., blockUntilSpecifiedAmountHasArrived = false),
     // and JUCE implements that by switching the socket to non-blocking. So a
-    // send() can return -1 (EAGAIN) whenever the kernel buffer is full, and
-    // the only real failure is the socket never becoming writable again.
-    bool writeFully (juce::StreamingSocket& socket, const void* data, size_t numBytes)
+    // send() can return -1 (EAGAIN) whenever the kernel buffer is full.
+    //
+    // Waiting for room is done on the raw handle, not with waitUntilReady():
+    // JUCE's wait only try-locks the socket's read lock, which the reader
+    // thread holds for nearly all of its own 200 ms wait, so it returns -1 at
+    // once and a full buffer looked like a dead client.
+    bool wouldBlock()
+    {
+       #if defined (_WIN32)
+        return WSAGetLastError() == WSAEWOULDBLOCK;
+       #else
+        return errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR;
+       #endif
+    }
+
+    int waitWritable (juce::StreamingSocket& socket, int timeoutMs)
+    {
+       #if defined (_WIN32)
+        WSAPOLLFD p { (SOCKET) socket.getRawSocketHandle(), POLLWRNORM, 0 };
+        return WSAPoll (&p, 1, timeoutMs);
+       #else
+        pollfd p { socket.getRawSocketHandle(), POLLOUT, 0 };
+        const auto r = poll (&p, 1, timeoutMs);
+        return (r < 0 && errno == EINTR) ? 0 : r;
+       #endif
+    }
+
+    // Writes everything, waiting while the kernel buffer is full. Gives up if
+    // nothing is accepted for stallTimeoutMs, or once keepGoing() is false.
+    template <typename KeepGoing>
+    bool writeFully (juce::StreamingSocket& socket, const void* data, size_t numBytes,
+                     int stallTimeoutMs, KeepGoing&& keepGoing)
     {
         auto* p = static_cast<const char*> (data);
+        auto lastProgress = juce::Time::getMillisecondCounter();
 
         while (numBytes > 0)
         {
+            if (! keepGoing())
+                return false;
+
             const auto n = socket.write (p, (int) juce::jmin (numBytes, (size_t) 1 << 20));
 
             if (n > 0)
             {
                 p += n;
                 numBytes -= (size_t) n;
+                lastProgress = juce::Time::getMillisecondCounter();
             }
-            else if (socket.waitUntilReady (false, 5000) <= 0)
+            else if (! wouldBlock()
+                     || waitWritable (socket, 200) < 0
+                     || juce::Time::getMillisecondCounter() - lastProgress > (juce::uint32) stallTimeoutMs)
             {
                 return false;
             }
@@ -109,18 +155,19 @@ namespace
 }
 
 //==============================================================================
-bool WebSocketServer::Connection::writeAll (const void* data, size_t numBytes)
+WebSocketServer::Connection::Connection (std::unique_ptr<juce::StreamingSocket> s, juce::String p, juce::String addr)
+    : path (std::move (p)), remoteAddress (std::move (addr)), socket (std::move (s))
 {
-    return writeFully (*socket, data, numBytes);
+    writer = std::thread ([this] { writerLoop(); });
+}
+
+WebSocketServer::Connection::~Connection()
+{
+    close();
 }
 
 bool WebSocketServer::Connection::sendFrame (int opcode, const void* data, size_t numBytes)
 {
-    const juce::ScopedLock sl (writeLock);
-
-    if (! open)
-        return false;
-
     juce::uint8 header[10];
     size_t headerSize = 2;
     header[0] = (juce::uint8) (0x80 | opcode);   // FIN, never fragmented
@@ -142,11 +189,91 @@ bool WebSocketServer::Connection::sendFrame (int opcode, const void* data, size_
         headerSize = 10;
     }
 
-    if (writeAll (header, headerSize) && writeAll (data, numBytes))
-        return true;
+    juce::MemoryBlock frame (header, headerSize);
+    frame.append (data, numBytes);
 
-    open = false;
+    {
+        const std::lock_guard<std::mutex> sl (queueLock);
+
+        if (! open)
+            return false;
+
+        if (queuedBytes + frame.getSize() <= maxQueuedBytes)
+        {
+            queuedBytes += frame.getSize();
+            queue.push_back (std::move (frame));
+            queueChanged.notify_one();
+            return true;
+        }
+    }
+
+    // Too far behind to catch up: a gap would leave its controls showing
+    // stale values, so drop it instead and let it reconnect.
+    juce::Logger::writeToLog ("GUI client at " + remoteAddress + " fell "
+                              + juce::String ((juce::int64) (maxQueuedBytes >> 20)) + " MB behind; disconnecting");
+    fail();
     return false;
+}
+
+void WebSocketServer::Connection::writerLoop()
+{
+    for (;;)
+    {
+        juce::MemoryBlock frame;
+        {
+            std::unique_lock<std::mutex> sl (queueLock);
+            queueChanged.wait (sl, [this] { return ! open || ! queue.empty(); });
+
+            if (! open)
+                return;
+
+            frame = std::move (queue.front());
+            queue.pop_front();
+        }
+
+        const bool ok = writeQueued (frame);
+
+        {
+            const std::lock_guard<std::mutex> sl (queueLock);
+            queuedBytes -= frame.getSize();
+        }
+
+        if (! ok)
+        {
+            if (open)
+                juce::Logger::writeToLog ("GUI client at " + remoteAddress + " stopped accepting data; disconnecting");
+            fail();
+            return;
+        }
+    }
+}
+
+bool WebSocketServer::Connection::writeQueued (const juce::MemoryBlock& frame)
+{
+    return writeFully (*socket, frame.getData(), frame.getSize(), stallTimeoutMs,
+                       [this] { return open.load(); });
+}
+
+void WebSocketServer::Connection::fail()
+{
+    const std::lock_guard<std::mutex> cl (closeLock);
+
+    if (closed)
+        return;   // close() is tearing down already
+
+    {
+        const std::lock_guard<std::mutex> sl (queueLock);
+        open = false;
+        queueChanged.notify_all();
+    }
+
+    // Wakes the reader thread, whose read then fails: it closes this
+    // connection and tells EmbeddedGuiServer, as for any dropped client.
+   #if defined (_WIN32)
+    ::shutdown ((SOCKET) socket->getRawSocketHandle(), SD_BOTH);
+   #else
+    ::shutdown (socket->getRawSocketHandle(), SHUT_RDWR);
+   #endif
 }
 
 bool WebSocketServer::Connection::sendText (const char* utf8, size_t numBytes)
@@ -162,13 +289,30 @@ bool WebSocketServer::Connection::sendText (const juce::String& text)
 
 void WebSocketServer::Connection::close()
 {
-    if (open.exchange (false))
+    bool wasOpen;
     {
-        const juce::ScopedLock sl (writeLock);
-        const juce::uint8 frame[2] = { 0x88, 0 };
-        socket->write (frame, 2);
-        socket->close();
+        const std::lock_guard<std::mutex> cl (closeLock);
+        if (closed)
+            return;
+        closed = true;
+
+        const std::lock_guard<std::mutex> sl (queueLock);
+        wasOpen = open.exchange (false);
+        queueChanged.notify_all();
     }
+
+    // The writer notices within one 200 ms wait at most.
+    if (writer.joinable() && writer.get_id() != std::this_thread::get_id())
+        writer.join();
+    else if (writer.joinable())
+        writer.detach();
+
+    if (wasOpen)
+    {
+        const juce::uint8 frame[2] = { 0x88, 0 };
+        socket->write (frame, 2);   // best effort; the socket is non-blocking
+    }
+    socket->close();
 }
 
 //==============================================================================
@@ -271,8 +415,9 @@ private:
             head << key << ": " << response.extraHeaders[key] << "\r\n";
         head << "\r\n";
 
-        if (writeFully (*socket, head.toRawUTF8(), std::strlen (head.toRawUTF8())))
-            writeFully (*socket, response.body.getData(), response.body.getSize());
+        auto keepGoing = [this] { return ! threadShouldExit(); };
+        if (writeFully (*socket, head.toRawUTF8(), std::strlen (head.toRawUTF8()), 5000, keepGoing))
+            writeFully (*socket, response.body.getData(), response.body.getSize(), 5000, keepGoing);
         closeGracefully (*socket);
     }
 
@@ -282,7 +427,8 @@ private:
         head << "HTTP/1.1 101 Switching Protocols\r\n"
              << "Upgrade: websocket\r\nConnection: Upgrade\r\n"
              << "Sec-WebSocket-Accept: " << acceptKey (request.headers["sec-websocket-key"]) << "\r\n\r\n";
-        if (! writeFully (*socket, head.toRawUTF8(), std::strlen (head.toRawUTF8())))
+        if (! writeFully (*socket, head.toRawUTF8(), std::strlen (head.toRawUTF8()), 5000,
+                          [this] { return ! threadShouldExit(); }))
             return;
 
         connection.reset (new Connection (std::move (socket), request.path, request.remoteAddress));

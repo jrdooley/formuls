@@ -125,6 +125,8 @@ void EmbeddedGuiServer::stop()
     toPatch = nullptr;
     clients.clear();
     clientByConnection.clear();
+    resyncFrames.clear();
+    widgetPreArgs.clear();
     captureInFlight = stateDirty = false;   // stateJson itself is kept across a restart
 }
 
@@ -197,6 +199,7 @@ void EmbeddedGuiServer::handleOpen (WebSocketServer::ConnectionPtr connection)
 
     const juce::ScopedLock sl (lock);
     auto& client = clients[id];
+    const bool reconnect = client != nullptr;
 
     if (client == nullptr)
     {
@@ -210,7 +213,14 @@ void EmbeddedGuiServer::handleOpen (WebSocketServer::ConnectionPtr connection)
 
     client->connection = connection;
     clientByConnection[connection.get()] = id;
-    juce::Logger::writeToLog ("GUI client " + id + " connected from " + connection->remoteAddress);
+    juce::Logger::writeToLog ("GUI client " + id + (reconnect ? " reconnected from " : " connected from ")
+                              + connection->remoteAddress);
+
+    // A page (re)load sends "open" and gets the session and state; a bare
+    // reconnect sends nothing, so bring it up to date here. On a page load
+    // this arrives before the session and the client ignores it.
+    if (reconnect)
+        resync (*client);
 }
 
 void EmbeddedGuiServer::handleClose (WebSocketServer::ConnectionPtr connection)
@@ -278,6 +288,13 @@ void EmbeddedGuiServer::onIpc (Client& client, const juce::String& event, const 
                 entry.getDynamicObject()->setProperty (p.name, value);
             }
             entry.getDynamicObject()->setProperty ("_rawTarget", data["data"]["target"]);
+
+            const auto address = entry["address"].toString();
+            juce::Array<juce::var> pre;
+            if (auto* a = entry["preArgs"].getArray()) pre = *a;
+            auto& known = widgetPreArgs[address];
+            if (std::find (known.begin(), known.end(), pre) == known.end())
+                known.push_back (pre);
         }
     }
     else if (event == "removeWidget")
@@ -452,6 +469,9 @@ void EmbeddedGuiServer::deliver (const juce::var& data, const juce::String& only
     const auto utf8 = text.toRawUTF8();
     const auto size = std::strlen (utf8);
 
+    if (onlyTo.isEmpty())   // a reply to one client is not shared state
+        rememberForResync (data, text);
+
     for (auto& [id, client] : clients)
     {
         if ((onlyTo.isNotEmpty() && id != onlyTo) || (except.isNotEmpty() && id == except))
@@ -459,6 +479,81 @@ void EmbeddedGuiServer::deliver (const juce::var& data, const juce::String& only
         if (client->connected())
             client->connection->sendText (utf8, size);
     }
+}
+
+juce::String EmbeddedGuiServer::resyncKey (const juce::String& address, const juce::var& args) const
+{
+    juce::Array<juce::var> list;
+    if (auto* a = args.getArray()) list = *a;
+    else if (! args.isVoid())      list.add (args);
+
+    auto keyOf = [&] (int prefixLength)
+    {
+        juce::Array<juce::var> prefix;
+        for (int i = 0; i < prefixLength && i < list.size(); ++i)
+            prefix.add (list.getReference (i));
+        return address + " " + toJson (prefix);
+    };
+
+    // The compounds module packs every canvas slot onto one address
+    // (modulePatch): [cid, slot, v, slot+1, v...] or ["@var", cid, slot, count, v].
+    // Each target always sends the same cid and first slot.
+    if (address == "/fc_patch")
+        return keyOf (list.size() > 0 && list.getReference (0) == juce::var ("@var") ? 4 : 2);
+
+    // o-s-c hands a message to the widgets on its address whose preArgs it
+    // starts with; the value is the rest. Key by the longest such preArgs.
+    int longest = 0;
+    if (auto found = widgetPreArgs.find (address); found != widgetPreArgs.end())
+        for (auto& pre : found->second)
+        {
+            if (pre.size() <= longest || pre.size() > list.size())
+                continue;
+            bool matches = true;
+            for (int i = 0; matches && i < pre.size(); ++i)
+                matches = pre.getReference (i) == list.getReference (i);
+            if (matches)
+                longest = pre.size();
+        }
+
+    return keyOf (longest);
+}
+
+void EmbeddedGuiServer::rememberForResync (const juce::var& data, const juce::String& text)
+{
+    const auto address = data["address"].toString();
+
+    // The patch's poll, and app commands (/STATE/SAVE would write a file
+    // again), are not state.
+    if (address == "/GET" || (address.startsWith ("/STATE/") && address != "/STATE/SET"))
+        return;
+
+    // A whole GUI state supersedes everything before it; later changes
+    // still apply on top.
+    if (address == "/STATE/SET")
+        resyncFrames.clear();
+
+    resyncFrames[resyncKey (address, data["args"])] = { ++resyncSeq, text };
+}
+
+void EmbeddedGuiServer::resync (Client& client)
+{
+    if (resyncFrames.empty() || ! client.connected())
+        return;
+
+    // In the order they were last sent, so a /STATE/SET comes before the
+    // changes made since.
+    std::vector<const ResyncEntry*> frames;
+    frames.reserve (resyncFrames.size());
+    for (auto& [key, entry] : resyncFrames)
+        frames.push_back (&entry);
+    std::sort (frames.begin(), frames.end(), [] (auto* a, auto* b) { return a->seq < b->seq; });
+
+    for (auto* f : frames)
+        if (! client.connection->sendText (f->text))
+            break;
+
+    juce::Logger::writeToLog ("GUI client " + client.id + " resynced with " + juce::String ((int) frames.size()) + " messages");
 }
 
 //==============================================================================
