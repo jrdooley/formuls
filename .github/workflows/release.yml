@@ -131,7 +131,7 @@ jobs:
             # MIDI: a note with MIDI IN off must not reach synth 1; after the
             # tablet turns MIDI IN on, one must (its pitch display updates).
             # Times count from the patch's start-up reset (PROBE_READY_ON).
-            PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 \
+            PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 PROBE_LINGER=5 PROBE_WATCH=/midikeyboard1,/reset1 \
               PROBE_NOTES_AT="1:60,4:67,5:67,6:67" PROBE_GUI_AT="3:/midikeyboard1:1" \
               PROBE_FORBID_GUI="/oscpitchgui1:0.5:3" PROBE_EXPECT_GUI="/oscpitchgui1:3.5:7.5" \
               build-probe/plugin_probe_artefacts/Release/plugin_probe \
@@ -213,7 +213,7 @@ jobs:
             build-probe/plugin_probe_artefacts/Release/plugin_probe.exe \
             "$PWD/formuls-${{ needs.version.outputs.version }}-windows-x64-plugins/formuls.vst3" 4 9001
           # MIDI: as on Linux.
-          PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 \
+          PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 PROBE_LINGER=5 PROBE_WATCH=/midikeyboard1,/reset1 \
             PROBE_NOTES_AT="1:60,4:67,5:67,6:67" PROBE_GUI_AT="3:/midikeyboard1:1" \
             PROBE_FORBID_GUI="/oscpitchgui1:0.5:3" PROBE_EXPECT_GUI="/oscpitchgui1:3.5:7.5" \
             build-probe/plugin_probe_artefacts/Release/plugin_probe.exe \

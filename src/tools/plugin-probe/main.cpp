@@ -315,6 +315,10 @@ static int runOnce (int argc, char** argv)
     for (auto& g : guiAt) lastTime = juce::jmax (lastTime, g.t);
     for (auto& n : notesAt) lastTime = juce::jmax (lastTime, n.t);
     for (auto* list : { &expectGui, &forbidGui }) for (auto& w : *list) lastTime = juce::jmax (lastTime, w.to);
+    // PROBE_LINGER=s: with PROBE_READY_ON, keep going this long after the last
+    // time (default 0.1 s), to see messages that arrive late.
+    const double linger = juce::SystemStats::getEnvironmentVariable ("PROBE_LINGER", "0.1").getDoubleValue();
+    int received = 0; double lastReceived = -1;
     TinyWs ws; bool wsOk = false;
     const int blocks = (int) (seconds * rate / block);
     int renderedBlocks = 0;
@@ -336,6 +340,7 @@ static int runOnce (int argc, char** argv)
                 // ["receiveOsc", {"address": "/x", "args": ...}]
                 const auto data = juce::JSON::parse (text);
                 if (! data.isArray() || data.size() < 2 || data[0].toString() != "receiveOsc") continue;
+                ++received; lastReceived = now;
                 const auto address = data[1]["address"].toString();
                 if (! watch.contains (address) && ! watch.contains ("*")) continue;
                 const double rel = now - juce::jmax (0.0, t0);
@@ -373,7 +378,7 @@ static int runOnce (int argc, char** argv)
         for (int k = 0; k + 1 < segments.size(); ++k)
             if (now >= segments[k] && now < segments[k + 1]) segPeak[(size_t) k] = juce::jmax (segPeak[(size_t) k], p);
         if (p > 1.0e-6f) ++nonSilentBlocks;
-        if (readyOn.isNotEmpty() && t0 >= 0 && now - t0 > lastTime + 0.1)
+        if (readyOn.isNotEmpty() && t0 >= 0 && now - t0 > lastTime + linger)
             break;
         if (realtime)   // pace like a real audio device, running the message loop meanwhile
             juce::MessageManager::getInstance()->runDispatchLoopUntil ((int) (1000.0 * block / rate));
@@ -385,6 +390,8 @@ static int runOnce (int argc, char** argv)
     std::cout << "rendered " << renderedBlocks << " blocks, peak " << peak
               << ", non-silent blocks " << nonSilentBlocks << ", testtone pings sent " << pings << "\n";
 
+    if (! watch.isEmpty())
+        std::cout << "received " << received << " message(s) from the plugin, the last at t=" << lastReceived << "\n";
     if (readyOn.isNotEmpty() && t0 < 0)
     {
         std::cerr << "never saw " << readyOn << " from the plugin\n";

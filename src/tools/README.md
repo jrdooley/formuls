@@ -482,7 +482,8 @@ the first formuls in a process). A healthy build prints
 - `PROBE_READY_ON="/addr"`: the times in `PROBE_GUI_AT`, `PROBE_NOTES_AT` and the
   expect/forbid windows count from the first message the plugin sends to that address
   (CI uses `/amphasereset1`, sent by the patch's start-up reset), and the run ends once
-  the last of them has passed; exit 5 if it never arrives.
+  the last of them has passed (`PROBE_LINGER=s` keeps going that much longer, to show late
+  messages); exit 5 if it never arrives.
 - `PROBE_NOTES_AT="secs:note,..."`: MIDI note-ons; `PROBE_GUI_AT="secs:address:value,..."`:
   tablet messages instead of the test tone; `PROBE_SEGMENTS="a,b,..."`: peaks between times.
 - `PROBE_IDLE_FIRST=1`, `PROBE_CYCLES=n`, `PROBE_PATH2`, `PROBE_SAVE`, `PROBE_LOAD`,
