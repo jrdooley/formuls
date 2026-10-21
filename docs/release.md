@@ -13,6 +13,8 @@ nothing personal is written down either.
 | macOS (Apple Silicon) | on your Mac, `build-macOS.sh` | Developer ID + notarised, on your Mac | `formuls-<version>-macOS-arm64.zip` |
 | Linux x64 | GitHub Actions | not needed | `formuls-<version>-linux-x64.tar.gz` |
 | Windows x64 | GitHub Actions | no (see [Windows](#7-windows)) | `formuls-<version>-windows-x64.zip` |
+| Linux x64 plugins (VST3, LV2) | GitHub Actions | not needed | `formuls-<version>-linux-x64-plugins.tar.gz` |
+| Windows x64 plugin (VST3) | GitHub Actions | no | `formuls-<version>-windows-x64-plugins.zip` |
 
 The Mac build is signed on your own Mac so the certificate's private key never
 leaves it. GitHub only ever builds Linux and Windows.
@@ -115,12 +117,15 @@ never in a file, a command line or the repository.
 
 ## 2. Each release
 
-1. **Set the version** in all three build scripts (`VERSION="…"` in
-   `build-macOS.sh` and `build-linux.sh`, `set VERSION=…` in `build-windows.bat`)
-   and merge that to `main`. CI refuses to build if they differ.
+1. **Set the version** in all six build scripts (`VERSION=…` in
+   `build-macOS.sh`, `build-linux.sh`, `build-plugin-macOS.sh` and
+   `build-plugin-linux.sh`; `set VERSION=…` in `build-windows.bat` and
+   `build-plugin-windows.bat`) and merge that to `main`. CI refuses to build if
+   they differ.
 
-2. **Tag and push.** CI checks the tag matches `VERSION`, builds Linux and Windows,
-   and creates a **draft** release with both attached:
+2. **Tag and push.** CI checks the tag matches `VERSION`, builds the Linux and
+   Windows apps and plugins, checks the plugins in a test host, and creates a
+   **draft** release with all four archives attached:
 
    ```bash
    git tag v0.3.2
@@ -292,8 +297,8 @@ the file is on `main`; that is why pull requests that touch the build trigger it
 
 ### Jobs
 
-- **`version`** reads `VERSION` from all three scripts, fails if they differ, and on
-  a tag fails unless the tag is `v<VERSION>`.
+- **`version`** reads `VERSION` from all six scripts (app and plugin), fails if
+  they differ, and on a tag fails unless the tag is `v<VERSION>`.
 - **`linux`** (Ubuntu 24.04): installs JUCE's Linux dependencies (including
   `libxi-dev`, which JUCE 9 needs and older lists omit), `puredata-dev` for Pd's
   headers and `clang`; builds Faust from source (cached after the first run, which
@@ -302,10 +307,11 @@ the file is on `main`; that is why pull requests that touch the build trigger it
   `.tar.gz`.
 - **`windows`** (Windows Server 2022): downloads JUCE, installs Faust silently, sets
   up a Visual Studio developer environment, runs `build-windows.bat`, zips the
-  result. It is `continue-on-error`: a Windows failure does not stop the Linux
-  build or the release.
-- **`release`** (tags only): downloads both builds and creates the draft with
-  `gh release create --draft`.
+  result. Both jobs then build the plugins and check them with
+  `src/tools/plugin-probe` (audio, editor window, MIDI). A failure in either
+  job stops the release, so a draft always has all four archives.
+- **`release`** (tags only): downloads the four archives (not the editor
+  snapshots) and creates the draft with `gh release create --draft`.
 
 Versions are pinned to the ones the Mac is built with: **JUCE 9.0.1**, **Faust
 2.85.9**, **Node 22.17.0**, **Open Stage Control 1.31.0**.

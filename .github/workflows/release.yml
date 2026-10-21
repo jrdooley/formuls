@@ -43,11 +43,15 @@ jobs:
       - id: v
         name: Read VERSION and check it matches the tag
         run: |
-          v=$(sed -n 's/^VERSION="\(.*\)"/\1/p' build-linux.sh)
-          w=$(sed -n 's/^set VERSION=\(.*\)\r\?$/\1/p' build-windows.bat | tr -d '\r')
-          m=$(sed -n 's/^VERSION="\(.*\)"/\1/p' build-macOS.sh)
-          echo "linux=$v windows=$w macOS=$m"
-          [ "$v" = "$w" ] && [ "$v" = "$m" ] || { echo "VERSION differs between the build scripts"; exit 1; }
+          # The app and plugin scripts each set VERSION; the release file names
+          # come from it, so all six must agree.
+          get() { sed -n 's/^\(set \)\{0,1\}VERSION="\{0,1\}\([^"]*\)"\{0,1\}$/\2/p' "$1" | tr -d '\r'; }
+          v=$(get build-linux.sh)
+          for f in build-linux.sh build-macOS.sh build-windows.bat \
+                   build-plugin-linux.sh build-plugin-macOS.sh build-plugin-windows.bat; do
+            echo "$f: $(get "$f")"
+            [ "$(get "$f")" = "$v" ] || { echo "VERSION in $f differs from build-linux.sh ($v)"; exit 1; }
+          done
           if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$v" ]; then
             echo "tag $GITHUB_REF_NAME does not match VERSION $v"; exit 1
           fi
@@ -153,8 +157,6 @@ jobs:
   windows:
     needs: version
     runs-on: windows-2022
-    # Not yet known to build; it should not stop the Linux release meanwhile.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -234,9 +236,12 @@ jobs:
     needs: [version, linux, windows]
     runs-on: ubuntu-24.04
     steps:
+      # The app and plugin archives (linux-x64, linux-x64-plugins, windows-x64,
+      # windows-x64-plugins), not the editor snapshots.
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: "*-x64*"
           merge-multiple: true
       - name: Create a draft release
         env:
