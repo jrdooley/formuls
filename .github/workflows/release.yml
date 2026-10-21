@@ -204,6 +204,10 @@ jobs:
 
       - name: Check the plugin in a test host
         shell: bash
+        env:
+          # Git Bash rewrites values that look like paths (/amphasereset1 ->
+          # C:/Program Files/Git/amphasereset1); the probe's OSC addresses are not.
+          MSYS_NO_PATHCONV: "1"
         run: |
           cmake -S src/tools/plugin-probe -B build-probe -A x64
           cmake --build build-probe --config Release
