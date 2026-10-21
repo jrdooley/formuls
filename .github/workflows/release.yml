@@ -119,12 +119,24 @@ jobs:
           cmake --build build-probe -j"$(nproc)"
           for b in formuls.vst3 formuls.lv2; do
             echo "::group::$b"
-            PROBE_MIN_PEAK=0.05 PROBE_NO_EDITOR=1 \
-              build-probe/plugin_probe_artefacts/Release/plugin_probe \
+            # The editor opens in a window on Xvfb. JUCE's LV2 host leaves its
+            # holder window unmapped, so for LV2 the probe checks the plugin's
+            # own window and takes no snapshot (src/tools/README.md).
+            PROBE_MIN_PEAK=0.05 PROBE_SHOW_EDITOR=1 PROBE_REQUIRE_EDITOR=1 \
+              PROBE_SNAPSHOT="$PWD/plugin-editor-linux-${b#formuls.}.png" \
+              xvfb-run -a build-probe/plugin_probe_artefacts/Release/plugin_probe \
               "$PWD/formuls-${{ needs.version.outputs.version }}-linux-x64-plugins/$b" 4 9001
             echo "::endgroup::"
           done
           cat ~/.config/formuls/plugin.log
+
+      - name: Upload the editor snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-plugin-editor-snapshot
+          path: plugin-editor-linux-*.png
+          if-no-files-found: ignore
 
       - name: Package the plugins
         run: tar -czf "formuls-${{ needs.version.outputs.version }}-linux-x64-plugins.tar.gz" "formuls-${{ needs.version.outputs.version }}-linux-x64-plugins"

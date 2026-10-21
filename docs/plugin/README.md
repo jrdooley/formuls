@@ -142,8 +142,13 @@ and missed 947 matrix-child addresses; the replay is exact by construction.
 - Linux (Ubuntu 24.04 x86_64, OrbStack VM), the same JUCE test host built
   with VST3 and LV2 hosting: both bundles load, all four externals load
   (Pd's symbols reach them through the `RTLD_GLOBAL` re-open), and the
-  `/testtone` output peaks at 0.0998. Not yet run: the editor window (the VM
-  has no display), a real Linux DAW, MIDI input.
+  `/testtone` output peaks at 0.0998. The editor, on Xvfb: the VST3's window
+  shows inside the host's and renders (520x300); the LV2's window is created
+  and mapped inside the host's holder, which JUCE's LV2 host itself never
+  maps, so it is not on screen in that host. CI checks both
+  (`PROBE_SHOW_EDITOR`, `PROBE_REQUIRE_EDITOR`) and uploads the VST3 capture
+  as `linux-plugin-editor-snapshot`. Not yet run: a real Linux DAW (whether
+  the LV2 editor shows in one), MIDI input.
 
 - Windows (CI, `windows-latest`, MSVC 17.14), the same test host with VST3
   hosting: the bundle loads (`libpd.dll` delay-loaded from

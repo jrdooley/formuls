@@ -12,8 +12,9 @@
 // A hosted VST3 editor draws into the plugin's own child window, not into the
 // JUCE component that holds it, so look for that window and capture it the
 // way a screenshot would.
-static HWND findPluginWindow (HWND top)
+static bool findPluginWindow (void* topHandle)
 {
+    auto top = (HWND) topHandle;
     // Lists every visible child window, and returns the deepest: the host's
     // embedding window comes first, the plugin's own window inside it.
     struct Search { HWND top, deepest = nullptr; int depth = 0; } search { top };
@@ -30,11 +31,12 @@ static HWND findPluginWindow (HWND top)
         if (depth > s.depth) { s.depth = depth; s.deepest = child; }
         return TRUE;
     }, (LPARAM) &search);
-    return search.deepest;
+    return search.deepest != nullptr;
 }
 
-static juce::Image captureWindow (HWND hwnd)
+static juce::Image captureWindow (void* handle)
 {
+    auto hwnd = (HWND) handle;
     RECT r; GetClientRect (hwnd, &r);
     const int w = r.right, h = r.bottom;
     juce::Image image (juce::Image::ARGB, w, h, true, juce::SoftwareImageType());
@@ -50,6 +52,96 @@ static juce::Image captureWindow (HWND hwnd)
         for (int x = 0; x < w; ++x)
             image.setPixelAt (x, y, juce::Colour (pixels[(size_t) (y * w + x)] | 0xff000000));
     SelectObject (dc, old); DeleteObject (bitmap); DeleteDC (dc); ReleaseDC (nullptr, screen);
+    return image;
+}
+#elif JUCE_LINUX
+ #include <X11/Xlib.h>
+ #include <X11/Xutil.h>
+
+// On Linux the hosted editor is an X11 window of the plugin's, embedded in the
+// host's. The probe opens its own X connection to look at the window tree.
+// "mapped" is the window's own state: the plugin mapped it. "viewable" also
+// needs every window above it mapped, which is the host's job; JUCE's LV2 host
+// leaves its holder window unmapped, so an LV2 editor is mapped, not viewable.
+struct WindowSearch { int deepestMapped = 0; bool deepestViewable = false; };
+
+static void listChildren (Display* d, Window w, int depth, WindowSearch& search)
+{
+    Window root, parent, *children = nullptr; unsigned int n = 0;
+    if (! XQueryTree (d, w, &root, &parent, &children, &n)) return;
+    for (unsigned int i = 0; i < n; ++i)
+    {
+        XWindowAttributes a;
+        if (! XGetWindowAttributes (d, children[i], &a) || a.width <= 1 || a.height <= 1)
+            continue;
+        XClassHint hint {};
+        XGetClassHint (d, children[i], &hint);
+        const char* state = a.map_state == IsViewable ? "viewable" : a.map_state == IsUnviewable ? "mapped" : "unmapped";
+        std::cout << "  child window depth " << depth << " class " << (hint.res_class != nullptr ? hint.res_class : "-")
+                  << " " << a.width << "x" << a.height << " " << state << "\n";
+        if (hint.res_name != nullptr) XFree (hint.res_name);
+        if (hint.res_class != nullptr) XFree (hint.res_class);
+        if (a.map_state != IsUnmapped && depth > search.deepestMapped)
+        {
+            search.deepestMapped = depth;
+            search.deepestViewable = a.map_state == IsViewable;
+        }
+        listChildren (d, children[i], depth + 1, search);
+    }
+    if (children != nullptr) XFree (children);
+}
+
+// JUCE 9 looks up WM_PROTOCOLS and the other window manager atoms only if they
+// already exist, then sets WM_PROTOCOLS on every window it creates without
+// checking: on a display with no window manager (a bare Xvfb in CI) that is
+// atom 0 and a fatal BadAtom. A window manager would have created them, so do
+// that before JUCE opens its display. Not needed on a real desktop.
+static void createWindowManagerAtoms()
+{
+    Display* d = XOpenDisplay (nullptr);
+    if (d == nullptr) return;
+    for (auto* name : { "WM_PROTOCOLS", "WM_TAKE_FOCUS", "WM_DELETE_WINDOW", "_NET_WM_PING",
+                        "WM_CHANGE_STATE", "WM_STATE", "_NET_WM_WINDOW_TYPE", "_NET_WM_STATE" })
+        XInternAtom (d, name, False);
+    XSync (d, False);
+    // Left open: an X server forgets its atoms when its last client goes.
+}
+
+static bool pluginWindowViewable = true;
+
+static bool findPluginWindow (void* topHandle)
+{
+    Display* d = XOpenDisplay (nullptr);
+    if (d == nullptr) return false;
+    WindowSearch search;
+    listChildren (d, (Window) (juce::pointer_sized_uint) topHandle, 1, search);
+    XCloseDisplay (d);
+    // Depth 1 is the host's holder for the hosted editor; the plugin's own
+    // window sits inside it.
+    pluginWindowViewable = search.deepestViewable;
+    if (search.deepestMapped >= 2 && ! search.deepestViewable)
+        std::cout << "plugin window mapped, but the host has not mapped its holder window\n";
+    return search.deepestMapped >= 2;
+}
+
+static juce::Image captureWindow (void* handle)
+{
+    juce::Image image;
+    Display* d = XOpenDisplay (nullptr);
+    if (d == nullptr) return image;
+    auto w = (Window) (juce::pointer_sized_uint) handle;
+    XWindowAttributes a;
+    // Xvfb has no compositor, so the window's pixels include its children.
+    if (XGetWindowAttributes (d, w, &a))
+        if (XImage* x = XGetImage (d, w, 0, 0, (unsigned) a.width, (unsigned) a.height, AllPlanes, ZPixmap))
+        {
+            image = juce::Image (juce::Image::ARGB, a.width, a.height, true, juce::SoftwareImageType());
+            for (int y = 0; y < a.height; ++y)
+                for (int xx = 0; xx < a.width; ++xx)
+                    image.setPixelAt (xx, y, juce::Colour ((juce::uint32) XGetPixel (x, xx, y) | 0xff000000));
+            XDestroyImage (x);
+        }
+    XCloseDisplay (d);
     return image;
 }
 #endif
@@ -84,6 +176,9 @@ struct TinyWs
 static int runOnce (int argc, char** argv);
 int main (int argc, char** argv)
 {
+   #if JUCE_LINUX
+    createWindowManagerAtoms();
+   #endif
     juce::ScopedJuceInitialiser_GUI gui;
     if (argc < 2) { std::cerr << "usage: plugin_probe <plugin path> [seconds]\n"; return 2; }
     // PROBE_CYCLES=n: load, play and unload n times in one process, as a host
@@ -220,9 +315,9 @@ static int runOnce (int argc, char** argv)
 
     // The editor: created and sized by default. PROBE_SHOW_EDITOR=1 also puts it
     // in a desktop window for PROBE_SHOW_SECS (default 2) with the message loop
-    // running, as a DAW does, and checks it is on screen (on Windows, that the
-    // plugin made its own child window); PROBE_SNAPSHOT=<png> saves a capture
-    // of the window (Windows only). PROBE_REQUIRE_EDITOR=1: exit 4 if any of that fails.
+    // running, as a DAW does, and checks it is on screen (on Windows and
+    // Linux, that the plugin made its own child window); PROBE_SNAPSHOT=<png>
+    // saves a capture of the window (Windows and Linux). PROBE_REQUIRE_EDITOR=1: exit 4 if any of that fails.
     auto env = [] (const char* name) { return juce::SystemStats::getEnvironmentVariable (name, {}); };
     const bool requireEditor = env ("PROBE_REQUIRE_EDITOR") == "1";
     if (env ("PROBE_NO_EDITOR") != "1")
@@ -252,15 +347,20 @@ static int runOnce (int argc, char** argv)
                 std::cout << "editor window " << (onScreen ? "showing" : "NOT showing") << " at "
                           << editor->getScreenBounds().toString() << "\n";
 
-               #if JUCE_WINDOWS
+               #if JUCE_WINDOWS || JUCE_LINUX
                 // The real test: the plugin made its own window inside the host's.
-                HWND pluginWindow = onScreen ? findPluginWindow ((HWND) window.getPeer()->getNativeHandle()) : nullptr;
-                std::cout << "plugin window " << (pluginWindow != nullptr ? "found" : "NOT found") << "\n";
-                onScreen = onScreen && pluginWindow != nullptr;
+                auto* top = onScreen ? window.getPeer()->getNativeHandle() : nullptr;
+                const bool pluginWindow = top != nullptr && findPluginWindow (top);
+                std::cout << "plugin window " << (pluginWindow ? "found" : "NOT found") << "\n";
+                onScreen = onScreen && pluginWindow;
 
-                if (auto png = env ("PROBE_SNAPSHOT"); png.isNotEmpty() && pluginWindow != nullptr)
+                if (auto png = env ("PROBE_SNAPSHOT"); png.isNotEmpty() && pluginWindow
+                   #if JUCE_LINUX
+                    && pluginWindowViewable
+                   #endif
+                    )
                 {
-                    auto image = captureWindow ((HWND) window.getPeer()->getNativeHandle());
+                    auto image = captureWindow (top);
                     juce::File file (png);
                     file.deleteFile();
                     juce::FileOutputStream out (file);

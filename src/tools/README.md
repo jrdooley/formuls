@@ -465,8 +465,12 @@ the first formuls in a process). A healthy build prints
 - `PROBE_MIN_PEAK=x`: exit 3 if the output never reaches `x` (CI uses 0.05).
 - `PROBE_NO_EDITOR=1`: skip opening the editor (machines with no display).
 - `PROBE_SHOW_EDITOR=1`: show the editor in a desktop window for `PROBE_SHOW_SECS`
-  (default 2) and check it is on screen (on Windows, that the plugin created its own
-  child window); `PROBE_SNAPSHOT=<png>` saves a capture of that window (Windows only);
+  (default 2) and check it is on screen (on Windows and Linux, that the plugin created
+  its own child window); `PROBE_SNAPSHOT=<png>` saves a capture of the window (Windows and Linux);
+  on Linux, a plugin window the plugin mapped counts even when the host leaves its holder
+  window unmapped (JUCE's LV2 host does), and no snapshot is taken then. On a display with
+  no window manager (Xvfb) the probe first creates the window manager atoms JUCE 9 assumes
+  exist, or creating any window fails with BadAtom;
   `PROBE_REQUIRE_EDITOR=1` exits 4 if there is no editor or it does not show.
 - `PROBE_BLOCK=n`: the block size (default 512).
 - `PROBE_NOTES_AT="secs:note,..."`: MIDI note-ons; `PROBE_GUI_AT="secs:address:value,..."`:
