@@ -89,6 +89,14 @@ public:
 
     bool isRunning();
 
+    /** True while the running server was started with the UX logger -- that
+        is, in a FORMULS_UXLOG=1 build (see src/tools/uxlog/README.md). */
+    bool isUxLogging() const noexcept { return uxLogging; }
+
+    /** Where a UX-logging build keeps its logs and session audio. Must match
+        the folder formuls-uxlog-module.js writes to. */
+    static juce::File getUxLogDirectory();
+
     /** Kills any Open Stage Control server left behind by an earlier formuls
         run -- the case a crash or force-quit leaves, where no destructor got
         the chance to clean up. Returns how many were killed.
@@ -121,6 +129,8 @@ private:
         start() so stop() can sweep with the same paths without having to be
         handed them again. */
     juce::File resourceRoot;
+
+    bool uxLogging = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OpenStageControlProcess)
 };

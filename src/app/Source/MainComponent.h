@@ -99,6 +99,13 @@ private:
         buttons. */
     void updateButtonStates();
 
+    /** UX-logging builds only: records the whole session to Ogg Vorbis next
+        to the gesture log, and logs a rec-start event to align the two. */
+    void startSessionRecording();
+
+    /** Writes one JSON event into the UX log, via the GUI server. */
+    void sendUxLogEvent (const juce::var& event);
+
     void screenshotClicked();
 
     void savePresetClicked();

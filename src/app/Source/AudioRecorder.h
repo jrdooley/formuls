@@ -1,7 +1,8 @@
 /*
  * AudioRecorder.h
  *
- * Records the formuls engine's output to a WAV file.
+ * Records the formuls engine's output to a WAV file, or to Ogg Vorbis for
+ * the multi-hour sessions of a UX-logging build (see src/tools/uxlog/).
  *
  * The file always matches what the engine is actually producing: the sample
  * rate the audio device really opened at, and one WAV channel per engine
@@ -51,17 +52,29 @@ public:
         cannot clip. */
     static constexpr int bitsPerSample = 24;
 
+    enum class Format { wav, oggVorbis };
+
+    /** Index into juce::OggVorbisAudioFormat::getQualityOptions(); libvorbis
+        is given index * 0.1 as its VBR quality, so 7 is q0.7, roughly
+        220 kbps for 48 kHz stereo: ~100 MB an hour against ~1 GB of WAV,
+        and transparent for the spectral and loudness features the gesture
+        analysis extracts. */
+    static constexpr int oggQualityIndex = 7;
+
     /** The folder new recordings are written to (Music/formuls, falling back
         to Documents and then the temp folder if that cannot be created). */
     static juce::File getDefaultRecordingDirectory();
 
-    /** A fresh, non-clashing "formuls-YYYY-MM-DD-HHMMSS.wav" in the folder
-        above. */
-    static juce::File makeRecordingFile();
+    /** A fresh, non-clashing "<prefix>-YYYY-MM-DD-HHMMSS.<extension>" in
+        `folder` (by default, the folder above). */
+    static juce::File makeRecordingFile (const juce::File& folder = getDefaultRecordingDirectory(),
+                                         const juce::String& prefix = "formuls",
+                                         const juce::String& extension = "wav");
 
     /** Starts writing to `destination`. Returns Result::ok(), or a failure
         with a user-displayable message. */
-    juce::Result start (const juce::File& destination, int numChannels, double sampleRate);
+    juce::Result start (const juce::File& destination, int numChannels, double sampleRate,
+                        Format format = Format::wav);
 
     /** Finishes the file and flushes it to disk. Safe to call when not
         recording. The file stays available from getFile(). */
@@ -74,6 +87,15 @@ public:
 
     /** How many channels the current file has (0 when never started). */
     int getNumChannels() const noexcept { return numRecordChannels; }
+
+    /** Wall-clock time (ms since the epoch) at which the audio thread handed
+        over the take's first block, or 0 before it has. The file's sample 0
+        is this moment, give or take one device buffer -- what a UX log needs
+        to place a gesture in the audio. */
+    juce::int64 getFirstBlockTimeMs() const noexcept { return firstBlockMs.load(); }
+
+    /** Sample frames handed to the writer so far in this take. */
+    juce::int64 getSamplesWritten() const noexcept   { return samplesWritten.load(); }
 
     /** Called from the audio thread with one block of de-interleaved output.
         Blocks whose channel count doesn't match the file are ignored. */
@@ -94,6 +116,10 @@ private:
 
     juce::File file;
     int numRecordChannels = 0;
+
+    // Written by the audio thread under writerLock; read anywhere.
+    std::atomic<juce::int64> firstBlockMs { 0 };
+    std::atomic<juce::int64> samplesWritten { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioRecorder)
 };

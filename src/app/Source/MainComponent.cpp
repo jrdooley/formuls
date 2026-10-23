@@ -447,6 +447,59 @@ void MainComponent::startEverything()
                    + rateNote);
     else
         setStatus ("Running." + rateNote);
+
+    if (openStageControl.isUxLogging() && oscResult.wasOk())
+        startSessionRecording();
+}
+
+void MainComponent::startSessionRecording()
+{
+    // A UX-logging build records the whole session, so the sound can be lined
+    // up with the gesture log. Ogg Vorbis keeps a 4-hour take near 400 MB.
+    const auto folder = OpenStageControlProcess::getUxLogDirectory();
+    folder.createDirectory();
+    const auto destination = AudioRecorder::makeRecordingFile (folder, "uxaudio", "ogg");
+    const auto numChannels = engine.getNumOutputChannels();
+    const auto sampleRate  = engine.getActualSampleRate();
+
+    if (auto result = recorder.start (destination, numChannels, sampleRate,
+                                      AudioRecorder::Format::oggVorbis);
+        result.failed())
+    {
+        setStatus ("UX logging on, but session audio failed: " + result.getErrorMessage());
+        return;
+    }
+
+    updateButtonStates();
+    setStatus ("Running. UX logging and recording this session to "
+               + destination.getFullPathName());
+
+    // The first block's time is only known once the audio thread has handed
+    // one over, so report the start a moment later. The log server may also
+    // still be loading the layout; o-s-c handles OSC once it is listening.
+    juce::Timer::callAfterDelay (1500, [safeThis = juce::Component::SafePointer (this),
+                                        destination, numChannels, sampleRate]
+    {
+        if (safeThis == nullptr || safeThis->recorder.getFile() != destination)
+            return;
+
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "rec-start");
+        ev->setProperty ("file", destination.getFileName());
+        ev->setProperty ("first_block_st", safeThis->recorder.getFirstBlockTimeMs());
+        ev->setProperty ("sr", sampleRate);
+        ev->setProperty ("ch", numChannels);
+        if (auto* device = safeThis->deviceManager.getCurrentAudioDevice())
+            ev->setProperty ("buffer", device->getCurrentBufferSizeSamples());
+        safeThis->sendUxLogEvent (juce::var (ev));
+    });
+}
+
+void MainComponent::sendUxLogEvent (const juce::var& event)
+{
+    // formuls-uxlog-module.js takes this address out of the OSC stream,
+    // stamps it with its own clock and writes it into the session log.
+    sendOscToOsc ("/formuls/uxlog/event", juce::JSON::toString (event, true));
 }
 
 void MainComponent::stopEverything (bool offerToSaveRecording)
@@ -454,6 +507,20 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
     // Finish the take before the audio device goes away, so the tail of the
     // recording isn't cut off by the engine shutting down.
     const bool wasRecording = recorder.isRecording();
+
+    if (wasRecording && openStageControl.isUxLogging())
+    {
+        // Sent while the log server still runs. No save dialog: the session
+        // audio belongs next to its log.
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "rec-stop");
+        ev->setProperty ("file", recorder.getFile().getFileName());
+        ev->setProperty ("samples", recorder.getSamplesWritten());
+        ev->setProperty ("first_block_st", recorder.getFirstBlockTimeMs());
+        sendUxLogEvent (juce::var (ev));
+        offerToSaveRecording = false;
+        juce::Thread::sleep (50);   // let the datagram land before the server is killed
+    }
 
     if (wasRecording)
         finishRecording (offerToSaveRecording);
@@ -541,7 +608,7 @@ void MainComponent::finishRecording (bool offerToSaveRecording)
     setStatus ("Recording finished -- choose where to save it.");
 
     saveChooser = std::make_unique<juce::FileChooser> ("Save recording as...",
-                                                       recorded, "*.wav");
+                                                       recorded, "*." + recorded.getFileExtension().trimCharactersAtStart ("."));
 
     const auto flags = juce::FileBrowserComponent::saveMode
                      | juce::FileBrowserComponent::canSelectFiles
@@ -564,8 +631,8 @@ void MainComponent::finishRecording (bool offerToSaveRecording)
                 return;
             }
 
-            if (! chosen.hasFileExtension ("wav"))
-                chosen = chosen.withFileExtension ("wav");
+            if (! chosen.hasFileExtension (recorded.getFileExtension()))
+                chosen = chosen.withFileExtension (recorded.getFileExtension());
 
             if (chosen == recorded)
             {
@@ -587,8 +654,12 @@ void MainComponent::updateButtonStates()
 {
     const bool isRecording = recorder.isRecording();
 
-    recordButton.setButtonText (isRecording ? kStopRecordText : kRecordText);
-    recordButton.setEnabled (engine.isRunning());
+    // In a UX-logging build the session take runs from Start to Stop; a
+    // stray click must not end it, so the button only reports it.
+    const bool sessionTake = isRecording && openStageControl.isUxLogging();
+
+    recordButton.setButtonText (sessionTake ? "Recording session" : isRecording ? kStopRecordText : kRecordText);
+    recordButton.setEnabled (engine.isRunning() && ! sessionTake);
     if (isRecording)
         recordButton.setColour (juce::TextButton::buttonColourId, style::recordActive);
     else

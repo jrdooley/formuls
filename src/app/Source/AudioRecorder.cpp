@@ -39,18 +39,20 @@ juce::File AudioRecorder::getDefaultRecordingDirectory()
     return juce::File::getSpecialLocation (juce::File::tempDirectory);
 }
 
-juce::File AudioRecorder::makeRecordingFile()
+juce::File AudioRecorder::makeRecordingFile (const juce::File& folder,
+                                             const juce::String& prefix,
+                                             const juce::String& extension)
 {
     const auto now = juce::Time::getCurrentTime();
-    const auto name = "formuls-" + now.formatted ("%Y-%m-%d-%H%M%S") + ".wav";
+    const auto name = prefix + "-" + now.formatted ("%Y-%m-%d-%H%M%S") + "." + extension;
 
-    return getDefaultRecordingDirectory().getChildFile (name)
-                                         .getNonexistentSibling (false);
+    return folder.getChildFile (name).getNonexistentSibling (false);
 }
 
 //==============================================================================
 juce::Result AudioRecorder::start (const juce::File& destination,
-                                   int numChannels, double sampleRate)
+                                   int numChannels, double sampleRate,
+                                   Format format)
 {
     stop();   // finish anything still open before starting a new take
 
@@ -72,20 +74,33 @@ juce::Result AudioRecorder::start (const juce::File& destination,
     // on failure, so nothing here leaks either way.
     std::unique_ptr<juce::OutputStream> stream { std::move (fileStream) };
 
-    juce::WavAudioFormat wav;
-    auto writer = wav.createWriterFor (stream, juce::AudioFormatWriterOptions{}
-                                                   .withSampleRate (sampleRate)
-                                                   .withNumChannels (numChannels)
-                                                   .withBitsPerSample (bitsPerSample));
+    const bool ogg = format == Format::oggVorbis;
+    const auto options = juce::AudioFormatWriterOptions{}
+                             .withSampleRate (sampleRate)
+                             .withNumChannels (numChannels)
+                             // Vorbis encodes from float; 32 is the only depth it accepts
+                             .withBitsPerSample (ogg ? 32 : bitsPerSample)
+                             .withQualityOptionIndex (ogg ? oggQualityIndex : 0);
+
+    std::unique_ptr<juce::AudioFormatWriter> writer;
+
+    if (ogg)
+        writer = juce::OggVorbisAudioFormat().createWriterFor (stream, options);
+    else
+        writer = juce::WavAudioFormat().createWriterFor (stream, options);
 
     if (writer == nullptr)
     {
         stream.reset();
         destination.deleteFile();
         return juce::Result::fail ("Could not write a "
-                                   + juce::String (numChannels) + "-channel WAV file at "
+                                   + juce::String (numChannels) + "-channel "
+                                   + (ogg ? "Ogg Vorbis" : "WAV") + " file at "
                                    + juce::String ((int) sampleRate) + " Hz.");
     }
+
+    firstBlockMs = 0;
+    samplesWritten = 0;
 
     backgroundThread.startThread (juce::Thread::Priority::normal);
 
@@ -104,7 +119,8 @@ juce::Result AudioRecorder::start (const juce::File& destination,
     juce::Logger::writeToLog ("recording started: " + destination.getFullPathName()
                               + ", " + juce::String (numChannels) + " channels @ "
                               + juce::String ((int) sampleRate) + " Hz, "
-                              + juce::String (bitsPerSample) + "-bit");
+                              + (ogg ? "Ogg Vorbis q0." + juce::String (oggQualityIndex)
+                                     : juce::String (bitsPerSample) + "-bit WAV"));
     return juce::Result::ok();
 }
 
@@ -133,7 +149,14 @@ void AudioRecorder::write (const float* const* channelData, int numChannels, int
 
     if (auto* writer = activeWriter.load();
         writer != nullptr && numChannels == numRecordChannels && numSamples > 0)
+    {
+        // currentTimeMillis() is a clock read: no lock, no allocation.
+        if (firstBlockMs.load (std::memory_order_relaxed) == 0)
+            firstBlockMs = juce::Time::currentTimeMillis();
+
         writer->write (channelData, numSamples);
+        samplesWritten.fetch_add (numSamples, std::memory_order_relaxed);
+    }
 }
 
 } // namespace formuls

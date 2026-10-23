@@ -340,8 +340,23 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     // run from src/gui, which loads the authored session, starts without it.
     auto module   = guiDir.getChildFile ("formuls-module.js");
     auto compounds = guiDir.getChildFile ("compounds.json");
-    if (module.existsAsFile() && compounds.existsAsFile())
+
+    // Only a FORMULS_UXLOG=1 build ships the logging module (patch-osc-uxlog.py),
+    // so its presence is the switch: a normal build cannot record users. o-s-c
+    // loads one custom module, so the logger loads formuls-module.js itself and
+    // runs its filters first.
+    auto uxlog = guiDir.getChildFile ("formuls-uxlog-module.js");
+    uxLogging = uxlog.existsAsFile();
+
+    if (uxLogging)
+    {
+        args.addArray ({ "--custom-module", uxlog.getFullPathName() });
+        juce::Logger::writeToLog ("UX logging enabled: ~/Music/formuls/uxlog/");
+    }
+    else if (module.existsAsFile() && compounds.existsAsFile())
+    {
         args.addArray ({ "--custom-module", module.getFullPathName() });
+    }
 
     if (! process.start (args))
         return juce::Result::fail ("Could not start Open Stage Control ("
@@ -350,6 +365,12 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     juce::Logger::writeToLog ("Open Stage Control started on port "
                               + juce::String (guiPort));
     return juce::Result::ok();
+}
+
+juce::File OpenStageControlProcess::getUxLogDirectory()
+{
+    return juce::File::getSpecialLocation (juce::File::userHomeDirectory)
+               .getChildFile ("Music").getChildFile ("formuls").getChildFile ("uxlog");
 }
 
 void OpenStageControlProcess::stop()

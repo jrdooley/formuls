@@ -9,6 +9,16 @@
 set -e
 
 VERSION="0.3.2"
+# FORMULS_UXLOG=1 ./build-macOS.sh builds the user-study variant: it logs
+# touch interaction to ~/Music/formuls/uxlog/, records the session audio and
+# has Replay mode (see src/tools/uxlog/README.md). It is named, and branded in
+# the GUI header, so it cannot pass for a release.
+if [[ "$FORMULS_UXLOG" == 1 ]]; then
+    BRAND="$VERSION-uxlog"
+else
+    BRAND="$VERSION"
+fi
+APPNAME="formuls-$BRAND"
 ROOT="$(pwd)"
 PROJUCER="${PROJUCER:-$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer}"
 
@@ -70,7 +80,7 @@ rm -f open-stage-control_1.31.0_node.zip
 # Rebrand the client's greeting header as formuls rather than Open Stage
 # Control. Matched on the markup rather than a line number, so it stops the
 # build if the header ever changes instead of silently shipping unbranded.
-sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION"
+sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$BRAND"
 
 # Serialise each broadcast once instead of once per connected tablet.
 # Add --batch-ms 20 to also coalesce value updates into one WebSocket
@@ -99,6 +109,13 @@ python3 "$ROOT/src/tools/compile-compounds.py" \
     "$ROOT/build/gui/_main.json" "$ROOT/build/gui/_formuls-default.state" "$ROOT/build/gui/compounds.json" \
     --lib "$ROOT/src/gui/compounds/slider-lib.js" --seq-lib "$ROOT/src/gui/compounds/sequencer-lib.js"
 cp "$ROOT/src/gui/formuls-module.js" "$ROOT/build/gui/"
+
+# The logger and Replay mode are Open Stage Control custom modules; the uxlog
+# build therefore runs the node GUI server (OpenStageControlProcess turns it
+# on when it finds formuls-uxlog-module.js), with formuls-module.js wrapped.
+if [[ "$FORMULS_UXLOG" == 1 ]]; then
+    python3 "$ROOT/src/tools/patch-osc-uxlog.py" "$ROOT/build/gui/open-stage-control" "$ROOT/build/gui"
+fi
 
 cd "$ROOT/build"
 NODE_ARCH=$(uname -m | sed 's/x86_64/x64/')
@@ -140,20 +157,20 @@ trap - EXIT
 xcodebuild -project src/app/Builds/MacOSX/formuls.xcodeproj -configuration Release ARCHS=$(uname -m) ONLY_ACTIVE_ARCH=YES
 
 # assemble the final self-contained app bundle
-rm -rf "formuls-$VERSION.app"
-cp -R src/app/Builds/MacOSX/build/Release/formuls.app "formuls-$VERSION.app"
-cp -r build/pd "formuls-$VERSION.app/Contents/Resources/pd"
-cp -r build/gui "formuls-$VERSION.app/Contents/Resources/gui"
-mkdir -p "formuls-$VERSION.app/Contents/Frameworks"
-cp src/libs/libpd/libs/libpd.dylib "formuls-$VERSION.app/Contents/Frameworks/"
+rm -rf "$APPNAME.app"
+cp -R src/app/Builds/MacOSX/build/Release/formuls.app "$APPNAME.app"
+cp -r build/pd "$APPNAME.app/Contents/Resources/pd"
+cp -r build/gui "$APPNAME.app/Contents/Resources/gui"
+mkdir -p "$APPNAME.app/Contents/Frameworks"
+cp src/libs/libpd/libs/libpd.dylib "$APPNAME.app/Contents/Frameworks/"
 
 # With SIGN_IDENTITY set (and optionally NOTARY_PROFILE), sign for
 # distribution and write the release zip; see src/tools/sign-macos.sh and
 # docs/release.md. Otherwise an ad-hoc signature, which runs on this Mac only.
 if [[ -n "$SIGN_IDENTITY" ]]; then
-    "$ROOT/src/tools/sign-macos.sh" "formuls-$VERSION.app"
+    "$ROOT/src/tools/sign-macos.sh" "$APPNAME.app"
 else
-    codesign --force --deep -s - "formuls-$VERSION.app"
+    codesign --force --deep -s - "$APPNAME.app"
 fi
 
 # clean up build files
@@ -167,5 +184,5 @@ rm -f libs/libpd.dylib
 cd "$ROOT/src/libs/abl_link/external"
 make clean
 
-echo "Done: $ROOT/formuls-$VERSION.app"
+echo "Done: $ROOT/$APPNAME.app"
 exit 0
