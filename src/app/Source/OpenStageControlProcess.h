@@ -91,6 +91,9 @@ public:
     /** True if this build can replay sessions (it ships the replay module). */
     static bool canReplay (const juce::File& resourceRoot);
 
+    /** True for a FORMULS_UXLOG=1 build (it ships the logging module). */
+    static bool isUxLogBuild (const juce::File& resourceRoot);
+
     /** Kills the server process. Safe to call when not running, and safe to
         call twice. */
     void stop();

@@ -298,6 +298,11 @@ juce::Result OpenStageControlProcess::startReplay (const juce::File& newResource
     return launch (newResourceRoot, sessionLog);
 }
 
+bool OpenStageControlProcess::isUxLogBuild (const juce::File& resourceRoot)
+{
+    return resourceRoot.getChildFile ("gui").getChildFile ("formuls-uxlog-module.js").existsAsFile();
+}
+
 bool OpenStageControlProcess::canReplay (const juce::File& resourceRoot)
 {
     return resourceRoot.getChildFile ("gui").getChildFile ("formuls-replay-module.js").existsAsFile();

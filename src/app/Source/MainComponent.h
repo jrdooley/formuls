@@ -50,6 +50,7 @@
 #include "OpenStageControlProcess.h"
 #include "EmbeddedGuiServer.h"
 #include "SessionReplayer.h"
+#include "ResourceLocator.h"
 #include "StereoMeter.h"
 
 namespace formuls
@@ -167,7 +168,10 @@ private:
     // FORMULS_NODE_GUI=1 in the environment to go back to node and UDP.
     // Declared before the engine so it outlives it: the engine's PdOscOut
     // thread hands it packets until the engine stops.
-    const bool useNodeGui = juce::SystemStats::getEnvironmentVariable ("FORMULS_NODE_GUI", {}) == "1";
+    // A FORMULS_UXLOG=1 build always uses node: the session logger and Replay
+    // mode are Open Stage Control custom modules (src/tools/uxlog/).
+    const bool useNodeGui = juce::SystemStats::getEnvironmentVariable ("FORMULS_NODE_GUI", {}) == "1"
+                         || OpenStageControlProcess::isUxLogBuild (findResourceRoot());
     EmbeddedGuiServer embeddedGui;
 
     // Declared before the engine so it outlives the engine's recording tap.
