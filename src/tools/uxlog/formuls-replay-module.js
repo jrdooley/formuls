@@ -92,6 +92,9 @@ function after(list, T) {
 
 function toGui(address, v) {
     var vs = Array.isArray(v) ? v : [v]
+    // o-s-c's receive() cannot carry a null (a widget can send one, e.g. an
+    // empty value): such a message is skipped rather than abort the frame.
+    if (vs.some(function (x) { return x === null || x === undefined })) return
     var data = { address: address, host: '127.0.0.1', port: 0,
                  args: vs.map(function (x) { return { type: typeof x === 'number' ? 'f' : 's', value: x } }) }
     var res = inner.oscInFilter ? inner.oscInFilter(data) : data
@@ -106,7 +109,9 @@ function sendValues(from, to) {
         if (!(values[i].a in latest)) order.push(values[i].a)
         latest[values[i].a] = values[i].v
     }
-    order.forEach(function (a) { toGui(a, latest[a]) })
+    order.forEach(function (a) {
+        try { toGui(a, latest[a]) } catch (e) { console.error('(formuls replay) ' + a + ': ' + e) }
+    })
 }
 
 function sendVisual(list, reset) {

@@ -115,6 +115,13 @@
 
     function down(e) {
         var hit = interactiveAt(e.target)
+        // A tab in a tab bar is navigation, not dead space: name it, so it is
+        // neither counted as a miss nor attributed to the panel around it.
+        var link = e.target.closest && e.target.closest('.tablink')
+        if (link) hit = { w: widgetAt(link), d: { id: 'tab:' + link.textContent.trim(), type: 'tablink',
+                                                  interactive: true, box: (function (r) {
+                                                      return [r.left, r.top, r.width, r.height].map(Math.round)
+                                                  })(link.getBoundingClientRect()) } }
         var g = {
             id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
             t0: performance.now(), lastMove: 0, path: 0, left: false,
