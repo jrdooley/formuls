@@ -90,6 +90,71 @@
         return null
     }
 
+    // --- slider compounds -------------------------------------------------
+    // The built session draws each parameter's slider (main fader, chaos,
+    // LFO frequency and depth, mod depth, the six mod-source cells, the
+    // status LEDs) as ONE canvas (src/gui/compounds/slider-lib.js). Which of
+    // those layers a touch adjusts is decided by the synth's global mode
+    // buttons, not by where the finger lands, so the canvas id alone does not
+    // say what was touched. Each canvas's onTouch script carries a constants
+    // block M naming its addresses and its mode buttons; the logger reads it
+    // and applies slider-lib's own layerAt() rule at touch-down.
+    var SLOTS = { main: 0, chaos: 1, lfofreq: 2, lfodepth: 3, moddepth: 4, mod: 5 }
+    var sliderCache = new WeakMap()
+
+    function sliderInfo(w) {
+        if (sliderCache.has(w)) return sliderCache.get(w)
+        var info = null
+        try {
+            var src = String(w.getProp('onTouch') || '')
+            var m = src.indexOf('FC.touch') >= 0 && src.match(/var M = (\{.*?\});\s*\n/)
+            if (m) info = JSON.parse(m[1])
+        } catch (e) { info = null }
+        sliderCache.set(w, info)
+        return info
+    }
+
+    var byId = {}
+    function widgetById(id) {
+        var w = byId[id]
+        if (w && document.body.contains(w.container)) return w
+        byId = {}
+        var nodes = document.querySelectorAll('[data-widget]')
+        for (var i = 0; i < nodes.length; i++) {
+            var inst = nodes[i]._widget_instance
+            if (!inst) continue
+            try { var wid = inst.getProp('id'); if (!(wid in byId)) byId[wid] = inst } catch (e) {}
+        }
+        return byId[id]
+    }
+
+    function modeOn(id) {
+        var w = id && widgetById(id)
+        if (!w) return false
+        var v = value(w)
+        return v === true || parseFloat(v) > 0
+    }
+
+    // slider-lib.js layerAt(), in the same order. xRel: 0..1 across the canvas.
+    function sliderLayer(M, xRel) {
+        var on = {}
+        for (var k in M.modes) on[k] = modeOn(M.modes[k])
+        var modes = Object.keys(on).filter(function (k) { return on[k] })
+        var r = { modes: modes }
+        if (on.sel) r.layer = 'label'
+        else if (on.moddepth) r.layer = 'moddepth'
+        else if (on.mod && xRel >= 0.01 && xRel < 0.99) {
+            r.layer = 'mod'
+            r.cell = Math.max(0, Math.min(5, Math.floor((xRel - 0.01) / (0.98 / 6))))
+        }
+        else if (on.lfodepth) r.layer = 'lfodepth'
+        else if (on.lfofreq) r.layer = 'lfofreq'
+        else if (on.chaos) r.layer = 'chaos'
+        else r.layer = 'main'
+        r.slot = r.layer === 'label' ? 19 : r.layer === 'mod' ? SLOTS.mod + r.cell : SLOTS[r.layer]
+        return r
+    }
+
     function value(w) {
         try { var v = w.getValue(); return typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v }
         catch (e) { return undefined }
@@ -99,6 +164,7 @@
     // up here. Multi-value widgets (xy pads, multisliders) flip per axis.
     function trackValue(g) {
         var v = value(g.w)
+        if (g.slot !== undefined && Array.isArray(v)) v = v[g.slot]
         var a = Array.isArray(v) ? v : [v]
         if (JSON.stringify(a) === JSON.stringify(g.last)) return
         g.changes++
@@ -127,9 +193,27 @@
             t0: performance.now(), lastMove: 0, path: 0, left: false,
             w: hit && hit.w, d: hit && hit.d, changes: 0, reversals: 0, dir: [], last: []
         }
-        if (g.w) { var v = value(g.w); g.v0 = v; g.last = Array.isArray(v) ? v : [v] }
+        var slider = null
+        if (g.w && !link) {
+            var M = sliderInfo(g.w)
+            if (M) {
+                var b = g.d.box
+                slider = sliderLayer(M, b[2] ? (e.clientX - b[0]) / b[2] : 0)
+                g.slot = slider.slot
+                g.param = M.a[0]
+            }
+        }
+        if (g.w) {
+            var v = value(g.w)
+            if (g.slot !== undefined && Array.isArray(v)) v = v[g.slot]
+            g.v0 = v; g.last = Array.isArray(v) ? v : [v]
+        }
         gestures[e.pointerId] = g
         emit({
+            // slider canvases: the parameter, the layer the touch adjusts, the
+            // mod cell, and which mode buttons were on
+            param: g.param, layer: slider ? slider.layer : undefined,
+            cell: slider ? slider.cell : undefined, modes: slider ? slider.modes : undefined,
             k: 'down', p: e.pointerId, pt_type: e.pointerType, x: Math.round(e.clientX), y: Math.round(e.clientY),
             vp: viewport(), active: Object.keys(gestures).length,
             w: g.d ? g.d.id : null, wt: g.d ? g.d.type : null, box: g.d ? g.d.box : null,
@@ -166,10 +250,11 @@
             k: e.type === 'pointercancel' ? 'cancel' : 'up', p: e.pointerId,
             x: Math.round(e.clientX), y: Math.round(e.clientY),
             w: g.d ? g.d.id : null, wt: g.d ? g.d.type : null,
+            param: g.param, slot: g.slot,
             dur: Math.round(performance.now() - g.t0),
             dist: Math.round(Math.hypot(e.clientX - g.x0, e.clientY - g.y0)),
             path: Math.round(g.path), left: g.left,
-            v0: g.v0, v1: g.w ? value(g.w) : undefined,
+            v0: g.v0, v1: g.w ? (g.slot !== undefined ? (value(g.w) || [])[g.slot] : value(g.w)) : undefined,
             changes: g.changes, reversals: g.reversals
         })
     }

@@ -25,6 +25,7 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `down` / `move` / `up` / `cancel` | finger or pen contact; `move` is thinned to 30 Hz per finger |
 | `down.miss` | the touch landed on no interactive widget (dead space) |
 | `leave` | a drag slid off the widget it started on |
+| `down.param` / `layer` / `cell` / `modes` | on a slider canvas: the parameter, which layer the touch adjusts (`main`, `chaos`, `lfofreq`, `lfodepth`, `moddepth`, `mod` cell 0-5, `label`) and which mode buttons were on. The layer is worked out with slider-lib.js's own rule, because the mode buttons choose it, not the touch position |
 | `up` summary | duration, path length, value before and after, `changes`, `reversals` (overshoot-and-correct) |
 | `tab` | a tab switch (navigation) |
 | `param` | every value the GUI sent to the sound engine |
@@ -62,7 +63,8 @@ Add `--audio` (needs `pip install numpy soundfile`) for `sound.csv`: for each
 gesture, the loudness and spectral centroid before, during and after it, and how
 much it changed them.
 
-`widgets.csv` (hot spots and difficulty per widget), `misses.csv`, `tabs.csv`,
+`sliders.csv` (each slider parameter split by layer) and `modes.csv` (each layer
+across all parameters) show how people use the mode layers. Also produced: `widgets.csv` (hot spots and difficulty per widget), `misses.csv`, `tabs.csv`,
 `gestures.csv`, `untouched.txt` (cold spots), `heatmap.html`. See the script's
 docstring for what each column means.
 

@@ -16,6 +16,15 @@ interaction design. Standard library only. Writes to DIR (default
   misses.csv    every touch on dead space, with the widget under it if any --
                 clusters next to a widget mean its target is too small
   tabs.csv      navigation: every tab switch and how long the user stayed
+  sliders.csv   the slider canvases, per parameter and per LAYER: a slider
+                is one canvas whose main fader, chaos / LFO frequency / LFO
+                depth / mod depth faders, six mod-source cells and label are
+                chosen by the synth's mode buttons, so each (parameter,
+                layer) gets the same difficulty measures as widgets.csv,
+                with regrab_rate counted on the same parameter and layer
+  modes.csv     the same measures summed per layer (main, chaos, lfofreq,
+                lfodepth, moddepth, mod, label) across all parameters, and
+                how often several modes were on at once
   gestures.csv  one row per completed gesture, for your own statistics
   heatmap.html  touch-down positions over the screen, per client session,
                 misses in a different colour
@@ -39,6 +48,7 @@ import collections
 import csv
 import json
 import pathlib
+import re
 import statistics
 
 
@@ -86,6 +96,8 @@ def main():
     events = sorted(load(a.logs), key=lambda e: (e.get('st', 0), e.get('seq', 0)))
     gestures, misses, tabs, downs = [], [], [], collections.defaultdict(list)
     last_touch = {}       # session -> (widget, server time of the up)
+    last_layer = {}       # session -> ((parameter, layer), server time of the up)
+    open_downs = {}       # (session, pointer) -> its down event
     viewports = {}
 
     for e in events:
@@ -94,9 +106,19 @@ def main():
             viewports[s] = e.get('vp')
         elif e['k'] == 'down':
             downs[s].append(e)
+            open_downs[(s, e.get('p'))] = e
             if e.get('miss'):
                 misses.append(e)
         elif e['k'] in ('up', 'cancel') and e.get('w'):
+            d = open_downs.pop((s, e.get('p')), {})
+            for k in ('layer', 'cell', 'modes'):
+                if d.get(k) is not None:
+                    e[k] = d[k]
+            if e.get('param') and e.get('layer'):
+                key = (e['param'], e['layer'])
+                prev = last_layer.get(s)
+                e['layer_regrab'] = bool(prev and prev[0] == key and e['t'] - e['dur'] - prev[1] <= a.regrab_ms)
+                last_layer[s] = (key, e['t'])
             prev = last_touch.get(s)
             e['regrab'] = bool(prev and prev[0] == e['w'] and e['t'] - e['dur'] - prev[1] <= a.regrab_ms)
             last_touch[s] = (e['w'], e['t'])
@@ -108,21 +130,33 @@ def main():
     for g in gestures:
         by[g['w']].append(g)
 
-    rows = []
-    for w, gs in by.items():
-        drags = [g for g in gs if g['path'] > 10]
-        rows.append({
-            'widget': w, 'type': gs[0].get('wt'), 'touches': len(gs),
-            'sessions': len({g['s'] for g in gs}),
-            'dur_median_ms': int(statistics.median(g['dur'] for g in gs)),
-            'reversal_mean': round(statistics.mean(g['reversals'] for g in gs), 2),
-            'leave_rate': round(sum(g['left'] for g in drags) / len(drags), 2) if drags else '',
-            'regrab_rate': round(sum(g['regrab'] for g in gs) / len(gs), 2),
-            'short_rate': round(sum(g['changes'] == 0 for g in gs) / len(gs), 2),
-            'cancelled': sum(g['k'] == 'cancel' for g in gs),
-        })
+    rows = [dict({'widget': w, 'type': gs[0].get('wt')}, **measures(gs, 'regrab')) for w, gs in by.items()]
     rows.sort(key=lambda r: -r['touches'])
     write_csv(out / 'widgets.csv', rows)
+
+    sliders = collections.defaultdict(list)
+    for g in gestures:
+        if g.get('param') and g.get('layer'):
+            sliders[(g['param'], g['layer'])].append(g)
+    srows = []
+    for (param, layer), gs in sliders.items():
+        m = re.match(r'/(.*?)(\d+)$', param)
+        srows.append(dict({'parameter': m.group(1) if m else param, 'synth': m.group(2) if m else '',
+                           'layer': layer,
+                           'cells': ' '.join(str(c) for c in sorted({g['cell'] for g in gs if g.get('cell') is not None}))},
+                          **measures(gs, 'layer_regrab')))
+    srows.sort(key=lambda r: (r['parameter'], r['synth'], LAYERS.index(r['layer']) if r['layer'] in LAYERS else 99))
+    write_csv(out / 'sliders.csv', srows)
+
+    layers = collections.defaultdict(list)
+    for gs in sliders.values():
+        for g in gs:
+            layers[g['layer']].append(g)
+    write_csv(out / 'modes.csv', [dict({'layer': l,
+                                        'parameters': len({g['param'] for g in layers[l]}),
+                                        'several_modes_on': sum(len(g.get('modes') or []) > 1 for g in layers[l])},
+                                       **measures(layers[l], 'layer_regrab'))
+                                  for l in LAYERS if l in layers])
 
     write_csv(out / 'misses.csv', [
         {'st': m['st'], 'session': m['s'], 'x': m['x'], 'y': m['y'],
@@ -136,8 +170,8 @@ def main():
     write_csv(out / 'tabs.csv', tab_rows)
 
     write_csv(out / 'gestures.csv', [
-        {k: g.get(k) for k in ('st', 's', 'c', 'w', 'wt', 'k', 'dur', 'dist', 'path', 'left',
-                               'changes', 'reversals', 'regrab', 'v0', 'v1')} for g in gestures])
+        {k: g.get(k) for k in ('st', 's', 'c', 'w', 'wt', 'param', 'layer', 'cell', 'k', 'dur', 'dist', 'path',
+                               'left', 'changes', 'reversals', 'regrab', 'v0', 'v1')} for g in gestures])
 
     heatmap(out / 'heatmap.html', downs, viewports)
 
@@ -221,6 +255,24 @@ def sound(path, events, gestures, a):
                      'centroid_change': delta(1)})
     write_csv(path, rows)
     print(f'{len(rows)} gestures matched to session audio -> {path}')
+
+
+# slider layers in slider-lib.js's stacking order, bottom to top
+LAYERS = ['main', 'chaos', 'lfofreq', 'lfodepth', 'moddepth', 'mod', 'label']
+
+
+def measures(gs, regrab_key):
+    drags = [g for g in gs if g['path'] > 10]
+    return {
+        'touches': len(gs),
+        'sessions': len({g['s'] for g in gs}),
+        'dur_median_ms': int(statistics.median(g['dur'] for g in gs)),
+        'reversal_mean': round(statistics.mean(g['reversals'] for g in gs), 2),
+        'leave_rate': round(sum(g['left'] for g in drags) / len(drags), 2) if drags else '',
+        'regrab_rate': round(sum(bool(g.get(regrab_key)) for g in gs) / len(gs), 2),
+        'short_rate': round(sum(g['changes'] == 0 for g in gs) / len(gs), 2),
+        'cancelled': sum(g['k'] == 'cancel' for g in gs),
+    }
 
 
 def write_csv(path, rows):
