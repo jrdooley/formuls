@@ -83,6 +83,14 @@ public:
         Returns Result::ok() or a failure with a user-displayable message. */
     juce::Result start (const juce::File& resourceRoot);
 
+    /** Replay mode (UX-logging builds): starts the same GUI with
+        formuls-replay-module.js reading `sessionLog`, and no OSC target, so
+        nothing reaches a sound engine. See SessionReplayer.h. */
+    juce::Result startReplay (const juce::File& resourceRoot, const juce::File& sessionLog);
+
+    /** True if this build can replay sessions (it ships the replay module). */
+    static bool canReplay (const juce::File& resourceRoot);
+
     /** Kills the server process. Safe to call when not running, and safe to
         call twice. */
     void stop();
@@ -131,6 +139,8 @@ private:
     juce::File resourceRoot;
 
     bool uxLogging = false;
+
+    juce::Result launch (const juce::File& resourceRoot, const juce::File& replayLog);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OpenStageControlProcess)
 };

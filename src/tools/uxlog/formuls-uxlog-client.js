@@ -24,9 +24,12 @@
     var gestures = {}           // pointerId -> gesture in progress
     var seq = 0
 
+    var off = false             // set when a replay server says this is a viewer
+
     function ipc() { return window.__formulsIpc }
 
     function emit(ev) {
+        if (off) return
         ev.seq = seq++
         ev.t = Date.now()                       // tablet wall clock, ms
         ev.pt = Math.round(performance.now())   // monotonic, for durations
@@ -167,7 +170,10 @@
         var link = e.target.closest && e.target.closest('.tablink')
         if (!link) return
         var parent = widgetAt(link)
-        emit({ k: 'tab', label: link.textContent.trim(), in: parent ? describe(parent).id : null })
+        var idx = Array.prototype.filter.call(link.parentNode.children, function (n) {
+            return n.classList.contains('tablink')
+        }).indexOf(link)
+        emit({ k: 'tab', label: link.textContent.trim(), idx: idx, in: parent ? describe(parent).id : null })
     }, opts)
 
     document.addEventListener('visibilitychange', function () {
@@ -177,4 +183,47 @@
     window.addEventListener('orientationchange', function () { emit({ k: 'orientation', vp: viewport() }) })
 
     emit({ k: 'start', vp: viewport(), dpr: window.devicePixelRatio, ua: navigator.userAgent })
+
+    // State snapshots: every widget's value, by id, so a replay starts from
+    // what was really on screen rather than the default layout. Taken once
+    // the session has finished building, every SNAP_MS after that, and just
+    // after a preset load (the server tells us: /formuls/uxlog/snap).
+    var SNAP_MS = 5 * 60 * 1000
+
+    function snapshot(why) {
+        var vals = {}
+        var nodes = document.querySelectorAll('[data-widget]')
+        for (var i = 0; i < nodes.length; i++) {
+            var w = nodes[i]._widget_instance
+            if (!w || w.noValueState) continue
+            var id
+            try { id = w.getProp('id') } catch (e) { continue }
+            var v = value(w)
+            if (id !== undefined && v !== undefined && !(id in vals)) vals[id] = v
+        }
+        emit({ k: 'snap', why: why, n: Object.keys(vals).length, vals: vals })
+        flush()
+    }
+
+    var lastCount = -1
+    var waitBuilt = setInterval(function () {
+        var n = document.querySelectorAll('[data-widget]').length
+        if (n > 0 && n === lastCount) {
+            clearInterval(waitBuilt)
+            snapshot('start')
+            setInterval(function () { snapshot('periodic') }, SNAP_MS)
+        }
+        lastCount = n
+    }, 1000)
+
+    function onOsc(d) {
+        if (!d) return
+        if (d.address === '/formuls/uxlog/snap') setTimeout(function () { snapshot('preset') }, 1500)
+        if (d.address === '/formuls/replay/hello') { off = true; queue = [] }
+    }
+    var hook = setInterval(function () {
+        if (!ipc()) return
+        clearInterval(hook)
+        ipc().on('receiveOsc', onOsc)
+    }, 200)
 })()

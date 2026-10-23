@@ -49,6 +49,7 @@
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"
 #include "EmbeddedGuiServer.h"
+#include "SessionReplayer.h"
 #include "StereoMeter.h"
 
 namespace formuls
@@ -105,6 +106,16 @@ private:
 
     /** Writes one JSON event into the UX log, via the GUI server. */
     void sendUxLogEvent (const juce::var& event);
+
+    /** Replay mode (UX-logging builds): pick a session log, then play its
+        audio while the GUI replays the session. See SessionReplayer.h. */
+    void replayClicked();
+    void beginReplay (const juce::File& sessionLog);
+    void stopReplay();
+    void replayTimerCallback();
+
+    /** The uxaudio file a session log's rec-start event names, or {} . */
+    static juce::File findSessionAudio (const juce::File& sessionLog);
 
     void screenshotClicked();
 
@@ -173,6 +184,15 @@ private:
     juce::TextButton screenshotButton;
     juce::TextButton savePresetButton;
     juce::TextButton loadPresetButton;
+
+    SessionReplayer replayer;
+    bool replayAvailable = false;
+    juce::TextButton replayButton;
+    juce::TextButton playPauseButton;
+    juce::Slider positionSlider { juce::Slider::LinearHorizontal, juce::Slider::NoTextBox };
+    juce::Label replayTimeLabel;
+    std::unique_ptr<juce::FileChooser> replayChooser;
+    juce::TimedCallback replayTick { [this] { replayTimerCallback(); } };
     juce::TextEditor addressPanel;
     StereoMeter vuMeter;
     juce::Label statusLabel;

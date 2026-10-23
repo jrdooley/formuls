@@ -6,6 +6,7 @@
 
 #include "OpenStageControlProcess.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -285,6 +286,27 @@ OpenStageControlProcess::~OpenStageControlProcess()
 
 juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
 {
+    return launch (newResourceRoot, {});
+}
+
+juce::Result OpenStageControlProcess::startReplay (const juce::File& newResourceRoot,
+                                                   const juce::File& sessionLog)
+{
+    if (! sessionLog.existsAsFile())
+        return juce::Result::fail ("Session log not found: " + sessionLog.getFullPathName());
+
+    return launch (newResourceRoot, sessionLog);
+}
+
+bool OpenStageControlProcess::canReplay (const juce::File& resourceRoot)
+{
+    return resourceRoot.getChildFile ("gui").getChildFile ("formuls-replay-module.js").existsAsFile();
+}
+
+juce::Result OpenStageControlProcess::launch (const juce::File& newResourceRoot,
+                                              const juce::File& replayLog)
+{
+    const bool replay = replayLog != juce::File();
     if (process.isRunning())
         return juce::Result::ok();
 
@@ -322,14 +344,17 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     auto state = guiDir.getChildFile ("_formuls-default.state");
 
     juce::StringArray args { node.getFullPathName(),
-                             oscDir.getFullPathName(),
-                             // OSC out -> the Pd patch
-                             "--send", "127.0.0.1:" + juce::String (patchOscPort),
-                             // GUI served on this port
+                             oscDir.getFullPathName() };
+
+    // OSC out -> the Pd patch; a replay has no engine to send to
+    if (! replay)
+        args.addArray ({ "--send", "127.0.0.1:" + juce::String (patchOscPort) });
+
+    args.addArray ({         // GUI served on this port
                              "--port", juce::String (guiPort),
                              "--load", layout.getFullPathName(),
                              "--read-only",
-                             "--client-options", "framerate=25", "hdpi=0" };
+                             "--client-options", "framerate=25", "hdpi=0" });
 
     if (state.existsAsFile())
         args.addArray ({ "--state", state.getFullPathName() });
@@ -346,9 +371,23 @@ juce::Result OpenStageControlProcess::start (const juce::File& newResourceRoot)
     // loads one custom module, so the logger loads formuls-module.js itself and
     // runs its filters first.
     auto uxlog = guiDir.getChildFile ("formuls-uxlog-module.js");
-    uxLogging = uxlog.existsAsFile();
+    uxLogging = uxlog.existsAsFile() && ! replay;
 
-    if (uxLogging)
+    if (replay)
+    {
+        // The module reads the log path from its environment; the server
+        // inherits this process's environment when it is spawned. It loads
+        // formuls-module.js itself, as the logger does.
+       #if JUCE_WINDOWS
+        _putenv_s ("FORMULS_REPLAY_LOG", replayLog.getFullPathName().toRawUTF8());
+       #else
+        ::setenv ("FORMULS_REPLAY_LOG", replayLog.getFullPathName().toRawUTF8(), 1);
+       #endif
+        args.addArray ({ "--custom-module",
+                         guiDir.getChildFile ("formuls-replay-module.js").getFullPathName() });
+        juce::Logger::writeToLog ("Replay mode: " + replayLog.getFullPathName());
+    }
+    else if (uxLogging)
     {
         args.addArray ({ "--custom-module", uxlog.getFullPathName() });
         juce::Logger::writeToLog ("UX logging enabled: ~/Music/formuls/uxlog/");

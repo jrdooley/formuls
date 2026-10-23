@@ -25,6 +25,7 @@
       <FILE id="srcRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="Source/ResourceLocator.h"/>
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
+      <FILE id="srcSR0" name="SessionReplayer.h" compile="0" resource="0" file="Source/SessionReplayer.h"/>
       <FILE id="srcOB0" name="OscBridge.h" compile="0" resource="0" file="Source/OscBridge.h"/>
       <FILE id="srcOB1" name="OscBridge.cpp" compile="1" resource="0" file="Source/OscBridge.cpp"/>
       <FILE id="srcWS0" name="WebSocketServer.h" compile="0" resource="0" file="Source/WebSocketServer.h"/>

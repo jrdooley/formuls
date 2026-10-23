@@ -28,6 +28,9 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `up` summary | duration, path length, value before and after, `changes`, `reversals` (overshoot-and-correct) |
 | `tab` | a tab switch (navigation) |
 | `param` | every value the GUI sent to the sound engine |
+| `in` | values the sound engine sent to the GUI (LFOs, chaos, automation, sequencer): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
+| `snap` | every widget's value: when a tablet connects, every 5 minutes, after a preset load |
+| `preset` | a preset load from the app window |
 | `client`, `hidden`/`visible`, `resize`, `orientation` | session context |
 
 ### Session audio
@@ -63,6 +66,30 @@ much it changed them.
 `gestures.csv`, `untouched.txt` (cold spots), `heatmap.html`. See the script's
 docstring for what each column means.
 
+## Replay
+
+A uxlog build has a **Replay Session...** button in the app window, available
+while formuls is stopped. Choose a `uxlog-*.jsonl`, and the app:
+
+- plays its `uxaudio-*.ogg` through the selected output device, with Play/Pause
+  and a seek bar in the app window. No sound engine runs.
+- starts the GUI as usual. Open it in a browser (the addresses are listed) and
+  the widgets move as they did in the session, in time with the audio:
+  - **Your values:** everything the participants sent, plus the sound engine's
+    modulation at 5 Hz.
+  - **Tabs:** the tabs follow one tablet's view.
+  - **Touches:** drawn over the widgets: an orange dot and trail per finger, a
+    blue ring for a touch on dead space, a red flash where a drag slid off its
+    widget.
+- shows a panel in the browser, bottom right: which tablet to follow, the
+  touch overlay on or off, and the session time.
+
+Seeking restores the latest state snapshot before the new position and
+applies everything logged since, so you can jump anywhere. Nothing you do in
+the GUI during a replay is sent or recorded. Replay draws widget state, not
+pixels, so momentary visual feedback that isn't widget state (a press
+highlight, a menu that opened and closed) isn't shown.
+
 ## How it works
 
 - `formuls-uxlog-client.js` is loaded into the GUI page. It uses passive,
@@ -72,5 +99,10 @@ docstring for what each column means.
 - `formuls-uxlog-module.js` is the Open Stage Control `--custom-module`. It
   writes the log and drops the logger's messages before they reach Pd.
   It wraps `formuls-module.js` if a build ships one.
+- `formuls-replay-module.js` replaces the logging module in Replay mode. The
+  app sends it the audio position 20 times a second, and it sends the GUI the
+  logged values up to that moment through the same path Pd's messages take.
+  `formuls-replay-client.js` draws the touch overlay; in a live session it does
+  nothing.
 - `../patch-osc-uxlog.py` performs the build-time edits and fails the build
   if the Open Stage Control text it matches has changed.

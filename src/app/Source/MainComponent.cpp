@@ -88,6 +88,29 @@ MainComponent::MainComponent()
     savePresetButton.onClick = [this] { savePresetClicked(); };
     loadPresetButton.onClick = [this] { loadPresetClicked(); };
 
+    // ----------------------------------------------------- replay (uxlog builds)
+    replayAvailable = OpenStageControlProcess::canReplay (findResourceRoot());
+    replayButton.setButtonText ("Replay Session...");
+    replayButton.onClick = [this] { replayClicked(); };
+    addChildComponent (replayButton);
+    replayButton.setVisible (replayAvailable);
+
+    playPauseButton.setButtonText ("Play");
+    playPauseButton.onClick = [this]
+    {
+        replayer.setPlaying (! replayer.isPlaying());
+        playPauseButton.setButtonText (replayer.isPlaying() ? "Pause" : "Play");
+    };
+    addChildComponent (playPauseButton);
+
+    positionSlider.onValueChange = [this] { replayer.setPositionMs (positionSlider.getValue()); };
+    addChildComponent (positionSlider);
+
+    replayTimeLabel.setFont (juce::FontOptions (style::labelFontHeight));
+    replayTimeLabel.setColour (juce::Label::textColourId, style::statusColour);
+    replayTimeLabel.setJustificationType (juce::Justification::centredRight);
+    addChildComponent (replayTimeLabel);
+
     // -------------------------------------------------------------- VU meters
     vuMeter.setPeakLevels (engine.peakLevels.data());
     addAndMakeVisible (vuMeter);
@@ -211,6 +234,7 @@ MainComponent::~MainComponent()
 
     // The app is closing, so there is nowhere to show a save dialog: any
     // take in progress is simply finished where it was being recorded.
+    stopReplay();
     stopEverything (false);
     engine.setRecorder (nullptr);
 }
@@ -259,10 +283,28 @@ void MainComponent::resized()
                                  .withWidth (style::comboWidth / 2));
     area.removeFromTop (style::controlSpacing);
 
+    // Replay Session... (uxlog builds only) sits right-aligned above the
+    // record button, at its size.
+    if (replayAvailable)
+    {
+        auto row = area.removeFromTop (style::buttonHeight);
+        replayButton.setBounds (row.removeFromRight (style::recordButtonWidth));
+        area.removeFromTop (style::controlSpacing / 2);
+    }
+
     auto buttonRow = area.removeFromTop (style::buttonHeight);
     startStopButton.setBounds (buttonRow.removeFromLeft (style::buttonWidth));
     recordButton.setBounds (buttonRow.removeFromRight (style::recordButtonWidth));
     area.removeFromTop (style::controlSpacing);
+
+    if (replayer.isActive())
+    {
+        auto transportRow = area.removeFromTop (style::controlHeight);
+        playPauseButton.setBounds (transportRow.removeFromLeft (style::buttonWidth / 2));
+        replayTimeLabel.setBounds (transportRow.removeFromRight (150));
+        positionSlider.setBounds (transportRow.reduced (8, 0));
+        area.removeFromTop (style::controlSpacing);
+    }
 
     // stereo VU meters, same width as the address panel
     const int meterGap = 4;
@@ -669,6 +711,10 @@ void MainComponent::updateButtonStates()
     screenshotButton.setEnabled (false);
     savePresetButton.setEnabled (false);
     loadPresetButton.setEnabled (false);
+
+    startStopButton.setEnabled (! replayer.isActive());
+    replayButton.setEnabled (! engine.isRunning());
+    replayButton.setButtonText (replayer.isActive() ? "Stop Replay" : "Replay Session...");
 }
 
 void MainComponent::screenshotClicked()
@@ -1054,6 +1100,156 @@ void MainComponent::updateAddressPanel (bool guiIsRunning)
     }
 
     addressPanel.setText (lines.joinIntoString ("\n"), juce::dontSendNotification);
+}
+
+//==============================================================================
+void MainComponent::replayClicked()
+{
+    if (replayer.isActive())
+    {
+        stopReplay();
+        return;
+    }
+
+    replayChooser = std::make_unique<juce::FileChooser> ("Replay which session log?",
+                                                         OpenStageControlProcess::getUxLogDirectory(),
+                                                         "*.jsonl");
+    replayChooser->launchAsync (juce::FileBrowserComponent::openMode
+                                    | juce::FileBrowserComponent::canSelectFiles,
+        [safeThis = juce::Component::SafePointer (this)] (const juce::FileChooser& chooser)
+        {
+            if (safeThis != nullptr && chooser.getResult().existsAsFile())
+                safeThis->beginReplay (chooser.getResult());
+        });
+}
+
+juce::File MainComponent::findSessionAudio (const juce::File& sessionLog)
+{
+    // rec-start is written within seconds of the log opening, so it is near
+    // the top; reading line by line avoids loading a multi-hour log here.
+    juce::FileInputStream in (sessionLog);
+
+    for (int lines = 0; in.openedOk() && ! in.isExhausted() && lines < 200000; ++lines)
+    {
+        const auto line = in.readNextLine();
+
+        if (! line.contains ("\"rec-start\""))
+            continue;
+
+        const auto ev = juce::JSON::parse (line);
+        const auto name = ev.getProperty ("file", {}).toString();
+
+        if (name.isNotEmpty())
+            return sessionLog.getSiblingFile (name);
+    }
+
+    return {};
+}
+
+void MainComponent::beginReplay (const juce::File& sessionLog)
+{
+    const auto deviceIndex = audioDeviceBox.getSelectedId() - 1;
+
+    if (deviceIndex < 0)
+    {
+        setStatus ("Please select an audio output device first.");
+        return;
+    }
+
+    const auto audio = findSessionAudio (sessionLog);
+
+    if (! audio.existsAsFile())
+    {
+        setStatus ("No session audio for " + sessionLog.getFileName()
+                   + " (its rec-start event names a file that is not next to it).");
+        return;
+    }
+
+    if (auto result = replayer.start (deviceManager, outputDeviceTypes[deviceIndex],
+                                      outputDeviceNames[deviceIndex], audio);
+        result.failed())
+    {
+        setStatus (result.getErrorMessage());
+        return;
+    }
+
+    if (auto result = openStageControl.startReplay (findResourceRoot(), sessionLog);
+        result.failed())
+    {
+        replayer.stop();
+        setStatus ("Replay GUI failed: " + result.getErrorMessage());
+        return;
+    }
+
+    vuMeter.setPeakLevels (replayer.peaks.data());
+    positionSlider.setRange (0.0, juce::jmax (1.0, replayer.getLengthMs()), 1.0);
+    positionSlider.setValue (0.0, juce::dontSendNotification);
+    playPauseButton.setButtonText ("Play");
+
+    for (auto* c : { (juce::Component*) &playPauseButton, (juce::Component*) &positionSlider,
+                     (juce::Component*) &replayTimeLabel })
+        c->setVisible (true);
+
+    audioDeviceBox.setEnabled (false);
+    channelsBox.setEnabled (false);
+    sampleRateBox.setEnabled (false);
+
+    updateAddressPanel (true);
+    updateButtonStates();
+    resized();
+    replayTick.startTimerHz (20);
+
+    setStatus ("Replaying " + sessionLog.getFileName() + " with " + audio.getFileName()
+               + ". Open the GUI in a browser, then press Play.");
+}
+
+void MainComponent::stopReplay()
+{
+    if (! replayer.isActive())
+        return;
+
+    replayTick.stopTimer();
+    openStageControl.stop();
+    replayer.stop();
+    vuMeter.setPeakLevels (engine.peakLevels.data());
+
+    for (auto* c : { (juce::Component*) &playPauseButton, (juce::Component*) &positionSlider,
+                     (juce::Component*) &replayTimeLabel })
+        c->setVisible (false);
+
+    audioDeviceBox.setEnabled (true);
+    channelsBox.setEnabled (true);
+    sampleRateBox.setEnabled (true);
+
+    updateAddressPanel (false);
+    updateButtonStates();
+    resized();
+    setStatus ("Replay stopped.");
+}
+
+void MainComponent::replayTimerCallback()
+{
+    const auto pos = replayer.getPositionMs();
+
+    // the slider follows playback, except while it is being dragged
+    if (! positionSlider.isMouseButtonDown())
+        positionSlider.setValue (pos, juce::dontSendNotification);
+
+    const auto clock = [] (double ms)
+    {
+        const auto s = (int) (ms / 1000.0);
+        return juce::String (s / 3600) + ":" + juce::String ((s / 60) % 60).paddedLeft ('0', 2)
+             + ":" + juce::String (s % 60).paddedLeft ('0', 2);
+    };
+    replayTimeLabel.setText (clock (pos) + " / " + clock (replayer.getLengthMs()),
+                             juce::dontSendNotification);
+
+    if (! replayer.isPlaying() && playPauseButton.getButtonText() == "Pause")
+        playPauseButton.setButtonText ("Play");   // reached the end
+
+    // The audio position is the replay's clock: the module sends the GUI
+    // everything logged up to it, and treats a jump as a seek.
+    sendOscToOsc ("/formuls/replay/pos", juce::String ((juce::int64) pos));
 }
 
 } // namespace formuls

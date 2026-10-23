@@ -9,6 +9,12 @@
  *   {"k":"down"|"move"|"up"|..., "c", "s", "t", "st", ...}
  *                                            touch events from the client half
  *   {"k":"param", "c", "st", "a", "v"}       every value the GUI sends to Pd
+ *   {"k":"in", "st", "m":{addr: value}}      values Pd sends to the GUI (LFOs,
+ *                                            chaos, automation, sequencer), at most
+ *                                            IN_HZ frames a second, changed values only
+ *   {"k":"snap", "why", "vals":{id: value}}  every widget's value: at start, every
+ *                                            5 minutes, after a preset load
+ *   {"k":"preset", "st", "a", "v"}           a preset load or state command from the app
  *   {"k":"rec-start"|"rec-stop", "c":"app", "file", "first_block_st", ...}
  *                                            session audio (uxaudio-*.ogg in this
  *                                            folder): sample 0 is at first_block_st
@@ -33,6 +39,15 @@ function stamp(d) {
         '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds())
 }
 
+// Pd -> GUI traffic is dense (LFOs at the GUI frame rate on many widgets),
+// so it is framed: the latest value per address, written IN_HZ times a
+// second, only where it changed. At 5 Hz, 50 modulated widgets cost about
+// 15 MB an hour; replay shows modulation at that rate.
+var IN_HZ = Number(process.env.FORMULS_UXLOG_IN_HZ) || 5
+var inPending = {}
+var inLast = {}
+var inAny = false
+
 var started = new Date()
 var file = path.join(dir, 'uxlog-' + stamp(started) + '.jsonl')
 var out = fs.createWriteStream(file, { flags: 'a' })
@@ -44,6 +59,28 @@ function write(obj) {
 write({ k: 'session', st: started.getTime(), iso: started.toISOString(), file: file,
         host: os.hostname(), version: 1 })
 console.log('(INFO) formuls UX logging to ' + file)
+
+function round(v) {
+    return typeof v === 'number' ? Number(v.toPrecision(5)) : v
+}
+
+function noteIn(data) {
+    var v = data.args.map(function (a) { return round(a.value) })
+    inPending[data.address] = v.length === 1 ? v[0] : v
+    inAny = true
+}
+
+var inTimer = setInterval(function () {
+    if (!inAny) return
+    var m = {}, n = 0
+    for (var a in inPending) {
+        var s = JSON.stringify(inPending[a])
+        if (inLast[a] !== s) { m[a] = inPending[a]; inLast[a] = s; n++ }
+    }
+    inPending = {}
+    inAny = false
+    if (n) write({ k: 'in', st: Date.now(), m: m })
+}, 1000 / IN_HZ)
 
 app.on('open', function (data, client) {
     write({ k: 'client', st: Date.now(), c: client.id, addr: client.address })
@@ -97,13 +134,25 @@ module.exports = {
             }
             return
         }
+        if (data.address.indexOf('/STATE/') === 0) {
+            // A preset load from the app window: note it, and have every
+            // tablet snapshot its state once the preset has landed.
+            write({ k: 'preset', st: Date.now(), a: data.address,
+                    v: data.args.map(function (a) { return a.value }) })
+            setTimeout(function () { receive('/formuls/uxlog/snap', 1) }, 1000)
+        } else {
+            noteIn(data)
+        }
         return inner.oscInFilter ? inner.oscInFilter(data) : data
     },
     oscOutFilter: function (data) {
         if (data.address === ADDRESS) return logOut(data)
+        // formuls-replay-client.js asks every server whether it is a replay;
+        // a live session drops the question instead of passing it to Pd
+        if (data.address.indexOf('/formuls/') === 0) return
         var res = inner.oscOutFilter ? inner.oscOutFilter(data) : data
         if (res) logOut(res)
         return res
     },
-    unload: function () { if (inner.unload) inner.unload(); out.end() }
+    unload: function () { clearInterval(inTimer); if (inner.unload) inner.unload(); out.end() }
 }
