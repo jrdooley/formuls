@@ -17,7 +17,14 @@
 
     var FLUSH_MS = 500
     var MOVE_HZ = 30
+    var MAX_QUEUE = 20000       // events held if the server cannot be reached
     var ADDRESS = '/formuls/uxlog'
+    // The server only forwards a client's message to OSC -- where the custom
+    // module's oscOutFilter sees it -- when the message names a target. Port 9
+    // is the discard port: if the module were ever missing, the batch would go
+    // nowhere rather than to Pd. noSync stops the server copying each batch to
+    // every other connected browser.
+    var TARGET = ['127.0.0.1:9']
 
     var session = Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
     var queue = []
@@ -34,6 +41,7 @@
         ev.t = Date.now()                       // tablet wall clock, ms
         ev.pt = Math.round(performance.now())   // monotonic, for durations
         queue.push(ev)
+        if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE)
     }
 
     function flush() {
@@ -43,7 +51,8 @@
         try {
             // No target: the server adds its default --send target, and the
             // custom module's oscOutFilter swallows this address there.
-            ipc().send('sendOsc', { address: ADDRESS, v: JSON.stringify({ s: session, ft: Date.now(), ev: batch }) })
+            ipc().send('sendOsc', { address: ADDRESS, target: TARGET, noSync: 1,
+                                    v: JSON.stringify({ s: session, ft: Date.now(), ev: batch }) })
         } catch (e) {
             queue = batch.concat(queue)
         }

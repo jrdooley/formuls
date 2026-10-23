@@ -23,8 +23,11 @@
 
     function ipc() { return window.__formulsIpc }
 
+    // A target is what makes the server pass the message to the replay
+    // module (see TARGET in formuls-uxlog-client.js); port 9 discards it if
+    // no module takes it.
     function send(address, value) {
-        ipc().send('sendOsc', { address: address, v: value })
+        ipc().send('sendOsc', { address: address, v: value, target: ['127.0.0.1:9'], noSync: 1 })
     }
 
     // --- widgets by id -------------------------------------------------
