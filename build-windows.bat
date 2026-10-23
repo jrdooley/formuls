@@ -17,6 +17,11 @@ REM Run from the repository root inside a Developer Command Prompt for VS 2022:
 REM   build-windows.bat
 
 set VERSION=0.3.2
+REM set FORMULS_UXLOG=1 before running to build the user-study variant: it
+REM logs touch interaction to Music\formuls\uxlog and has Replay mode (see
+REM src\tools\uxlog\README.md), and is named and branded so it cannot pass
+REM for a release.
+if "%FORMULS_UXLOG%"=="1" (set "BRAND=%VERSION%-uxlog") else (set "BRAND=%VERSION%")
 REM Python's file I/O defaults to the Windows code page (cp1252), which cannot
 REM hold characters in Open Stage Control's sources and would misread UTF-8.
 REM UTF-8 mode makes the build tools behave as on macOS and Linux.
@@ -136,7 +141,7 @@ del open-stage-control_1.31.0_node.zip
 
 REM --- Brand Open Stage Control ---
 cd "%ROOT%"
-sh src\tools\brand-osc.sh "%ROOT%\build\gui\open-stage-control" %VERSION%
+sh src\tools\brand-osc.sh "%ROOT%\build\gui\open-stage-control" %BRAND%
 if errorlevel 1 (
     echo brand-osc.sh failed
     exit /b 1
@@ -164,6 +169,15 @@ if errorlevel 1 (
     exit /b 1
 )
 copy src\gui\formuls-module.js build\gui\ >nul
+
+REM --- UX logging and Replay mode (FORMULS_UXLOG=1 only) ---
+if "%FORMULS_UXLOG%"=="1" (
+    %PYTHON% src\tools\patch-osc-uxlog.py "%ROOT%\build\gui\open-stage-control" "%ROOT%\build\gui"
+    if errorlevel 1 (
+        echo patch-osc-uxlog.py failed
+        exit /b 1
+    )
+)
 
 REM --- Download Node.js for Windows x64 ---
 cd "%ROOT%\build"
@@ -219,7 +233,7 @@ if errorlevel 1 (
 )
 
 REM --- Assemble distributable folder ---
-set "OUT=formuls-%VERSION%-windows-x64"
+set "OUT=formuls-%BRAND%-windows-x64"
 if exist "%OUT%" rmdir /s /q "%OUT%"
 mkdir "%OUT%"
 REM JUCE puts the app target in an App subfolder.

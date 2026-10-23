@@ -9,6 +9,15 @@
 set -e
 
 VERSION="0.3.2"
+# FORMULS_UXLOG=1 ./build-linux.sh builds the user-study variant: it logs
+# touch interaction to ~/Music/formuls/uxlog/ and has Replay mode (see
+# src/tools/uxlog/README.md), and is named, and branded in the GUI header,
+# so it cannot pass for a release.
+if [ "$FORMULS_UXLOG" = 1 ]; then
+    BRAND="$VERSION-uxlog"
+else
+    BRAND="$VERSION"
+fi
 
 # Target architecture, named the way Node's downloads name it. Everything
 # else is compiled natively, so it matches too. Used for the Node download
@@ -19,7 +28,7 @@ case "$(uname -m)" in
     aarch64|arm64) ARCH="arm64" ;;
     *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
 esac
-OUT="formuls-$VERSION-linux-$ARCH"
+OUT="formuls-$BRAND-linux-$ARCH"
 ROOT="$(pwd)"
 # The JUCE download ships a ready-made Projucer at ~/JUCE/Projucer; a Projucer
 # built from source lands under extras/. Use the first that exists, unless
@@ -99,7 +108,7 @@ rm -f open-stage-control_1.31.0_node.zip
 # Rebrand the client's greeting header as formuls rather than Open Stage
 # Control. Matched on the markup rather than a line number, so it stops the
 # build if the header ever changes instead of silently shipping unbranded.
-sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$VERSION"
+sh "$ROOT/src/tools/brand-osc.sh" "$ROOT/build/gui/open-stage-control" "$BRAND"
 
 # Serialise each broadcast once instead of once per connected tablet.
 # Add --batch-ms 20 to also coalesce value updates into one WebSocket
@@ -128,6 +137,10 @@ python3 "$ROOT/src/tools/compile-compounds.py" \
     "$ROOT/build/gui/_main.json" "$ROOT/build/gui/_formuls-default.state" "$ROOT/build/gui/compounds.json" \
     --lib "$ROOT/src/gui/compounds/slider-lib.js" --seq-lib "$ROOT/src/gui/compounds/sequencer-lib.js"
 cp "$ROOT/src/gui/formuls-module.js" "$ROOT/build/gui/"
+
+if [ "$FORMULS_UXLOG" = 1 ]; then
+    python3 "$ROOT/src/tools/patch-osc-uxlog.py" "$ROOT/build/gui/open-stage-control" "$ROOT/build/gui"
+fi
 
 NODE_PKG="node-v22.17.0-linux-$ARCH"
 
