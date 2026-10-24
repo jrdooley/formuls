@@ -26,7 +26,7 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `down.miss` | the touch landed on no interactive widget (dead space) |
 | `leave` | a drag slid off the widget it started on |
 | `down.param` / `layer` / `cell` / `modes` | on a slider canvas: the parameter, which layer the touch adjusts (`main`, `chaos`, `lfofreq`, `lfodepth`, `moddepth`, `mod` cell 0-5, `label`) and which mode buttons were on. The layer is worked out with slider-lib.js's own rule, because the mode buttons choose it, not the touch position |
-| `up` summary | duration, path length, value before and after, `changes`, `reversals` (overshoot-and-correct) |
+| `up` summary | duration, path length, value before and after, `changes`, `fturns_x`/`fturns_y` (direction changes of the finger, ignoring under 4 px), `addr` (the address the control sends), `reversals` (of the displayed value; unreliable on sliders, see below) |
 | `tab` | a tab switch (navigation) |
 | `param` | every value the GUI sent to the sound engine |
 | `in` | values the sound engine sent to the GUI (LFOs, chaos, automation, sequencer): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
@@ -62,6 +62,15 @@ python3 src/tools/uxlog/analyse-uxlog.py ~/Music/formuls/uxlog/*.jsonl \
 Add `--audio` (needs `pip install numpy soundfile`) for `sound.csv`: for each
 gesture, the loudness and spectral centroid before, during and after it, and how
 much it changed them.
+
+Difficulty is measured on **adjustments**. **Sweeps** (deliberate back-and-forth
+playing: long, with finger travel well beyond net movement, and several direction
+changes) are counted separately; `--sweep-ms`, `--sweep-ratio` and
+`--sweep-turns` tune the rule. Reversals are counted in the values the
+participant's tablet **sent** (`sent_rev_*`) and in the finger's movement
+(`finger_turns_*`), each as mean and median. They are not taken from the
+widget's displayed value, which the sound engine's echoes overwrite mid-drag. A
+straight drag on a slider showed up to 15 false reversals that way.
 
 `sliders.csv` (each slider parameter split by layer) and `modes.csv` (each layer
 across all parameters) show how people use the mode layers. Also produced: `widgets.csv` (hot spots and difficulty per widget), `misses.csv`, `tabs.csv`,

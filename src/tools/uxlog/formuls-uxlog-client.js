@@ -188,6 +188,35 @@
     }
     function tabName(link) { return link.textContent.trim() || '#' + tabIndex(link) }
 
+    // What the participant's finger did, independent of the widget's displayed
+    // value -- which the sound engine's echoes can overwrite mid-drag, so a
+    // straight drag could look like a back-and-forth one.
+    var FINGER_DEADBAND = 4
+    function fingerTurns(g) {
+        var mx = g.x - g.ax, my = g.y - g.ay
+        if (Math.abs(mx) >= FINGER_DEADBAND) {
+            var sx = Math.sign(mx)
+            if (g.dx && sx !== g.dx) g.turnsX++
+            g.dx = sx; g.ax = g.x
+        }
+        if (Math.abs(my) >= FINGER_DEADBAND) {
+            var sy = Math.sign(my)
+            if (g.dy && sy !== g.dy) g.turnsY++
+            g.dy = sy; g.ay = g.y
+        }
+    }
+
+    // The OSC address the touched control sends: a slider layer's own
+    // address, else the widget's address ("auto" means /<id>). The analysis
+    // reads the participant's sent values on it.
+    function addressOf(w, M, slot) {
+        if (M && slot !== undefined) return M.a[slot]
+        try {
+            var a = w.getProp('address')
+            return a && a !== 'auto' ? a : '/' + w.getProp('id')
+        } catch (e) { return undefined }
+    }
+
     function down(e) {
         var hit = interactiveAt(e.target)
         // A tab in a tab bar is navigation, not dead space: name it, so it is
@@ -200,6 +229,9 @@
         var g = {
             id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
             t0: performance.now(), lastMove: 0, path: 0, left: false,
+            // finger direction changes per axis, from an anchor that must move
+            // FINGER_DEADBAND px before a turn counts, so tremor is ignored
+            ax: e.clientX, ay: e.clientY, dx: 0, dy: 0, turnsX: 0, turnsY: 0,
             w: hit && hit.w, d: hit && hit.d, changes: 0, reversals: 0, dir: [], last: []
         }
         var slider = null
@@ -210,8 +242,10 @@
                 slider = sliderLayer(M, b[2] ? (e.clientX - b[0]) / b[2] : 0)
                 g.slot = slider.slot
                 g.param = M.a[0]
+                g.addr = addressOf(g.w, M, g.slot)
             }
         }
+        if (g.w && !g.addr && !link) g.addr = addressOf(g.w)
         if (g.w) {
             var v = value(g.w)
             if (g.slot !== undefined && Array.isArray(v)) v = v[g.slot]
@@ -236,6 +270,7 @@
         if (!g) return
         g.path += Math.hypot(e.clientX - g.x, e.clientY - g.y)
         g.x = e.clientX; g.y = e.clientY
+        fingerTurns(g)
         if (g.w) {
             trackValue(g)
             var b = g.d.box
@@ -259,12 +294,13 @@
             k: e.type === 'pointercancel' ? 'cancel' : 'up', p: e.pointerId,
             x: Math.round(e.clientX), y: Math.round(e.clientY),
             w: g.d ? g.d.id : null, wt: g.d ? g.d.type : null,
-            param: g.param, slot: g.slot,
+            param: g.param, slot: g.slot, addr: g.addr,
             dur: Math.round(performance.now() - g.t0),
             dist: Math.round(Math.hypot(e.clientX - g.x0, e.clientY - g.y0)),
             path: Math.round(g.path), left: g.left,
             v0: g.v0, v1: g.w ? (g.slot !== undefined ? (value(g.w) || [])[g.slot] : value(g.w)) : undefined,
-            changes: g.changes, reversals: g.reversals
+            changes: g.changes, reversals: g.reversals,
+            fturns_x: g.turnsX, fturns_y: g.turnsY
         })
     }
 

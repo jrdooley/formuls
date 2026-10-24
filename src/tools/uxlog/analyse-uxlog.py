@@ -6,13 +6,24 @@ interaction design. Standard library only. Writes to DIR (default
 ./uxlog-report):
 
   widgets.csv   one row per widget: how often it is touched (hot / cold),
-                and the signs of difficulty --
-                  reversal_mean  value direction flips per gesture
-                                 (overshoot, then correct)
+                how often it is swept, and the signs of difficulty, measured
+                over adjustments (touches that are not sweeps):
+                  sweeps          deliberate back-and-forth playing: at least
+                                  --sweep-ms long, finger travel at least
+                                  --sweep-ratio times its net movement, and
+                                  at least --sweep-turns direction changes
+                  sent_rev_*      reversals in the values the participant's
+                                  own tablet sent (overshoot, then correct),
+                                  mean and median
+                  finger_turns_*  direction changes of the finger itself,
+                                  mean and median (logs from 2026-10-24 on)
                   leave_rate     share of drags whose finger slid off the widget
                   regrab_rate    share of touches that follow a touch on the
                                  same widget within --regrab-ms (a second go at it)
                   short_rate     share of touches that changed nothing
+                Both reversal measures ignore the widget's displayed value,
+                which the sound engine's echoes overwrite mid-drag
+                (gestures.csv keeps it as display_reversals, for comparison).
   misses.csv    every touch on dead space, with the widget under it if any --
                 clusters next to a widget mean its target is too small
   tabs.csv      navigation: every tab switch and how long the user stayed
@@ -85,6 +96,10 @@ def main():
     ap.add_argument('logs', nargs='+')
     ap.add_argument('--out', default='uxlog-report')
     ap.add_argument('--regrab-ms', type=int, default=2000)
+    ap.add_argument('--sweep-ms', type=int, default=1500, help='a sweep lasts at least this long')
+    ap.add_argument('--sweep-ratio', type=float, default=3.0,
+                    help='finger travel of a sweep, as a multiple of its net movement')
+    ap.add_argument('--sweep-turns', type=int, default=4, help='direction changes a sweep has at least')
     ap.add_argument('--layout', help='_main.json, to list widgets nobody touched')
     ap.add_argument('--audio', action='store_true', help='measure the sound around each gesture')
     ap.add_argument('--pre-ms', type=int, default=500, help='audio window before a gesture')
@@ -125,6 +140,13 @@ def main():
             gestures.append(e)
         elif e['k'] == 'tab':
             tabs.append(e)
+
+    sent_values(events, gestures)
+    for g in gestures:
+        turns = g.get('finger_turns')
+        turns = turns if turns is not None else g.get('sent_rev')
+        g['sweep'] = bool(g['dur'] >= a.sweep_ms and g['path'] >= a.sweep_ratio * max(g['dist'], 1)
+                          and (turns or 0) >= a.sweep_turns)
 
     by = collections.defaultdict(list)
     for g in gestures:
@@ -171,8 +193,10 @@ def main():
     write_csv(out / 'tabs.csv', tab_rows)
 
     write_csv(out / 'gestures.csv', [
-        {k: g.get(k) for k in ('st', 's', 'c', 'w', 'wt', 'param', 'layer', 'cell', 'k', 'dur', 'dist', 'path',
-                               'left', 'changes', 'reversals', 'regrab', 'v0', 'v1')} for g in gestures])
+        dict({k: g.get(k) for k in ('st', 's', 'c', 'w', 'wt', 'param', 'layer', 'cell', 'addr', 'k', 'dur',
+                                    'dist', 'path', 'left', 'changes', 'sweep', 'sent_n', 'sent_rev',
+                                    'finger_turns', 'regrab', 'v0', 'v1')},
+             display_reversals=g.get('reversals')) for g in gestures])
 
     heatmap(out / 'heatmap.html', downs, viewports)
 
@@ -262,18 +286,87 @@ def sound(path, events, gestures, a):
 LAYERS = ['main', 'chaos', 'lfofreq', 'lfodepth', 'moddepth', 'mod', 'label']
 
 
+def mean_median(xs):
+    xs = [x for x in xs if x is not None]
+    return (round(statistics.mean(xs), 2), statistics.median(xs)) if xs else ('', '')
+
+
 def measures(gs, regrab_key):
-    drags = [g for g in gs if g['path'] > 10]
+    adj = [g for g in gs if not g['sweep']]           # adjustments: what difficulty is measured on
+    drags = [g for g in adj if g['path'] > 10]
+    rev_mean, rev_median = mean_median(g.get('sent_rev') for g in adj)
+    turn_mean, turn_median = mean_median(g.get('finger_turns') for g in adj)
+    n = len(adj)
     return {
         'touches': len(gs),
         'sessions': len({g['s'] for g in gs}),
-        'dur_median_ms': int(statistics.median(g['dur'] for g in gs)),
-        'reversal_mean': round(statistics.mean(g['reversals'] for g in gs), 2),
+        'sweeps': len(gs) - n,
+        'dur_median_ms': int(statistics.median(g['dur'] for g in adj)) if adj else '',
+        'sent_rev_mean': rev_mean, 'sent_rev_median': rev_median,
+        'finger_turns_mean': turn_mean, 'finger_turns_median': turn_median,
         'leave_rate': round(sum(g['left'] for g in drags) / len(drags), 2) if drags else '',
-        'regrab_rate': round(sum(bool(g.get(regrab_key)) for g in gs) / len(gs), 2),
-        'short_rate': round(sum(g['changes'] == 0 for g in gs) / len(gs), 2),
+        'regrab_rate': round(sum(bool(g.get(regrab_key)) for g in adj) / n, 2) if n else '',
+        'short_rate': round(sum(g['changes'] == 0 for g in adj) / n, 2) if n else '',
         'cancelled': sum(g['k'] == 'cancel' for g in gs),
     }
+
+
+# slider layer -> its address, from the parameter's main address, for logs that
+# predate the addr field: /velocity1 + chaos -> /velocitychaos1, mod cell 3 -> /velocitymod1/3
+def control_address(g):
+    if g.get('addr'):
+        return g['addr']
+    if g.get('param') and g.get('layer'):
+        if g['layer'] == 'main':
+            return g['param']
+        m = re.match(r'(/.*?)(\d+)$', g['param'])
+        if m:
+            a = m.group(1) + g['layer'] + m.group(2)
+            return a + '/%s' % g['cell'] if g['layer'] == 'mod' else a
+    w = g.get('w') or ''
+    return None if w.startswith('tab:') else '/' + w
+
+
+def flips(seq):
+    # direction changes in a run of values; multi-value controls per element
+    n, last, sign = 0, None, {}
+    for v in seq:
+        vs = v if isinstance(v, list) else [v]
+        if last is not None:
+            for i, x in enumerate(vs):
+                if i < len(last) and isinstance(x, (int, float)) and isinstance(last[i], (int, float)):
+                    d = (x > last[i]) - (x < last[i])
+                    if d and sign.get(i) and d != sign[i]:
+                        n += 1
+                    if d:
+                        sign[i] = d
+        last = vs
+    return n
+
+
+def sent_values(events, gestures):
+    """Attach to each gesture what its own tablet sent on its control's
+    address while the finger was down (sent_n, sent_rev), and the finger's
+    own direction changes (finger_turns). Sends are timed by the computer's
+    clock (st); the gesture is placed on that clock with its tablet's offset."""
+    off = clock_offsets(events)
+    sends = collections.defaultdict(list)          # (client, address) -> [(st, value)]
+    for e in events:
+        if e['k'] == 'param':
+            v = e['v'][0] if len(e['v']) == 1 else e['v']
+            sends[(e.get('c'), e['a'])].append((e['st'], v))
+    for g in gestures:
+        if g.get('fturns_x') is not None:
+            g['finger_turns'] = g['fturns_x'] + g.get('fturns_y', 0)
+        g['addr'] = control_address(g)
+        if g['s'] not in off or not g['addr']:
+            continue
+        end = g['t'] + off[g['s']]
+        start = end - g['dur']
+        # sends leave the tablet as the finger moves; allow for the network
+        seq = [v for st, v in sends.get((g.get('c'), g['addr']), []) if start - 30 <= st <= end + 150]
+        g['sent_n'] = len(seq)
+        g['sent_rev'] = flips(seq)
 
 
 def write_csv(path, rows):
