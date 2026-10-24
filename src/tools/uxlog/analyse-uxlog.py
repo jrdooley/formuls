@@ -165,7 +165,8 @@ def main():
     tab_rows = []
     for i, t in enumerate(tabs):
         nxt = next((u for u in tabs[i + 1:] if u['s'] == t['s'] and u.get('in') == t.get('in')), None)
-        tab_rows.append({'st': t['st'], 'session': t['s'], 'group': t.get('in'), 'tab': t['label'],
+        tab_rows.append({'st': t['st'], 'session': t['s'], 'group': t.get('in'),
+                         'tab': t['label'] or '#%s' % t.get('idx'),   # icon-only tabs logged before the fix
                          'stay_s': round((nxt['st'] - t['st']) / 1000, 1) if nxt else ''})
     write_csv(out / 'tabs.csv', tab_rows)
 

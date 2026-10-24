@@ -179,12 +179,21 @@
 
     function viewport() { return [window.innerWidth, window.innerHeight] }
 
+    // A tab's visible text, or "#<index>" for an icon-only tab (formuls's
+    // main and settings tabs have no text).
+    function tabIndex(link) {
+        return Array.prototype.filter.call(link.parentNode.children, function (n) {
+            return n.classList.contains('tablink')
+        }).indexOf(link)
+    }
+    function tabName(link) { return link.textContent.trim() || '#' + tabIndex(link) }
+
     function down(e) {
         var hit = interactiveAt(e.target)
         // A tab in a tab bar is navigation, not dead space: name it, so it is
         // neither counted as a miss nor attributed to the panel around it.
         var link = e.target.closest && e.target.closest('.tablink')
-        if (link) hit = { w: widgetAt(link), d: { id: 'tab:' + link.textContent.trim(), type: 'tablink',
+        if (link) hit = { w: widgetAt(link), d: { id: 'tab:' + tabName(link), type: 'tablink',
                                                   interactive: true, box: (function (r) {
                                                       return [r.left, r.top, r.width, r.height].map(Math.round)
                                                   })(link.getBoundingClientRect()) } }
@@ -271,10 +280,7 @@
         var link = e.target.closest && e.target.closest('.tablink')
         if (!link) return
         var parent = widgetAt(link)
-        var idx = Array.prototype.filter.call(link.parentNode.children, function (n) {
-            return n.classList.contains('tablink')
-        }).indexOf(link)
-        emit({ k: 'tab', label: link.textContent.trim(), idx: idx, in: parent ? describe(parent).id : null })
+        emit({ k: 'tab', label: tabName(link), idx: tabIndex(link), in: parent ? describe(parent).id : null })
     }, opts)
 
     document.addEventListener('visibilitychange', function () {
