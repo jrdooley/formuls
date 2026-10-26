@@ -77,6 +77,25 @@ across all parameters) show how people use the mode layers. Also produced: `widg
 `gestures.csv`, `untouched.txt` (cold spots), `heatmap.html`. See the script's
 docstring for what each column means.
 
+Two things the analyser does that are worth knowing about, because both decide
+headline numbers:
+
+- **Tab taps are not misses.** Builds before 2026-10-23 logged a tap on a tab
+  bar as dead space, so a log from one of them would report the interface's
+  most successful interaction as a failure. The analyser drops a miss that
+  matches the tab switch it caused, within `--tab-miss-ms` (250 ms by default),
+  and reports how many it dropped. Logs from later builds have none to drop:
+  the client names the widget `tab:<label>` itself.
+- **`untouched.txt` is built from the logs, not from `_main.json`.** Most ids
+  in the session file are templates (`@{parent.variables.name}...`) that o-s-c
+  fills in per clone at run time, so reading the file gives mostly names no
+  widget ever has. The cold-spot list is therefore the ids the logs show were
+  really in the page — the `snap` state snapshots, plus every widget touched —
+  and `--layout` only adds the file's *literal* ids, counting the templated
+  ones in the list's header. Because a snapshot only sees widgets the page has
+  built, **open every tab during a session** or the widgets in an unopened tab
+  will be missing from the universe rather than listed as cold.
+
 ## Replay
 
 A uxlog build has a **Replay Session...** button in the app window, available

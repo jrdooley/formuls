@@ -25,7 +25,11 @@ interaction design. Standard library only. Writes to DIR (default
                 which the sound engine's echoes overwrite mid-drag
                 (gestures.csv keeps it as display_reversals, for comparison).
   misses.csv    every touch on dead space, with the widget under it if any --
-                clusters next to a widget mean its target is too small
+                clusters next to a widget mean its target is too small.
+                A tap on a tab bar is navigation, not dead space: builds
+                before 2026-10-23 logged one as a miss, and those are
+                dropped here (and from heatmap.html) by matching them to
+                the tab switch they caused, within --tab-miss-ms
   tabs.csv      navigation: every tab switch and how long the user stayed
   sliders.csv   the slider canvases, per parameter and per LAYER: a slider
                 is one canvas whose main fader, chaos / LFO frequency / LFO
@@ -51,8 +55,15 @@ is the clock offset plus network delay alone; its minimum over a session
 estimates the offset, and every gesture is placed at t + offset (logs
 without "ft" fall back to st - t, which is up to 500 ms less precise). Sample 0 of the recording is rec-start's first_block_st.
 
-Widgets never touched at all are cold spots too: compare widgets.csv with
-the widget ids in src/gui/_main.json (pass --layout to list them).
+  untouched.txt widgets that were there but were never touched: cold spots.
+                The list is built from the ids seen in the logs themselves --
+                the state snapshots (every widget in the page, resolved) plus
+                every widget touched -- because the ids in _main.json are
+                mostly templates (@{parent.variables...}) filled in per synth
+                at run time, and cannot be read off the file. With --layout,
+                its literal ids are added and its templated ones counted in
+                the file's header. A widget in a tab no session ever opened
+                may be missing from the list: open every tab in a pilot run.
 """
 import argparse
 import collections
@@ -76,19 +87,28 @@ def load(paths):
 
 
 def layout_ids(path):
-    ids = set()
+    """The widget ids in a session file, split into (literal, templated).
+
+    Most of formuls's ids are templates -- "@{parent.variables.name}act@
+    {parent.variables.n}" -- that o-s-c fills in per clone at run time, so
+    only the literal ones name a widget that exists. Resolving the rest
+    would mean reimplementing o-s-c's clone and variable handling, and a
+    half-resolved id is worse than a missing one: it would read as a real
+    widget nobody touched.
+    """
+    ids, templated = set(), set()
 
     def walk(node):
         if isinstance(node, dict):
             if node.get('type') not in (None, 'root', 'panel', 'folder', 'tab', 'text', 'frame') and 'id' in node:
-                ids.add(node['id'])
+                (templated if '@{' in str(node['id']) else ids).add(node['id'])
             for v in node.values():
                 walk(v)
         elif isinstance(node, list):
             for v in node:
                 walk(v)
     walk(json.load(open(path)))
-    return ids
+    return ids, templated
 
 
 def main():
@@ -100,7 +120,9 @@ def main():
     ap.add_argument('--sweep-ratio', type=float, default=3.0,
                     help='finger travel of a sweep, as a multiple of its net movement')
     ap.add_argument('--sweep-turns', type=int, default=4, help='direction changes a sweep has at least')
-    ap.add_argument('--layout', help='_main.json, to list widgets nobody touched')
+    ap.add_argument('--layout', help='_main.json, to add its literal widget ids to untouched.txt')
+    ap.add_argument('--tab-miss-ms', type=int, default=250,
+                    help='a pre-2026-10-23 miss this close to a tab switch is that tab tap')
     ap.add_argument('--audio', action='store_true', help='measure the sound around each gesture')
     ap.add_argument('--pre-ms', type=int, default=500, help='audio window before a gesture')
     ap.add_argument('--post-ms', type=int, default=1000, help='audio window after a gesture')
@@ -110,6 +132,7 @@ def main():
 
     events = sorted(load(a.logs), key=lambda e: (e.get('st', 0), e.get('seq', 0)))
     gestures, misses, tabs, downs = [], [], [], collections.defaultdict(list)
+    seen_ids = set()      # every widget id the logs show was really in the page
     last_touch = {}       # session -> (widget, server time of the up)
     last_layer = {}       # session -> ((parameter, layer), server time of the up)
     open_downs = {}       # (session, pointer) -> its down event
@@ -140,6 +163,21 @@ def main():
             gestures.append(e)
         elif e['k'] == 'tab':
             tabs.append(e)
+        elif e['k'] == 'snap':
+            seen_ids |= set(e.get('vals') or {})
+
+    # A tap on a tab bar hits no widget, so builds before 2026-10-23 logged
+    # it as dead space -- which would count the interface's most successful
+    # interaction as a failure. Such a tap is the one that caused the tab
+    # switch logged at the same moment, so match them and drop them. Clearing
+    # the flag as well keeps heatmap.html in step with misses.csv.
+    tab_misses = 0
+    for m in misses:
+        if any(t.get('s') == m.get('s') and abs(t['st'] - m['st']) <= a.tab_miss_ms for t in tabs):
+            m['miss'] = False
+            m['tab_tap'] = True
+            tab_misses += 1
+    misses = [m for m in misses if not m.get('tab_tap')]
 
     sent_values(events, gestures)
     for g in gestures:
@@ -203,12 +241,23 @@ def main():
     if a.audio:
         sound(out / 'sound.csv', events, gestures, a)
 
-    print(f'{len(gestures)} gestures, {len(misses)} misses, {len(tabs)} tab switches '
+    print(f'{len(gestures)} gestures, {len(misses)} misses '
+          f'({tab_misses} tab tap(s) dropped), {len(tabs)} tab switches '
           f'over {len(downs)} client session(s) -> {out}/')
+
+    touched = set(by)
+    universe = seen_ids | touched
+    note = [f'# widgets that were there but were never touched, of {len(universe)} seen',
+            f'# {len(seen_ids)} from the state snapshots, {len(touched)} touched']
     if a.layout:
-        cold = sorted(layout_ids(a.layout) - set(by))
-        (out / 'untouched.txt').write_text('\n'.join(cold) + '\n')
-        print(f'{len(cold)} widgets never touched -> {out}/untouched.txt')
+        literal, templated = layout_ids(a.layout)
+        universe |= literal
+        note.append(f'# {len(literal)} literal ids from {a.layout}; '
+                    f'{len(templated)} of its ids are templates and cannot be resolved here')
+    note.append('# a widget in a tab no session opened may be missing: open every tab in a pilot run')
+    cold = sorted(universe - touched)
+    (out / 'untouched.txt').write_text('\n'.join(note + cold) + '\n')
+    print(f'{len(cold)} of {len(universe)} widgets never touched -> {out}/untouched.txt')
 
 
 def clock_offsets(events):
