@@ -217,6 +217,15 @@ A frame is a **snapshot**: it describes one 1024-sample window (21 ms at
   *The patch renders more than the player hears* above.
 - ~~Which channel is which is not written down.~~ **Done.** See *The channel
   map* above.
-- **Nothing reads the stream yet.** `analyse-uxlog.py` does not use `spec`
-  frames; per-gesture, per-channel spectral change is the next step, and it
-  should be regime-aware in the same way `sound.csv` now is.
+- ~~Nothing reads the stream yet.~~ **Done:** `analyse-uxlog.py` writes
+  `spectral.csv` (one row per gesture per channel, descriptors either side of
+  the gesture and the change, tagged with the regime) and `channels.csv` (each
+  channel over the whole session). The frames are sparse — at 5 Hz a 500 ms
+  window holds two or three — so each figure is a mean over a handful of
+  frames rather than a reading.
+- **The descriptors have never run on real audio.** Everything so far is a
+  synthetic-signal check of the formulas and a fixture check of the reader.
+  A session on a UX-logging build is what will show whether the numbers are
+  informative about this instrument in practice — and it belongs in the
+  column-coverage pilot, where the integrity check is easy: move the master
+  volume and `db` should shift on channels 0–7 and hold on 8–13.
