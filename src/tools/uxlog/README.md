@@ -29,7 +29,8 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `up` summary | duration, path length, value before and after, `changes`, `fturns_x`/`fturns_y` (direction changes of the finger, ignoring under 4 px), `addr` (the address the control sends), `reversals` (of the displayed value; unreliable on sliders, see below) |
 | `tab` | a tab switch (navigation) |
 | `param` | every value the GUI sent to the sound engine |
-| `in` | values the sound engine sent to the GUI (LFOs, chaos, automation, sequencer): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
+| `in` | values the sound engine sent to the GUI that **modulate the sound** (LFOs, chaos, automation, `extmodulation`): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
+| `disp` | **display feedback**: values the engine sent to the GUI that the player never sets and that change no sound — the sequencer playhead (`/seqpos*`), the step it is on (`/sequencerstep*`) and the pitch readout (`/oscpitchgui*`). Framed exactly like `in`, in its own stream |
 | `snap` | every widget's value: when a tablet connects, every 5 minutes, after a preset load |
 | `preset` | a preset load from the app window |
 | `client`, `hidden`/`visible`, `resize`, `orientation` | session context |
@@ -76,6 +77,17 @@ straight drag on a slider showed up to 15 false reversals that way.
 across all parameters) show how people use the mode layers. Also produced: `widgets.csv` (hot spots and difficulty per widget), `misses.csv`, `tabs.csv`,
 `gestures.csv`, `untouched.txt` (cold spots), `heatmap.html`. See the script's
 docstring for what each column means.
+
+**Display feedback is a separate stream.** The sequencer playhead, the step
+number and the pitch readout are the interface reporting on itself: the player
+does not set them and they change no sound. They are also among the densest
+addresses in a log — over the three pilot sessions they were **28.5% of all
+engine-to-GUI updates, from just 12 addresses** — so counting them as
+modulation makes every gesture look as though it were made into a running
+modulation network. They therefore go to `disp` and never into `in`. The list
+of what counts as display feedback is `DISPLAY_FEEDBACK` at the top of
+`formuls-uxlog-module.js`; add to it there rather than filtering downstream.
+Replay reads both streams, since both are widget values it has to redraw.
 
 Two things the analyser does that are worth knowing about, because both decide
 headline numbers:

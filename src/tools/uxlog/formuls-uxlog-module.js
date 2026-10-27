@@ -9,9 +9,16 @@
  *   {"k":"down"|"move"|"up"|..., "c", "s", "t", "st", ...}
  *                                            touch events from the client half
  *   {"k":"param", "c", "st", "a", "v"}       every value the GUI sends to Pd
- *   {"k":"in", "st", "m":{addr: value}}      values Pd sends to the GUI (LFOs,
- *                                            chaos, automation, sequencer), at most
+ *   {"k":"in", "st", "m":{addr: value}}      values Pd sends to the GUI that
+ *                                            modulate the sound (LFOs, chaos,
+ *                                            automation, extmodulation), at most
  *                                            IN_HZ frames a second, changed values only
+ *   {"k":"disp", "st", "m":{addr: value}}    display feedback: values Pd sends to
+ *                                            the GUI that the player does not set
+ *                                            and that change no sound -- sequencer
+ *                                            position and step, pitch readouts.
+ *                                            Framed the same way, kept apart so
+ *                                            they are never read as modulation
  *   {"k":"snap", "why", "vals":{id: value}}  every widget's value: at start, every
  *                                            5 minutes, after a preset load
  *   {"k":"preset", "st", "a", "v"}           a preset load or state command from the app
@@ -48,6 +55,27 @@ var inPending = {}
 var inLast = {}
 var inAny = false
 
+// Some of what Pd sends the GUI is not modulation at all: the player never
+// sets it and it changes no sound. The sequencer playhead and step, and the
+// pitch readout, are the interface reporting itself. They are also the
+// densest addresses in a log, so counting them as modulation makes every
+// gesture look as though it were made into a running network. They go to
+// their own stream, "disp", and are never mixed with the modulation in "in".
+// Add to this list rather than filtering downstream; each entry matches a
+// whole address, with a trailing synth number allowed.
+var DISPLAY_FEEDBACK = [
+    /^\/seqpos\d*$/,          // the sequencer's playhead
+    /^\/sequencerstep\d*$/,   // the step the sequencer is on
+    /^\/oscpitchgui\d*$/      // the oscillator pitch readout
+]
+
+function isDisplayFeedback(address) {
+    for (var i = 0; i < DISPLAY_FEEDBACK.length; i++) {
+        if (DISPLAY_FEEDBACK[i].test(address)) return true
+    }
+    return false
+}
+
 var started = new Date()
 var file = path.join(dir, 'uxlog-' + stamp(started) + '.jsonl')
 var out = fs.createWriteStream(file, { flags: 'a' })
@@ -72,14 +100,19 @@ function noteIn(data) {
 
 var inTimer = setInterval(function () {
     if (!inAny) return
-    var m = {}, n = 0
+    var m = {}, d = {}, n = 0, dn = 0
     for (var a in inPending) {
         var s = JSON.stringify(inPending[a])
-        if (inLast[a] !== s) { m[a] = inPending[a]; inLast[a] = s; n++ }
+        if (inLast[a] === s) continue
+        inLast[a] = s
+        if (isDisplayFeedback(a)) { d[a] = inPending[a]; dn++ }
+        else { m[a] = inPending[a]; n++ }
     }
     inPending = {}
     inAny = false
-    if (n) write({ k: 'in', st: Date.now(), m: m })
+    var st = Date.now()
+    if (n) write({ k: 'in', st: st, m: m })
+    if (dn) write({ k: 'disp', st: st, m: d })
 }, 1000 / IN_HZ)
 
 app.on('open', function (data, client) {

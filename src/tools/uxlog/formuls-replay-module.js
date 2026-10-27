@@ -54,7 +54,10 @@ var VIS = { down: 1, move: 1, up: 1, cancel: 1, leave: 1, tab: 1 }
 
 events.forEach(function (e) {
     if (e.k === 'param') values.push({ T: e.st, a: e.a, v: e.v })
-    else if (e.k === 'in') for (var a in e.m) values.push({ T: e.st, a: a, v: e.m[a] })
+    // "in" is modulation, "disp" is display feedback (sequencer playhead,
+    // pitch readout): two streams in the log, but both are widget values a
+    // replay has to redraw.
+    else if (e.k === 'in' || e.k === 'disp') for (var a in e.m) values.push({ T: e.st, a: a, v: e.m[a] })
     else if (e.k === 'snap') snaps.push({ T: when(e), s: e.s, vals: e.vals })
     else if (e.k === 'rec-start' && !rec) rec = e
     else if (VIS[e.k]) {
