@@ -28,7 +28,8 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
                                    const juce::String& outputDeviceType,
                                    int numOutputChannels,
                                    double sampleRate,
-                                   const juce::File& resourceRoot)
+                                   const juce::File& resourceRoot,
+                                   int enginePatchChannels)
 {
     if (running)
         return juce::Result::ok();
@@ -72,7 +73,14 @@ juce::Result FormulsEngine::start (juce::AudioDeviceManager& deviceManager,
 
     // libpd runs at the rate the device *actually* opened at, which may
     // differ from the rate requested above if the device can't provide it.
-    if (auto result = bootPd (numOutputChannels, device->getCurrentSampleRate(), patchDir);
+    // The device opens with what the player chose; the patch may render more
+    // than that, so the individual synth and bus outs exist for the spectral
+    // analyser even when only the stereo master reaches the speakers. The
+    // extra channels are de-interleaved in render() and go nowhere else.
+    deviceOutputChannels = numOutputChannels;
+    const auto patchChannels = juce::jmax (numOutputChannels, enginePatchChannels);
+
+    if (auto result = bootPd (patchChannels, device->getCurrentSampleRate(), patchDir);
         result.failed())
     {
         deviceManager.closeAudioDevice();
@@ -184,6 +192,7 @@ void FormulsEngine::stop()
         return;
 
     running = false;
+    deviceOutputChannels = 0;
 
     if (activeDeviceManager != nullptr)
         activeDeviceManager->removeAudioCallback (this);
@@ -233,6 +242,15 @@ void FormulsEngine::prepareRender (int maxBlockSize)
     // ever having to allocate.
     recordChannels.assign ((size_t) juce::jmax (1, pdOutputChannels), nullptr);
     recordSilence.assign ((size_t) juce::jmax (8192, maxBlockSize * 4), 0.0f);
+
+    // One libpd tick, de-interleaved, for the spectral analyser. Sized here
+    // so the audio thread never allocates; the pointers are stable for as
+    // long as the engine runs.
+    analysisScratch.assign ((size_t) (blockSize * juce::jmax (1, pdOutputChannels)), 0.0f);
+    analysisChannels.resize ((size_t) juce::jmax (1, pdOutputChannels));
+
+    for (int ch = 0; ch < pdOutputChannels; ++ch)
+        analysisChannels[(size_t) ch] = analysisScratch.data() + ch * blockSize;
 }
 
 void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
@@ -306,6 +324,25 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
             }
         }
 
+        // The analyser sees every channel the patch renders, not just the
+        // ones the device took: with the patch on 14 and the device on 2, the
+        // player hears stereo while each synth and bus is measured. Done per
+        // tick, straight out of the interleaved buffer, into scratch that was
+        // allocated at boot.
+        if (analyser != nullptr && (int) analysisChannels.size() >= pdOutputChannels)
+        {
+            for (int ch = 0; ch < pdOutputChannels; ++ch)
+            {
+                const auto* src = pdOutputBuffer.data() + tickOffset * pdOutputChannels + ch;
+                auto* dest = analysisChannels[(size_t) ch];
+
+                for (int i = 0; i < numToCopy; ++i)
+                    dest[i] = src[i * pdOutputChannels];
+            }
+
+            analyser->pushBlock (analysisChannels.data(), pdOutputChannels, numToCopy);
+        }
+
         samplesLeftInTick -= numToCopy;
         sampleIndex += numToCopy;
     }
@@ -325,24 +362,28 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
     // The whole block is now rendered, so the recorder can take it in one
     // go. Device channels JUCE gave us as null are recorded as silence, so
     // the file always has exactly the engine's channel count.
+    // What is recorded is what the device is running, not what the patch
+    // renders: a session take stays stereo when the player chose stereo, even
+    // though the patch is rendering 14 channels for the analyser. Device
+    // channels JUCE gave us as null are recorded as silence, so the file
+    // always has exactly that channel count.
+    const auto channelsToRecord = juce::jmin (deviceOutputChannels > 0 ? deviceOutputChannels
+                                                                       : pdOutputChannels,
+                                              pdOutputChannels);
+
     if (recorder != nullptr
-        && pdOutputChannels > 0
-        && (int) recordChannels.size() >= pdOutputChannels
+        && channelsToRecord > 0
+        && (int) recordChannels.size() >= channelsToRecord
         && (size_t) numSamples <= recordSilence.size())
     {
-        for (int ch = 0; ch < pdOutputChannels; ++ch)
+        for (int ch = 0; ch < channelsToRecord; ++ch)
             recordChannels[(size_t) ch] = (ch < numOutputChannels && outputChannelData[ch] != nullptr)
                                             ? outputChannelData[ch]
                                             : recordSilence.data();
 
-        recorder->write (recordChannels.data(), pdOutputChannels, numSamples);
+        recorder->write (recordChannels.data(), channelsToRecord, numSamples);
     }
 
-    // The same blocks go to the spectral analyser, which only copies them
-    // here; the transform happens on the message thread.
-    if (analyser != nullptr)
-        analyser->pushBlock (outputChannelData,
-                             juce::jmin (numOutputChannels, pdOutputChannels), numSamples);
 }
 
 void FormulsEngine::audioDeviceStopped()

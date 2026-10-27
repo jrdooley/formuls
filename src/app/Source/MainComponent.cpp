@@ -14,6 +14,14 @@ namespace formuls
 // master bus on its own output pair. Add entries here to offer other counts.
 static const int kChannelChoices[] = { 2, 14 };
 
+// A UX-logging build boots the patch with every channel, whatever the player
+// chose to hear, so the spectral analyser can measure each synth and bus
+// separately while the speakers still get plain stereo (see
+// SpectralAnalyser.h and docs/uxlog-spectral/README.md). The player's choice
+// is unaffected: it is still what the device opens with and what a session
+// recording contains.
+static constexpr int kPatchChannelsForAnalysis = 14;
+
 // The sample rates offered in the "Sample rate" combo box. 48 kHz is the
 // default (the rate the patch was designed at). If a device cannot run at
 // the chosen rate the engine falls back to what the device supports and
@@ -451,9 +459,13 @@ void MainComponent::startEverything()
         engine.setDirectGui ([this] (const juce::uint8* data, int size)
                              { embeddedGui.receivePatchPacket (data, size); });
 
+    const auto patchChannels = OpenStageControlProcess::isUxLogBuild (resourceRoot)
+                                 ? kPatchChannelsForAnalysis : 0;
+
     if (auto result = engine.start (deviceManager, outputDeviceNames[deviceIndex],
                                     outputDeviceTypes[deviceIndex],
-                                    numChannels, requestedRate, resourceRoot);
+                                    numChannels, requestedRate, resourceRoot,
+                                    patchChannels);
         result.failed())
     {
         setStatus (result.getErrorMessage());
@@ -516,7 +528,7 @@ void MainComponent::startSessionRecording()
     setStatus ("Running. UX logging and recording this session to "
                + destination.getFullPathName());
 
-    startSpectralLogging (numChannels, sampleRate);
+    startSpectralLogging (engine.getNumPatchChannels(), sampleRate);
 
     // The first block's time is only known once the audio thread has handed
     // one over, so report the start a moment later. The log server may also
@@ -557,7 +569,8 @@ void MainComponent::startSpectralLogging (int numChannels, double sampleRate)
     ev->setProperty ("k", "spec-start");
     ev->setProperty ("hz", hz);
     ev->setProperty ("n", SpectralAnalyser::windowSize);
-    ev->setProperty ("ch", numChannels);
+    ev->setProperty ("ch", numChannels);                       // channels analysed
+    ev->setProperty ("audible", engine.getNumOutputChannels()); // channels the player hears
     ev->setProperty ("sr", sampleRate);
     sendUxLogEvent (juce::var (ev));
 }

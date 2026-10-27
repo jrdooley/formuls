@@ -86,6 +86,13 @@ public:
                                  selected first; pass an empty string to
                                  leave the current type alone.
         @param numOutputChannels number of output channels to open (2 or 14)
+        @param enginePatchChannels boot libpd with at least this many output
+                                 channels, whatever the device opens. The
+                                 channels past the device's go nowhere except
+                                 the spectral analyser, which is the point:
+                                 the individual synth and bus outs can be
+                                 measured while the player hears plain stereo.
+                                 0 (the default) means "same as the device".
         @param sampleRate        requested sample rate in Hz. If the device
                                  cannot run at this rate, whatever rate it
                                  does open at is used instead, and libpd is
@@ -98,7 +105,8 @@ public:
                         const juce::String& outputDeviceType,
                         int numOutputChannels,
                         double sampleRate,
-                        const juce::File& resourceRoot);
+                        const juce::File& resourceRoot,
+                        int enginePatchChannels = 0);
 
     /** Boots libpd and loads pd/_main.pd without opening an audio device,
         for a plugin: the host then drives the audio through processHosted().
@@ -124,9 +132,16 @@ public:
         analyser costs the audio thread one copy per channel. */
     void setSpectralAnalyser (SpectralAnalyser* analyserToUse) noexcept  { analyser = analyserToUse; }
 
-    /** The number of output channels the engine is running with (0 when
-        stopped). This is what a recording should have. */
-    int getNumOutputChannels() const noexcept   { return running ? pdOutputChannels : 0; }
+    /** The number of output channels the device is running with (0 when
+        stopped). This is what a recording should have: the patch may be
+        rendering more (see enginePatchChannels), but those never leave the
+        app. */
+    int getNumOutputChannels() const noexcept   { return running ? deviceOutputChannels : 0; }
+
+    /** How many channels the patch is actually rendering (0 when stopped).
+        Equal to getNumOutputChannels() unless start() was given
+        enginePatchChannels. This is what the spectral analyser sees. */
+    int getNumPatchChannels() const noexcept    { return running ? pdOutputChannels : 0; }
 
     /** The sample rate the audio device actually opened at (0 when stopped).
         May differ from the rate passed to start() if the device could not
@@ -232,7 +247,16 @@ private:
     AudioRecorder* recorder = nullptr;
 
     // Spectral analysis tap, for UX-logging builds (SpectralAnalyser.h).
+    // analysisScratch de-interleaves one libpd tick for it, and is sized once
+    // at boot so the audio thread never allocates. analysisChannels points
+    // into it, one pointer per patch channel.
     SpectralAnalyser* analyser = nullptr;
+    std::vector<float> analysisScratch;
+    std::vector<float*> analysisChannels;
+
+    // What the device opened with, which is what the player hears and what a
+    // recording gets. pdOutputChannels can be larger.
+    int deviceOutputChannels = 0;
     std::vector<const float*> recordChannels;
     std::vector<float> recordSilence;
 

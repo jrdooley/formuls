@@ -110,6 +110,47 @@ and *low* for dense ones (0.27 for white noise). It is a measure of spectral
 sparsity against density, not of "roughness"; reading it as roughness would
 invert every conclusion drawn from it.
 
+## The patch renders more than the player hears
+
+In a UX-logging build the patch is booted with **14 channels whatever the
+player chose**, while the audio device opens with their choice. So the
+individual synth and bus outs always exist for the analyser, and the player
+still hears plain stereo out of channels 1 and 2; channels 3–14 go nowhere but
+the analyser.
+
+What this does and does not change:
+
+| | with the player on stereo |
+|---|---|
+| what the device opens | 2 channels, as chosen |
+| what reaches the speakers | channels 1–2 only |
+| what the session recording contains | 2 channels — a take stays ~100 MB an hour |
+| what the analyser measures | all 14 |
+
+Three details that make it work. `start()` takes `enginePatchChannels` and
+boots libpd with the larger of that and the device's count, leaving the device
+setup alone. `render()` de-interleaves **every** patch channel into scratch
+allocated at boot and hands it to the analyser one libpd tick at a time, so
+the audio thread never allocates and the device copy is untouched. And the
+recorder is now driven by the **device's** channel count rather than the
+patch's — without that, a UX-logging build would silently have started writing
+14-channel session audio, at seven times the size, which is the very cost this
+design exists to avoid.
+
+The `spec-start` frame records both numbers: `ch` is how many channels are
+analysed, `audible` how many the player hears.
+
+**Expected cost: a copy, not DSP.** Pd computes the whole signal graph
+whichever channels the device took — only the final write to an unopened
+channel is dropped — so the synths and buses feeding `dac~ 3`–`14` were
+already being computed in stereo mode. The extra work is de-interleaving
+twelve more channels per tick. That expectation has not been measured yet;
+compare CPU with the patch on 2 and on 14 before a long session.
+
+Only a UX-logging build does this: `MainComponent` passes
+`kPatchChannelsForAnalysis` when `isUxLogBuild()`, and 0 otherwise, so a
+release build boots exactly as before.
+
 ## Threading
 
 `pushBlock()` runs on the audio thread and does no transform: it copies samples
@@ -125,11 +166,8 @@ A frame is a **snapshot**: it describes one 1024-sample window (21 ms at
 
 ## What is not settled
 
-- **Per-synth descriptors need the channel count set to 14.** The engine boots
-  Pd with the chosen output channel count, so in stereo mode the per-synth
-  buses are not computed at all and there is nothing to analyse but the
-  master. Booting Pd with 14 while the device runs 2 would give per-synth
-  analysis on any device, and is the obvious next step.
+- ~~Per-synth descriptors need the channel count set to 14.~~ **Done.** See
+  *The patch renders more than the player hears* above.
 - **Which channel is which is not written down.** The patch has `dac~ 1 2 3 4
   5 6 7 8` and `dac~ 9 10 11 12 13 14`, and stereo mode uses 1–2, but the map
   from the other twelve to synths and buses is not documented anywhere yet.

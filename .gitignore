@@ -81,6 +81,11 @@ desktop.ini
 xcuserdata/
 *.xcuserdatad/
 
+# Android packages built from the android-experimental branch: a release
+# APK is over 100 MB, which GitHub refuses outright, and one "git add -A"
+# is all it takes.
+*.apk
+
 # release downloads (docs/release.md)
 formuls-*.zip
 formuls-*.tar.gz
