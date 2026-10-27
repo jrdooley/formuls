@@ -45,6 +45,7 @@
 #include "AudioRecorder.h"
 #include "OscBridge.h"
 #include "PdOscOut.h"
+#include "SpectralAnalyser.h"
 
 namespace formuls
 {
@@ -116,6 +117,12 @@ public:
         is stopped (MainComponent does it once, at construction); the
         recorder itself decides when a block is actually written. */
     void setRecorder (AudioRecorder* recorderToUse) noexcept  { recorder = recorderToUse; }
+
+    /** Attaches the spectral analyser every rendered block is handed to, or
+        nullptr to detach. Message thread, engine stopped. Only a UX-logging
+        build attaches one; pushBlock() does no transform, so an attached
+        analyser costs the audio thread one copy per channel. */
+    void setSpectralAnalyser (SpectralAnalyser* analyserToUse) noexcept  { analyser = analyserToUse; }
 
     /** The number of output channels the engine is running with (0 when
         stopped). This is what a recording should have. */
@@ -223,6 +230,9 @@ private:
     // audioDeviceAboutToStart() so the audio callback never allocates;
     // recordSilence stands in for any device channel JUCE hands us as null.
     AudioRecorder* recorder = nullptr;
+
+    // Spectral analysis tap, for UX-logging builds (SpectralAnalyser.h).
+    SpectralAnalyser* analyser = nullptr;
     std::vector<const float*> recordChannels;
     std::vector<float> recordSilence;
 

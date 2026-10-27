@@ -32,6 +32,7 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `in` | values the sound engine sent to the GUI that **modulate the sound** (LFOs, chaos, automation, `extmodulation`): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
 | `disp` | **display feedback**: values the engine sent to the GUI that the player never sets and that change no sound — the sequencer playhead (`/seqpos*`), the step it is on (`/sequencerstep*`) and the pitch readout (`/oscpitchgui*`). Framed exactly like `in`, in its own stream |
 | `snap` | every widget's value: when a tablet connects, every 5 minutes, after a preset load |
+| `spec` | **spectral descriptors**: every engine channel's level (`db`) and its spectral centroid, spread, flatness, irregularity and skewness, at `FORMULS_UXLOG_SPEC_HZ` frames a second (default 5). Written by the app, not the tablet. `spec-start` records the frame rate, window size, channel count and sample rate. See `docs/uxlog-spectral/README.md` |
 | `preset` | a preset load from the app window |
 | `client`, `hidden`/`visible`, `resize`, `orientation` | session context |
 

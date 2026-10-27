@@ -516,6 +516,8 @@ void MainComponent::startSessionRecording()
     setStatus ("Running. UX logging and recording this session to "
                + destination.getFullPathName());
 
+    startSpectralLogging (numChannels, sampleRate);
+
     // The first block's time is only known once the audio thread has handed
     // one over, so report the start a moment later. The log server may also
     // still be loading the layout; o-s-c handles OSC once it is listening.
@@ -535,6 +537,42 @@ void MainComponent::startSessionRecording()
             ev->setProperty ("buffer", device->getCurrentBufferSizeSamples());
         safeThis->sendUxLogEvent (juce::var (ev));
     });
+}
+
+void MainComponent::startSpectralLogging (int numChannels, double sampleRate)
+{
+    // Spectral descriptors are logged rather than recorded: 14 channels of
+    // audio would be about 700 MB an hour, these frames about 15 MB. With the
+    // channel count set to 14 each entry is one synth or bus; with 2 it is the
+    // master mix. See SpectralAnalyser.h and docs/uxlog-spectral/README.md.
+    const auto requested = juce::SystemStats::getEnvironmentVariable ("FORMULS_UXLOG_SPEC_HZ", {})
+                               .getIntValue();
+    const auto hz = juce::jlimit (1, 50, requested > 0 ? requested : 5);
+
+    spectral.prepare (numChannels, sampleRate);
+    engine.setSpectralAnalyser (&spectral);
+    spectralTick.startTimerHz (hz);
+
+    auto* ev = new juce::DynamicObject();
+    ev->setProperty ("k", "spec-start");
+    ev->setProperty ("hz", hz);
+    ev->setProperty ("n", SpectralAnalyser::windowSize);
+    ev->setProperty ("ch", numChannels);
+    ev->setProperty ("sr", sampleRate);
+    sendUxLogEvent (juce::var (ev));
+}
+
+void MainComponent::stopSpectralLogging()
+{
+    spectralTick.stopTimer();
+    engine.setSpectralAnalyser (nullptr);
+    spectral.reset();
+}
+
+void MainComponent::spectralTimerCallback()
+{
+    if (auto frame = spectral.takeFrame(); ! frame.isVoid())
+        sendUxLogEvent (frame);
 }
 
 void MainComponent::sendUxLogEvent (const juce::var& event)
@@ -566,6 +604,10 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
 
     if (wasRecording)
         finishRecording (offerToSaveRecording);
+
+    // Detach the analyser before the engine goes away: pushBlock() is called
+    // from its audio thread.
+    stopSpectralLogging();
 
     openStageControl.stop();
     embeddedGui.stop();

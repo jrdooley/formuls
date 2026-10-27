@@ -52,6 +52,7 @@
 #include "SessionReplayer.h"
 #include "ResourceLocator.h"
 #include "StereoMeter.h"
+#include "SpectralAnalyser.h"
 
 namespace formuls
 {
@@ -114,6 +115,15 @@ private:
     void beginReplay (const juce::File& sessionLog);
     void stopReplay();
     void replayTimerCallback();
+
+    /** Sends one "spec" frame -- every engine channel's level and spectral
+        descriptors -- to the session log. Runs at FORMULS_UXLOG_SPEC_HZ. */
+    void spectralTimerCallback();
+
+    /** Starts/stops the spectral logging timer and its analyser tap. Only a
+        UX-logging build calls these; stopping is safe when not started. */
+    void startSpectralLogging (int numChannels, double sampleRate);
+    void stopSpectralLogging();
 
     /** The uxaudio file a session log's rec-start event names, or {} . */
     static juce::File findSessionAudio (const juce::File& sessionLog);
@@ -197,6 +207,11 @@ private:
     juce::Label replayTimeLabel;
     std::unique_ptr<juce::FileChooser> replayChooser;
     juce::TimedCallback replayTick { [this] { replayTimerCallback(); } };
+
+    // Spectral descriptors per engine channel, written to the session log by
+    // a UX-logging build only (SpectralAnalyser.h, docs/uxlog-spectral/).
+    SpectralAnalyser spectral;
+    juce::TimedCallback spectralTick { [this] { spectralTimerCallback(); } };
     juce::TextEditor addressPanel;
     StereoMeter vuMeter;
     juce::Label statusLabel;

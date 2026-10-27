@@ -25,18 +25,26 @@
       <FILE id="srcRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="Source/ResourceLocator.h"/>
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
-      <FILE id="srcSR0" name="SessionReplayer.h" compile="0" resource="0" file="Source/SessionReplayer.h"/>
+      <FILE id="srcSA0" name="SpectralAnalyser.h" compile="0" resource="0"
+            file="Source/SpectralAnalyser.h"/>
+      <FILE id="srcSA1" name="SpectralAnalyser.cpp" compile="1" resource="0"
+            file="Source/SpectralAnalyser.cpp"/>
+      <FILE id="srcSR0" name="SessionReplayer.h" compile="0" resource="0"
+            file="Source/SessionReplayer.h"/>
       <FILE id="srcOB0" name="OscBridge.h" compile="0" resource="0" file="Source/OscBridge.h"/>
       <FILE id="srcOB1" name="OscBridge.cpp" compile="1" resource="0" file="Source/OscBridge.cpp"/>
-      <FILE id="srcWS0" name="WebSocketServer.h" compile="0" resource="0" file="Source/WebSocketServer.h"/>
-      <FILE id="srcWS1" name="WebSocketServer.cpp" compile="1" resource="0" file="Source/WebSocketServer.cpp"/>
-      <FILE id="srcEG0" name="EmbeddedGuiServer.h" compile="0" resource="0" file="Source/EmbeddedGuiServer.h"/>
+      <FILE id="srcWS0" name="WebSocketServer.h" compile="0" resource="0"
+            file="Source/WebSocketServer.h"/>
+      <FILE id="srcWS1" name="WebSocketServer.cpp" compile="1" resource="0"
+            file="Source/WebSocketServer.cpp"/>
+      <FILE id="srcEG0" name="EmbeddedGuiServer.h" compile="0" resource="0"
+            file="Source/EmbeddedGuiServer.h"/>
       <FILE id="srcEG1" name="EmbeddedGuiServer.cpp" compile="1" resource="0"
             file="Source/EmbeddedGuiServer.cpp"/>
     </GROUP>
     <GROUP id="frmAst" name="Assets">
-      <FILE id="astIc0" name="formuls-app-icon-blackwhite.png" compile="0" resource="1"
-            file="../icons/formuls-app-icon-blackwhite.png"/>
+      <FILE id="astIc0" name="formuls-app-icon-blackwhite.png" compile="0"
+            resource="1" file="../icons/formuls-app-icon-blackwhite.png"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
@@ -55,9 +63,11 @@
     <XCODE_MAC targetFolder="Builds/MacOSX" smallIcon="astIc0" bigIcon="astIc0"
                externalLibraries="pd" extraLinkerFlags="-Wl,-rpath,@executable_path/../Frameworks -Wl,-rpath,@executable_path/../../../../../../../../libs/libpd/libs">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="formuls" macOSDeploymentTarget="12.0" headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+        <CONFIGURATION isDebug="1" name="Debug" targetName="formuls" macOSDeploymentTarget="12.0"
+                       headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
                        libraryPath="../../../libs/libpd/libs"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="formuls" macOSDeploymentTarget="12.0" headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
+        <CONFIGURATION isDebug="0" name="Release" targetName="formuls" macOSDeploymentTarget="12.0"
+                       headerPath="../../../libs/libpd/cpp&#10;../../../libs/libpd/libpd_wrapper&#10;../../../libs/libpd/libpd_wrapper/util&#10;../../../libs/libpd/pure-data/src"
                        libraryPath="../../../libs/libpd/libs"/>
       </CONFIGURATIONS>
       <MODULEPATHS>

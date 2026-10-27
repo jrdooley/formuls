@@ -337,6 +337,12 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
 
         recorder->write (recordChannels.data(), pdOutputChannels, numSamples);
     }
+
+    // The same blocks go to the spectral analyser, which only copies them
+    // here; the transform happens on the message thread.
+    if (analyser != nullptr)
+        analyser->pushBlock (outputChannelData,
+                             juce::jmin (numOutputChannels, pdOutputChannels), numSamples);
 }
 
 void FormulsEngine::audioDeviceStopped()
