@@ -40,14 +40,35 @@ interaction design. Standard library only. Writes to DIR (default
   modes.csv     the same measures summed per layer (main, chaos, lfofreq,
                 lfodepth, moddepth, mod, label) across all parameters, and
                 how often several modes were on at once
-  gestures.csv  one row per completed gesture, for your own statistics
+  gestures.csv  one row per completed gesture, for your own statistics, each
+                tagged with the REGIME it was made in (see below)
+  widgets-by-regime.csv
+                widgets.csv split by regime, because a median over touches
+                made in different regimes describes neither of them
   heatmap.html  touch-down positions over the screen, per client session,
                 misses in a different colour
-  sound.csv     with --audio: for every gesture, the sound in the session
+  sound.csv     with --audio, and tagged with the gesture's regime -- read the
+                before-and-after of a "static" row, and treat an "active" one
+                as the network's sound rather than the gesture's:
+                for every gesture, the sound in the session
                 recording (uxaudio-*.ogg, found next to the log) before,
                 during and after it -- loudness (RMS dBFS) and brightness
                 (spectral centroid, Hz) -- and how much the gesture changed
                 them. Needs: pip install numpy soundfile
+
+Regime: whether the engine was modulating the sound while the gesture was
+made. "static" means no address in the "in" stream changed within
+--regime-ms of it, so the player's hand was the only thing moving the sound
+and the before-and-after in sound.csv attributes the change to the gesture.
+"active" means modulation was running (mod_n counts the addresses), so that
+difference mixes the gesture with the network and -- where the network feeds
+back on itself -- cannot be separated from it at all. Pool the two and the
+result describes neither, which is why widgets-by-regime.csv exists and why
+sound.csv carries the tag. Display feedback (the sequencer playhead, the step
+number, the pitch readout) is not modulation and never counts: builds from
+2026-10-27 log it separately as "disp", and in an older log the addresses
+listed in DISPLAY_FEEDBACK below are moved out of "in" here, which the run
+reports.
 
 Timing: the log's "st" stamps arrive in 500 ms batches, so they are late.
 Each batch also carries "ft", the tablet's clock as it was sent, so st - ft
@@ -68,6 +89,7 @@ without "ft" fall back to st - t, which is up to 500 ms less precise). Sample 0 
 import argparse
 import collections
 import csv
+import bisect
 import json
 import pathlib
 import re
@@ -84,6 +106,55 @@ def load(paths):
                         yield json.loads(line)
                     except json.JSONDecodeError:
                         pass  # a line cut short when the app was killed
+
+
+# What the module writes to the "disp" stream from 2026-10-27 (28439b1): values
+# the player never sets and that change no sound, so never evidence that the
+# engine was modulating. Kept here only to reclassify logs recorded before that
+# change, where they still arrive in "in". Keep in step with DISPLAY_FEEDBACK in
+# formuls-uxlog-module.js.
+DISPLAY_FEEDBACK = (
+    re.compile(r'^/seqpos\d*$'),
+    re.compile(r'^/sequencerstep\d*$'),
+    re.compile(r'^/oscpitchgui\d*$'),
+)
+
+
+def is_display_feedback(address):
+    return any(r.match(address) for r in DISPLAY_FEEDBACK)
+
+
+def regimes(events, gestures, window_ms):
+    """Tag each gesture with the engine's state while it was made.
+
+    Returns the number of addresses reclassified out of a pre-28439b1 log.
+    """
+    split_log = any(e['k'] == 'disp' for e in events)
+    moved = set()
+    frames = []
+    for e in events:
+        if e['k'] != 'in':
+            continue
+        addrs = set(e.get('m') or {})
+        if not split_log:
+            display = {a for a in addrs if is_display_feedback(a)}
+            moved |= display
+            addrs -= display
+        if addrs:
+            frames.append((e['st'], addrs))
+    frames.sort()
+    stamps = [f[0] for f in frames]
+    off = clock_offsets(events)
+    for g in gestures:
+        shift = off.get(g['s'])
+        end = g['t'] + shift if shift is not None else g['st']
+        lo, hi = end - g['dur'] - window_ms, end + window_ms
+        active = set()
+        for i in range(bisect.bisect_left(stamps, lo), bisect.bisect_right(stamps, hi)):
+            active |= frames[i][1]
+        g['mod_n'] = len(active)
+        g['regime'] = 'active' if active else 'static'
+    return len(moved)
 
 
 def layout_ids(path):
@@ -121,6 +192,8 @@ def main():
                     help='finger travel of a sweep, as a multiple of its net movement')
     ap.add_argument('--sweep-turns', type=int, default=4, help='direction changes a sweep has at least')
     ap.add_argument('--layout', help='_main.json, to add its literal widget ids to untouched.txt')
+    ap.add_argument('--regime-ms', type=int, default=1000,
+                    help='modulation this close to a gesture makes its regime "active"')
     ap.add_argument('--tab-miss-ms', type=int, default=250,
                     help='a pre-2026-10-23 miss this close to a tab switch is that tab tap')
     ap.add_argument('--audio', action='store_true', help='measure the sound around each gesture')
@@ -186,6 +259,11 @@ def main():
         g['sweep'] = bool(g['dur'] >= a.sweep_ms and g['path'] >= a.sweep_ratio * max(g['dist'], 1)
                           and (turns or 0) >= a.sweep_turns)
 
+    moved = regimes(events, gestures, a.regime_ms)
+    if moved:
+        print(f'{moved} display-feedback address(es) moved out of the "in" stream: '
+              f'log predates formuls 28439b1')
+
     by = collections.defaultdict(list)
     for g in gestures:
         by[g['w']].append(g)
@@ -193,6 +271,15 @@ def main():
     rows = [dict({'widget': w, 'type': gs[0].get('wt')}, **measures(gs, 'regrab')) for w, gs in by.items()]
     rows.sort(key=lambda r: -r['touches'])
     write_csv(out / 'widgets.csv', rows)
+
+    wr = collections.defaultdict(list)
+    for g in gestures:
+        wr[(g['w'], g['regime'])].append(g)
+    wrows = [dict({'widget': w, 'type': gs[0].get('wt'), 'regime': reg,
+                   'mod_n_median': int(statistics.median(g['mod_n'] for g in gs))},
+                  **measures(gs, 'regrab')) for (w, reg), gs in wr.items()]
+    wrows.sort(key=lambda r: (-r['touches'], r['widget'], r['regime']))
+    write_csv(out / 'widgets-by-regime.csv', wrows)
 
     sliders = collections.defaultdict(list)
     for g in gestures:
@@ -232,8 +319,8 @@ def main():
 
     write_csv(out / 'gestures.csv', [
         dict({k: g.get(k) for k in ('st', 's', 'c', 'w', 'wt', 'param', 'layer', 'cell', 'addr', 'k', 'dur',
-                                    'dist', 'path', 'left', 'changes', 'sweep', 'sent_n', 'sent_rev',
-                                    'finger_turns', 'regrab', 'v0', 'v1')},
+                                    'dist', 'path', 'left', 'changes', 'sweep', 'regime', 'mod_n',
+                                    'sent_n', 'sent_rev', 'finger_turns', 'regrab', 'v0', 'v1')},
              display_reversals=g.get('reversals')) for g in gestures])
 
     heatmap(out / 'heatmap.html', downs, viewports)
@@ -241,7 +328,9 @@ def main():
     if a.audio:
         sound(out / 'sound.csv', events, gestures, a)
 
-    print(f'{len(gestures)} gestures, {len(misses)} misses '
+    static = sum(g['regime'] == 'static' for g in gestures)
+    print(f'{len(gestures)} gestures ({static} static, {len(gestures) - static} with the '
+          f'engine modulating), {len(misses)} misses '
           f'({tab_misses} tab tap(s) dropped), {len(tabs)} tab switches '
           f'over {len(downs)} client session(s) -> {out}/')
 
@@ -322,6 +411,7 @@ def sound(path, events, gestures, a):
         post = feats(clip(end, end + a.post_ms), sr)
         delta = lambda i: round(post[i] - pre[i], 1) if None not in (pre[i], post[i]) else ''
         rows.append({'st': round(start), 'session': g['s'], 'widget': g['w'], 'type': g.get('wt'),
+                     'regime': g.get('regime'), 'mod_n': g.get('mod_n'),
                      'dur': g['dur'], 'reversals': g['reversals'], 'v0': g.get('v0'), 'v1': g.get('v1'),
                      'audio_file': rec['file'], 'audio_s': round((start - rec['first_block_st']) / 1000, 3),
                      'db_pre': pre[0], 'db_during': dur[0], 'db_post': post[0], 'db_change': delta(0),

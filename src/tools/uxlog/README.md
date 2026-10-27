@@ -89,6 +89,21 @@ of what counts as display feedback is `DISPLAY_FEEDBACK` at the top of
 `formuls-uxlog-module.js`; add to it there rather than filtering downstream.
 Replay reads both streams, since both are widget values it has to redraw.
 
+**Every gesture is tagged with a regime**, and `widgets-by-regime.csv` splits
+the per-widget measures by it. `static` means nothing in the `in` stream
+changed within `--regime-ms` (1 s) of the gesture, so the player's hand was the
+only thing moving the sound and `sound.csv`'s before-and-after really is that
+gesture's. `active` means modulation was running (`mod_n` counts the
+addresses), so the same difference mixes the gesture with the network, and
+where the network feeds back on itself the two cannot be separated at all.
+Pooling the two into one median per widget describes neither: over the pilot
+sessions, the median gesture changed loudness by 0.7 dB in the static regime
+and 2.2 dB in the active one, and the pooled figure was the active one in
+disguise, because 196 of 226 gestures were made with the engine modulating.
+A log recorded before the `disp` split still carries display feedback in `in`;
+the analyser moves those addresses out and says so, so logs from either side of
+that change are tagged the same way.
+
 Two things the analyser does that are worth knowing about, because both decide
 headline numbers:
 
