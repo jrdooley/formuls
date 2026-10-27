@@ -198,6 +198,45 @@ figure.
 connected to every inlet of `dac~ 1 2 3 4 5 6 7 8`. If it is ever left on, it
 is on all eight at once and on none of 9–14.
 
+## Checked on a real build
+
+A `FORMULS_UXLOG=1` build, run on 27 October 2026 against the "SoundDesk
+Virtual Cable" output with the channel count on **2** and
+`FORMULS_UXLOG_SPEC_HZ=10`, driven over OSC to udp 9000 and stopped cleanly
+with `/pd`.
+
+**The design works as intended.** `spec-start` reports `ch: 14, audible: 2`:
+the patch rendered all fourteen channels while the device ran two. 329 frames
+were logged over the session.
+
+**The descriptors are right on real audio.** `/testtone 1` plays `osc~ 440`
+through `dac~ 1`-`8`, and the frames that caught it read:
+
+| channel | db | centroid | spread | flatness | irregularity | skew |
+|---|---|---|---|---|---|---|
+| 0-7 | -35.8 | **440** | 64 | 0.00002 | 0.623 | 46.9 |
+| 8-13 | -180 | - | - | - | - | - |
+
+Centroid 440 Hz for a 440 Hz sine, flatness at the tonal extreme, and
+irregularity 0.62 against the synthetic sine's 0.64. The tone appearing on
+channels 0-7 and on none of 8-13 is an independent confirmation of the channel
+map: `TEST_TONE~~~` is wired to the first `dac~` and nothing else.
+
+Only two of the 329 frames caught it, because the test tone is a 100 ms blip
+(`1, 0 100` into `vline~`), not a sustained tone - at 10 Hz that is about what
+should be caught.
+
+`analyse-uxlog.py` read the same log without complaint: `channels.csv` gives
+`sounding_share` 0.01 for channels 0-7 and 0.00 for 8-13, with descriptors
+only where there was sound. (`spectral.csv` is empty for this log: the session
+had no touches, so there are no gestures to put either side of.)
+
+**One defect this run found.** `spec-start` was missing from the log entirely
+on the first attempt - 209 frames and no header. It was being sent the moment
+spectral logging began, while the Open Stage Control server was still loading
+the layout, so the datagram went nowhere. It is now delayed 1.5 seconds, the
+same way `rec-start` already was and for the same reason.
+
 ## Threading
 
 `pushBlock()` runs on the audio thread and does no transform: it copies samples
@@ -223,9 +262,9 @@ A frame is a **snapshot**: it describes one 1024-sample window (21 ms at
   channel over the whole session). The frames are sparse — at 5 Hz a 500 ms
   window holds two or three — so each figure is a mean over a handful of
   frames rather than a reading.
-- **The descriptors have never run on real audio.** Everything so far is a
-  synthetic-signal check of the formulas and a fixture check of the reader.
-  A session on a UX-logging build is what will show whether the numbers are
-  informative about this instrument in practice — and it belongs in the
-  column-coverage pilot, where the integrity check is easy: move the master
-  volume and `db` should shift on channels 0–7 and hold on 8–13.
+- **The synth channels have not been exercised.** See *Checked on a real
+  build* below: the test tone verified the chain, but nothing has yet made a
+  synth sound while the stream was running, so channels 9–14 have only ever
+  reported silence, and the master-amp cross-check (level moves on 1–8, holds
+  on 9–14) is still untested. Both need notes, which means either the right
+  OSC message for the on-screen keyboard or a few minutes of actual playing.

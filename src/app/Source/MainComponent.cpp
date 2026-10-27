@@ -185,6 +185,27 @@ MainComponent::MainComponent()
                 channels > 0)
                 safeThis->channelsBox.setSelectedId (channels);
 
+            // FORMULS_TEST_DEVICE picks the first output device whose name
+            // contains this text, instead of the first in the list. A test
+            // that makes sound should not have to use whatever device the
+            // machine happens to list first -- a virtual cable keeps it off
+            // the speakers.
+            if (auto wanted = juce::SystemStats::getEnvironmentVariable (
+                                  "FORMULS_TEST_DEVICE", {}); wanted.isNotEmpty())
+            {
+                for (int i = 0; i < safeThis->audioDeviceBox.getNumItems(); ++i)
+                {
+                    if (safeThis->audioDeviceBox.getItemText (i).containsIgnoreCase (wanted))
+                    {
+                        safeThis->audioDeviceBox.setSelectedItemIndex (i);
+                        break;
+                    }
+                }
+
+                juce::Logger::writeToLog ("test device: "
+                                          + safeThis->audioDeviceBox.getText());
+            }
+
             safeThis->startOnLaunch();
 
             // FORMULS_TEST_RECORD_SECONDS records for that long and finishes
@@ -565,14 +586,25 @@ void MainComponent::startSpectralLogging (int numChannels, double sampleRate)
     engine.setSpectralAnalyser (&spectral);
     spectralTick.startTimerHz (hz);
 
-    auto* ev = new juce::DynamicObject();
-    ev->setProperty ("k", "spec-start");
-    ev->setProperty ("hz", hz);
-    ev->setProperty ("n", SpectralAnalyser::windowSize);
-    ev->setProperty ("ch", numChannels);                       // channels analysed
-    ev->setProperty ("audible", engine.getNumOutputChannels()); // channels the player hears
-    ev->setProperty ("sr", sampleRate);
-    sendUxLogEvent (juce::var (ev));
+    // Delayed for the same reason rec-start is: the log server may still be
+    // loading the layout when the engine starts, and a datagram sent before
+    // it listens is simply lost. A first run without this delay logged 209
+    // spec frames and no spec-start at all.
+    juce::Timer::callAfterDelay (1500, [safeThis = juce::Component::SafePointer (this),
+                                        hz, numChannels, sampleRate]
+    {
+        if (safeThis == nullptr || ! safeThis->spectralTick.isTimerRunning())
+            return;
+
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "spec-start");
+        ev->setProperty ("hz", hz);
+        ev->setProperty ("n", SpectralAnalyser::windowSize);
+        ev->setProperty ("ch", numChannels);                        // channels analysed
+        ev->setProperty ("audible", safeThis->engine.getNumOutputChannels()); // channels heard
+        ev->setProperty ("sr", sampleRate);
+        safeThis->sendUxLogEvent (juce::var (ev));
+    });
 }
 
 void MainComponent::stopSpectralLogging()

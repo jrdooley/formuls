@@ -140,6 +140,21 @@ headline numbers:
   built, **open every tab during a session** or the widgets in an unopened tab
   will be missing from the universe rather than listed as cold.
 
+## Driving a build without touching it
+
+Useful for checking the log end to end. A build with
+`GCC_PREPROCESSOR_DEFINITIONS` including `FORMULS_AUTOSTART_TEST=1` starts the
+engine a second after launch, and these pick what it starts with:
+`FORMULS_TEST_DEVICE` (first output device whose name contains this text --
+point it at a virtual cable to keep a test off the speakers),
+`FORMULS_TEST_CHANNELS`, `FORMULS_TEST_SAMPLERATE`,
+`FORMULS_TEST_RECORD_SECONDS`.
+
+The engine then takes OSC on udp 9000 exactly as the GUI's would:
+`/testtone 1` plays a 100 ms 440 Hz blip through channels 1-8,
+`/volumemaster <0-1>` is the master volume, and `/pd 1` quits -- which matters,
+because the session Ogg is only written on a clean stop.
+
 ## Replay
 
 A uxlog build has a **Replay Session...** button in the app window, available
