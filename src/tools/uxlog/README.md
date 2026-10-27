@@ -185,6 +185,17 @@ highlight, a menu that opened and closed) isn't shown.
   capture-phase pointer listeners, so it never interferes with widgets. It
   finds the widget under a touch through `container._widget_instance` and
   sends batches every 500 ms over the GUI's existing WebSocket.
+
+  **If you change this file, the `?v=` hash must change with it.**
+  `patch-osc-uxlog.py` appends a content hash to the injected `<script src>`
+  for exactly this reason. It is served as a static file with no `no-store`
+  header, so without the hash a tablet that has loaded any earlier build keeps
+  running the *old* logger. That failure is silent: the fields the new version
+  added are simply missing from the log, and the analyser prints them as empty
+  columns, which reads like "the participant never did this". It cost four
+  sessions of `finger_turns` before anyone noticed. To check which logger a
+  tablet is on, read the key set of an `up` event rather than trusting the
+  build.
 - `formuls-uxlog-module.js` is the Open Stage Control `--custom-module`. It
   writes the log and drops the logger's messages before they reach Pd.
   It wraps `formuls-module.js` if a build ships one.
