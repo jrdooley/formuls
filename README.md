@@ -25,11 +25,28 @@ Currently, there are only Apple Silicon builds for *formuls* and this has only b
 
 To run formuls:
 - Launch the formuls app.
-- Select your audio output, the number of output channels (2 is default, though you can isolate each individual synth channel as well as master bus effects), and the sample rate (48 kHz is default; if your audio interface cannot run at the chosen rate, formuls uses the nearest rate it can and tells you).
+- Select your audio output, the number of output channels (2 is default, though you can isolate each individual synth channel as well as master bus effects — see the channel map below), and the sample rate (48 kHz is default; if your audio interface cannot run at the chosen rate, formuls uses the nearest rate it can and tells you).
 - Click "Start formuls". The app then lists every web address the control GUI can be opened at — you no longer need to look up your computer's IP address yourself.
 - To access the control GUI on the computer running the formuls app, launch a web browser and go to the address listed under "On this machine" (127.0.0.1:9001).
 - To access the control GUI on an iPad or Android tablet, make sure your touchscreen device is connected to the same network as the computer, then open a browser tab on your device and go to one of the addresses listed under "On a tablet or phone on the same network" (for example, 192.168.0.1:9001). If more than one is listed, try them in order — a computer connected to several networks has an address on each. Note: the interface is designed with large screens in mind, ideally 12" (or bigger).
 - Click "Stop formuls" to shut the sound engine and control GUI down without quitting the app; closing the window quits formuls entirely.
+
+***
+### Output channels
+With the channel count set to 14, each synth and each master-bus effect comes
+out on its own channel, for multitrack recording or separate processing:
+
+| channel | what it carries |
+|---|---|
+| 1–2 | master stereo mix (what 2-channel mode plays) |
+| 3–4 | reverb, left and right |
+| 5–6 | repeater, left and right |
+| 7–8 | rolling freezer, left and right |
+| 9–14 | synths 1 to 6, one mono channel each |
+
+The six synth channels are each the average of that synth's own stereo pair, so
+they carry no panning, and they are taken before the master volume — the master
+mix and the effect returns are after it.
 
 ***
 ### Demos

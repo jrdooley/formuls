@@ -151,6 +151,53 @@ Only a UX-logging build does this: `MainComponent` passes
 `kPatchChannelsForAnalysis` when `isUxLogBuild()`, and 0 otherwise, so a
 release build boots exactly as before.
 
+## The channel map
+
+Traced from `src/pd/_main.pd`: the two `dac~` objects, the order of the
+outlets feeding them (Pd orders outlets by x position, not by object index),
+and what each of those outlets is connected to. The patch's own comments —
+"clean out", "Reverb Out", "Repeater Out", "Rolling Freezer Out" — sit under
+the matching outlet pairs and agree.
+
+| channel | `i` in a `spec` frame | what it carries |
+|---|---|---|
+| 1–2 | 0–1 | **master stereo mix**, after the limiter (`catch~ $0-limiter-l/r`, labelled "clean out"). This is what stereo mode plays |
+| 3–4 | 2–3 | **reverb** return, L then R |
+| 5–6 | 4–5 | **repeater** return, L then R |
+| 7–8 | 6–7 | **rolling freezer** return, L then R (also thrown to the limiter, so it is in the master mix too) |
+| 9 | 8 | **synth 1**, mono |
+| 10 | 9 | **synth 2**, mono |
+| 11 | 10 | **synth 3**, mono |
+| 12 | 11 | **synth 4**, mono |
+| 13 | 12 | **synth 5**, mono |
+| 14 | 13 | **synth 6**, mono |
+
+Four things to know before reading a number off one of these.
+
+**The synth channels are mono, and the effect channels are stereo.** Each
+synth channel is `(r~ N-l + r~ N-r) * 0.5` — the average of that synth's own
+stereo pair, not one side of it. So a synth's panning is invisible on its own
+channel, and a stereo-width or panning gesture will show on channels 1–2 while
+channels 9–14 barely move.
+
+**Channels 1–8 are after the master amp; 9–14 are before it.** The
+`AUDIO_SAFETY` subpatch multiplies each of the eight by the smoothed
+`$0-master-amp` (plus the 6 dB of fixed headroom described in
+`docs/headroom/`), while the synth channels are taken straight from the
+synths' sends. A gesture on the master volume therefore changes every
+descriptor's `db` on 1–8 and none on 9–14 — which is a useful cross-check, and
+a trap if the two groups are compared on level.
+
+**A synth's sound reaches the master through the effects.** Channels 9–14 are
+the dry synths; 3–8 are the master-bus returns. The same note appears on
+several channels at once, so the channels are not independent sources and
+their descriptors should not be summed or averaged into a "whole instrument"
+figure.
+
+**The test tone goes to all of 1–8.** `TEST_TONE~~~`'s single outlet is
+connected to every inlet of `dac~ 1 2 3 4 5 6 7 8`. If it is ever left on, it
+is on all eight at once and on none of 9–14.
+
 ## Threading
 
 `pushBlock()` runs on the audio thread and does no transform: it copies samples
@@ -168,11 +215,8 @@ A frame is a **snapshot**: it describes one 1024-sample window (21 ms at
 
 - ~~Per-synth descriptors need the channel count set to 14.~~ **Done.** See
   *The patch renders more than the player hears* above.
-- **Which channel is which is not written down.** The patch has `dac~ 1 2 3 4
-  5 6 7 8` and `dac~ 9 10 11 12 13 14`, and stereo mode uses 1–2, but the map
-  from the other twelve to synths and buses is not documented anywhere yet.
-  Confirm it from the patch — or by sounding one synth at a time and watching
-  which channel's `db` moves — before any analysis names a synth.
+- ~~Which channel is which is not written down.~~ **Done.** See *The channel
+  map* above.
 - **Nothing reads the stream yet.** `analyse-uxlog.py` does not use `spec`
   frames; per-gesture, per-channel spectral change is the next step, and it
   should be regime-aware in the same way `sound.csv` now is.
