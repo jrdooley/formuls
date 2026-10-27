@@ -47,6 +47,17 @@ interaction design. Standard library only. Writes to DIR (default
                 made in different regimes describes neither of them
   heatmap.html  touch-down positions over the screen, per client session,
                 misses in a different colour
+  spectral.csv  one row per gesture per engine channel, from the log's "spec"
+                frames (no audio needed): the channel's level and its spectral
+                centroid, spread, flatness, irregularity and skewness,
+                averaged over the frames before the gesture and after it, and
+                the change. Channels are named from the patch's map -- 1-2
+                master, 3-4 reverb, 5-6 repeater, 7-8 rolling freezer, 9-14
+                the six synths, one mono channel each -- so a synth's own
+                timbre can be followed while its parameters are adjusted.
+                Only channels that were above silence are listed.
+  channels.csv  the same frames per channel over the whole session: how much
+                of it each channel was sounding, and its median descriptors
   sound.csv     with --audio, and tagged with the gesture's regime -- read the
                 before-and-after of a "static" row, and treat an "active" one
                 as the network's sound rather than the gesture's:
@@ -55,6 +66,13 @@ interaction design. Standard library only. Writes to DIR (default
                 during and after it -- loudness (RMS dBFS) and brightness
                 (spectral centroid, Hz) -- and how much the gesture changed
                 them. Needs: pip install numpy soundfile
+
+Reading spectral.csv: the synth channels are each the average of that synth's
+stereo pair, so they carry no panning, and they are taken BEFORE the master
+amp while channels 1-8 are after it -- so a master-volume gesture moves the
+level on 1-8 and not on 9-14. A note also reaches the master through the
+effect returns, so the channels are not independent sources; do not sum or
+average them into one figure. See docs/uxlog-spectral/README.md.
 
 Regime: whether the engine was modulating the sound while the gesture was
 made. "static" means no address in the "in" stream changed within
@@ -155,6 +173,128 @@ def regimes(events, gestures, window_ms):
         g['mod_n'] = len(active)
         g['regime'] = 'active' if active else 'static'
     return len(moved)
+
+
+# The patch's channel map (docs/uxlog-spectral/README.md), by the channel
+# index a "spec" frame carries. Only the 14-channel layout names anything: a
+# stereo engine is the master mix alone.
+CHANNEL_NAMES_14 = ['master-l', 'master-r', 'reverb-l', 'reverb-r',
+                    'repeater-l', 'repeater-r', 'freezer-l', 'freezer-r',
+                    'synth1', 'synth2', 'synth3', 'synth4', 'synth5', 'synth6']
+DESCRIPTORS = ['db', 'cen', 'spread', 'flat', 'irr', 'skew']
+
+
+def channel_name(index, count):
+    if count == 14 and 0 <= index < 14:
+        return CHANNEL_NAMES_14[index]
+    if count == 2 and index < 2:
+        return ('master-l', 'master-r')[index]
+    return f'ch{index + 1}'
+
+
+def spec_frames(events):
+    """The log's spectral frames as (server time, {channel index: {name: value}}),
+    in time order, with how many channels the engine was rendering."""
+    frames = []
+    count = 0
+
+    for e in events:
+        if e['k'] == 'spec-start':
+            count = juce_int(e.get('ch')) or count
+        elif e['k'] == 'spec':
+            entries = e.get('ch') or []
+            frames.append((e['st'], {juce_int(c.get('i')): c for c in entries
+                                     if c.get('i') is not None}))
+            count = max(count, len(entries))
+
+    frames.sort(key=lambda f: f[0])
+    return frames, count
+
+
+def juce_int(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+def mean_of(frames, index, key):
+    xs = [f[1][index][key] for f in frames
+          if index in f[1] and isinstance(f[1][index].get(key), (int, float))]
+    return round(statistics.mean(xs), 3) if xs else ''
+
+
+def spectral(gesture_path, channel_path, events, gestures, a):
+    """Per gesture and per channel, the descriptors either side of it.
+
+    The windows are the same as --audio's (--pre-ms, --post-ms), but the
+    frames are sparse: at the default 5 Hz a 500 ms window holds two or three
+    of them, so each figure is a mean over a handful rather than a reading.
+    """
+    frames, count = spec_frames(events)
+
+    if not frames:
+        return 0
+
+    off = clock_offsets(events)
+    stamps = [f[0] for f in frames]
+    rows = []
+
+    def window(lo, hi):
+        return frames[bisect.bisect_left(stamps, lo):bisect.bisect_right(stamps, hi)]
+
+    for g in gestures:
+        shift = off.get(g['s'])
+        end = g['t'] + shift if shift is not None else g['st']
+        start = end - g['dur']
+        pre = window(start - a.pre_ms, start)
+        during = window(start, end)
+        post = window(end, end + a.post_ms)
+
+        if not pre and not post:
+            continue
+
+        for index in sorted({i for f in pre + during + post for i in f[1]}):
+            row = {'st': round(start), 'session': g['s'], 'widget': g['w'],
+                   'type': g.get('wt'), 'regime': g.get('regime'),
+                   'channel': index, 'name': channel_name(index, count),
+                   'frames_pre': sum (index in f[1] for f in pre),
+                   'frames_post': sum (index in f[1] for f in post)}
+
+            for key in DESCRIPTORS:
+                before, after = mean_of(pre, index, key), mean_of(post, index, key)
+                row[key + '_pre'] = before
+                row[key + '_during'] = mean_of(during, index, key)
+                row[key + '_post'] = after
+                row[key + '_change'] = (round(after - before, 3)
+                                        if before != '' and after != '' else '')
+
+            # Silence either side: the level is real, the descriptors are not.
+            if row['db_pre'] != '' or row['db_post'] != '':
+                rows.append(row)
+
+    write_csv(gesture_path, rows)
+
+    # And the whole session per channel, as context for the rows above.
+    summary = []
+
+    for index in sorted({i for f in frames for i in f[1]}):
+        present = [f for f in frames if index in f[1]]
+        sounding = [f for f in present
+                    if isinstance(f[1][index].get('cen'), (int, float))]
+        entry = {'channel': index, 'name': channel_name(index, count),
+                 'frames': len(present),
+                 'sounding_share': round(len(sounding) / len(present), 2) if present else ''}
+
+        for key in DESCRIPTORS:
+            xs = [f[1][index][key] for f in present
+                  if isinstance(f[1][index].get(key), (int, float))]
+            entry[key + '_median'] = round(statistics.median(xs), 3) if xs else ''
+
+        summary.append(entry)
+
+    write_csv(channel_path, summary)
+    return len(frames)
 
 
 def layout_ids(path):
@@ -322,6 +462,11 @@ def main():
                                     'dist', 'path', 'left', 'changes', 'sweep', 'regime', 'mod_n',
                                     'sent_n', 'sent_rev', 'finger_turns', 'regrab', 'v0', 'v1')},
              display_reversals=g.get('reversals')) for g in gestures])
+
+    spec_n = spectral(out / 'spectral.csv', out / 'channels.csv', events, gestures, a)
+
+    if spec_n:
+        print(f'{spec_n} spectral frames -> {out}/spectral.csv, {out}/channels.csv')
 
     heatmap(out / 'heatmap.html', downs, viewports)
 

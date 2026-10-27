@@ -74,6 +74,22 @@ participant's tablet **sent** (`sent_rev_*`) and in the finger's movement
 widget's displayed value, which the sound engine's echoes overwrite mid-drag. A
 straight drag on a slider showed up to 15 false reversals that way.
 
+**The spectral stream is read too.** `spectral.csv` gives one row per gesture
+per engine channel — the channel's level, centroid, spread, flatness,
+irregularity and skewness averaged over the frames before the gesture and
+after it, and the change — and `channels.csv` summarises each channel over the
+whole session. No audio is needed: the numbers come from the log's `spec`
+frames. Channels are named from the patch's map (1–2 master, 3–4 reverb, 5–6
+repeater, 7–8 rolling freezer, 9–14 the six synths), so a synth's own timbre
+can be followed while its parameters are adjusted. Two things to hold on to
+when reading it, both from `docs/uxlog-spectral/README.md`: the synth channels
+are taken **before** the master amp while 1–8 are after it, so a master-volume
+gesture moves the level on one group and not the other; and a note reaches the
+master through the effect returns, so the channels are not independent sources
+and must not be averaged into one figure. The frames are sparse — at 5 Hz a
+500 ms window holds two or three — so each figure is a mean over a handful of
+frames, not a reading.
+
 `sliders.csv` (each slider parameter split by layer) and `modes.csv` (each layer
 across all parameters) show how people use the mode layers. Also produced: `widgets.csv` (hot spots and difficulty per widget), `misses.csv`, `tabs.csv`,
 `gestures.csv`, `untouched.txt` (cold spots), `heatmap.html`. See the script's
