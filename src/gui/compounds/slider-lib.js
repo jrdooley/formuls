@@ -187,6 +187,19 @@
     return emit(api, value, f.slot, nx, M, !(dragged && same));
   }
 
+  // Tells the patch to stop echoing this address back while the finger is on it.
+  // f.util.guiinhibit holds the address in a slot and drops the engine's own
+  // updates for it until the release arrives. These canvases draw themselves, so
+  // they never got Open Stage Control's native "queue an incoming value while
+  // touched" behaviour, and the echo was repainting them mid-drag: measured over
+  // two logged sessions, 2.65 displayed reversals per touch against a finger mean
+  // of 0.08. Only the continuous fader layers take part; the label and mod-cell
+  // layers are discrete taps, and six cells crossed in one sweep would overrun
+  // the four slots the patch keeps.
+  function grab(api, address, state) {
+    if (typeof address === 'string' && address.charAt(0) === '/') api.send('/grab' + address, state);
+  }
+
   function touch(event, value, W, H, M, locals, api) {
     var id = event.pointerId || 0, t = locals.touches || (locals.touches = {});
     var x = event.offsetX, y = event.offsetY, now = Date.now();
@@ -205,6 +218,8 @@
         return;
       }
       var f = layer.f;
+      st.grabbed = M.a[f.slot];
+      grab(api, st.grabbed, 1);
       // snap to the touch, as the fader's draginit does with snap: true
       st.percent = (x - f.gp) / (W - 2 * f.gp) * 100;               // unclipped, as o-s-c keeps it
       var nv = faderTo(api, value, f, f.min + st.percent / 100 * (f.max - f.min), M, true);
@@ -240,7 +255,10 @@
       faderTo(api, value, ff, ff.min + s.percent / 100 * (ff.max - ff.min), M, true);
       return;
     }
-    if (event.type === 'stop') delete t[id];
+    if (event.type === 'stop') {
+      if (s.grabbed) grab(api, s.grabbed, 0);
+      delete t[id];
+    }
   }
 
   // Inbound patch from the mailbox: [canvasId, slot, value, slot, value, ...], or

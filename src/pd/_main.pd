@@ -98,7 +98,7 @@
 #X restore 56 113 pd MOD_RECEIVE_;
 #X obj 305 316 route multixy_1;
 #X obj 305 343 f.util.multitouchdebounce;
-#X obj 36 142 route pd GET oscmonitor testtone;
+#X obj 36 142 route pd GET oscmonitor testtone grab;
 #X obj 177 184 s \$0-test-tone;
 #X obj 36 59 r formuls-osc-in;
 #X text 144 54 <- OSC now arrives from the app (see OscBridge.h). The patch no longer listens on udp 9000 itself \, because oscparse ran on the audio thread and alloca-ed a buffer sized by the incoming packet;
@@ -113,7 +113,7 @@
 #X connect 13 1 6 0;
 #X connect 13 2 9 0;
 #X connect 13 3 14 0;
-#X connect 13 4 7 0;
+#X connect 13 5 7 0;
 #X connect 15 0 13 0;
 #X connect 17 0 11 0;
 #X connect 18 0 13 0;
@@ -186,10 +186,13 @@
 #X obj 33 351 list trim;
 #X obj 33 372 s to-o-s-c-parsed;
 #X text 140 330 Parsed once here for the quantise listeners in f.util.oscinparse \, which used to parse every GUI-bound packet themselves: 30 parses per packet \, about 36 \,000 per synth reset.;
+#X obj 33 104 f.util.guiinhibit 10000;
+#X text 140 100 <- drops a packet while the player's finger is on that parameter's widget \, so the engine's echo stops repainting a control mid-drag. The taps above (to-o-s-c-parsed \, and the monitor) stay on the unfiltered stream: they feed the patch \, not the GUI.;
 #X connect 0 0 32 0;
 #X connect 32 0 33 0;
 #X connect 33 0 34 0;
-#X connect 0 0 1 0;
+#X connect 0 0 36 0;
+#X connect 36 0 1 0;
 #X connect 0 0 15 0;
 #X connect 1 0 2 0;
 #X connect 2 0 24 0;

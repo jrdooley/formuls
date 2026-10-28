@@ -146,6 +146,16 @@ function logOut(data) {
         }
         return   // swallowed: the Pd patch never sees logger traffic
     }
+    // /grab/<address> 0|1 is the GUI telling the patch to stop echoing that
+    // address back while a finger is on it (f.util.guiinhibit). It is not a
+    // parameter change, so it gets its own stream rather than inflating `param`
+    // -- and it is worth keeping, because it is the GUI's own account of when
+    // each touch began and ended, against which `down`/`up` can be checked.
+    if (data.address.indexOf('/grab/') === 0) {
+        write({ k: 'grab', st: st, c: data.clientId, a: data.address.slice(5),
+                v: data.args.length ? data.args[0].value : undefined })
+        return data
+    }
     write({ k: 'param', st: st, c: data.clientId, a: data.address,
             v: data.args.map(function (a) { return a.value }) })
     return data

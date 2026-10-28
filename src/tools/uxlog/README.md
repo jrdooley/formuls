@@ -31,6 +31,7 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `param` | every value the GUI sent to the sound engine |
 | `in` | values the sound engine sent to the GUI that **modulate the sound** (LFOs, chaos, automation, `extmodulation`): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
 | `disp` | **display feedback**: values the engine sent to the GUI that the player never sets and that change no sound — the sequencer playhead (`/seqpos*`), the step it is on (`/sequencerstep*`) and the pitch readout (`/oscpitchgui*`). Framed exactly like `in`, in its own stream |
+| `grab` | the GUI telling the patch to stop echoing an address back while a finger is on that widget (`/grab/<address> 1` on touch, `0` on release; see `f.util.guiinhibit` in the patch). Not a parameter change, so it is kept out of `param` — and it is the GUI's own account of when each touch began and ended, so `down`/`up` can be checked against it |
 | `snap` | every widget's value: when a tablet connects, every 5 minutes, after a preset load |
 | `spec` | **spectral descriptors**: every engine channel's level (`db`) and its spectral centroid, spread, flatness, irregularity and skewness, at `FORMULS_UXLOG_SPEC_HZ` frames a second (default 5). Written by the app, not the tablet. `spec-start` records the frame rate, window size, channel count and sample rate. See `docs/uxlog-spectral/README.md` |
 | `preset` | a preset load from the app window |
@@ -206,3 +207,25 @@ highlight, a menu that opened and closed) isn't shown.
   nothing.
 - `../patch-osc-uxlog.py` performs the build-time edits and fails the build
   if the Open Stage Control text it matches has changed.
+
+## The echo that used to repaint a widget mid-drag
+
+Open Stage Control's native widgets queue an incoming value while they are
+touched (`setValueTouchedQueue`) and apply it on release, so a fader was never
+fought by the engine. formuls' own slider canvases draw themselves and had no
+such protection: the engine's echo on the same address repainted them under the
+finger. Measured over the sessions of 27 October, `canvas` touches showed a mean
+of **2.65** displayed reversals against a finger mean of **0.08**, while native
+`xy` touches showed 2.31 against 3.00 — inflated by a factor of about 33 on the
+canvases and not at all on the native widgets.
+
+`f.util.guiinhibit`, at the patch's single GUI-bound choke point, now drops a
+packet whose address is under a finger. Two consequences for reading a log:
+
+- `display_reversals` should fall towards `finger_turns` on canvas widgets in
+  logs recorded after this change. It is still not the measure to use — it is
+  kept for comparison — but a log from before and a log from after are not
+  comparable on it.
+- `in` and `disp` go quiet for an address while it is grabbed. A gesture's
+  before-and-after window therefore has a hole in it for the touched address
+  only; every other address keeps streaming, so regime tagging is unaffected.
