@@ -193,9 +193,9 @@
   // they never got Open Stage Control's native "queue an incoming value while
   // touched" behaviour, and the echo was repainting them mid-drag: measured over
   // two logged sessions, 2.65 displayed reversals per touch against a finger mean
-  // of 0.08. Only the continuous fader layers take part; the label and mod-cell
-  // layers are discrete taps, and six cells crossed in one sweep would overrun
-  // the four slots the patch keeps.
+  // of 0.08. Only the continuous fader layers take part: the label and mod-cell
+  // layers are discrete taps, and a sweep across six cells would claim six of
+  // the patch's ten slots for toggles that were never being dragged.
   function grab(api, address, state) {
     if (typeof address === 'string' && address.charAt(0) === '/') api.send('/grab' + address, state);
   }

@@ -220,7 +220,11 @@ of **2.65** displayed reversals against a finger mean of **0.08**, while native
 canvases and not at all on the native widgets.
 
 `f.util.guiinhibit`, at the patch's single GUI-bound choke point, now drops a
-packet whose address is under a finger. Checked on a real build on 28 October:
+packet whose address is under a finger. It holds ten addresses at once, one per
+finger a tablet can report. Past ten it degrades rather than breaks: the
+longest-held address loses its slot and is echoed again, which is simply the
+behaviour from before the abstraction existed, and the suppression continues
+for the other ten. Checked on a real build on 28 October:
 canvas display and finger counts came back at **parity, 0.62 against 0.61**;
 grab and release paired 58 out of 58 with none left open and the safety timeout
 never needed; all ten grabbed addresses that had been modulating echoed again
