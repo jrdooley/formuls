@@ -220,7 +220,14 @@ of **2.65** displayed reversals against a finger mean of **0.08**, while native
 canvases and not at all on the native widgets.
 
 `f.util.guiinhibit`, at the patch's single GUI-bound choke point, now drops a
-packet whose address is under a finger. Two consequences for reading a log:
+packet whose address is under a finger. Checked on a real build on 28 October:
+canvas display and finger counts came back at **parity, 0.62 against 0.61**;
+grab and release paired 58 out of 58 with none left open and the safety timeout
+never needed; all ten grabbed addresses that had been modulating echoed again
+after release, so no slot leaked. Two gestures out of 58 saw one last echo on
+the grabbed address, at +33 ms and +76 ms into nine-second holds -- packets that
+had already left before the grab reached Pd, and the rest of both holds was
+silent. Two consequences for reading a log:
 
 - `display_reversals` should fall towards `finger_turns` on canvas widgets in
   logs recorded after this change. It is still not the measure to use — it is
