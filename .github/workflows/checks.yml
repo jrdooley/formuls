@@ -1,0 +1,33 @@
+# Consistency checks on the control interface. Pure Python, no build, seconds.
+#
+# Two things the interface and the patch agree on without declaring it anywhere,
+# and so drift silently:
+#
+# - every parameter with chaos/LFO/mod sub-widgets is declared in _main.json and
+#   again in f.util.reset.pd, and a parameter missing from the second is simply
+#   never reset (check-reset-coverage.py);
+# - every parameter's OSC address is a widget id, so renaming a widget renames a
+#   parameter, and a message to an address no widget owns fails silently at both
+#   ends (osc-contract.py --check, against docs/gui/osc-contract.csv).
+#
+# Both failures are invisible in a build and in a diff. They are visible here.
+
+name: checks
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  interface:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reset table covers the interface
+        run: python3 src/tools/check-reset-coverage.py
+
+      - name: OSC address inventory is up to date
+        run: python3 src/tools/osc-contract.py --check
