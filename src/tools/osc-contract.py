@@ -64,6 +64,14 @@ LAYERS = ['chaostrigseq', 'chaostrig', 'trigstep', 'trigseq', 'lfofreq',
 LAYER_RE = re.compile(r'^(.*?)(' + '|'.join(LAYERS) + r')(\d*)$')
 TRAILING_INDEX = re.compile(r'(\d+)$')
 
+# What an id may contain to be usable as one OSC address segment. OSC 1.0
+# reserves ' # * , / ? [ ] { }', and o-s-c puts the id straight after the '/'.
+# An id outside this is not an address Pd can ever route, however it got there:
+# the velocity parameter on a5396e7 was named `velocityact{"n":1,...}`, its
+# clone's whole variables object spliced in by the resolution quirk
+# flatten-session.py documents, and Pd's /velocity1 messages went nowhere.
+ADDRESS_SEGMENT = re.compile(r'^[^ \t\n#*,/?\[\]{}]+$')
+
 DEFAULT_RANGE = '{"min": 0, "max": 1}'   # o-s-c's, where none is set
 DEFAULT_DECIMALS = '2'                   # o-s-c's; rounding is part of the contract
 
@@ -127,6 +135,10 @@ def rows(session, state):
             raise ContractError(
                 'widget id %r is still a template after flattening; the inventory would '
                 'list an id that never exists at runtime' % wid)
+        if not ADDRESS_SEGMENT.match(wid):
+            raise ContractError(
+                'widget id %r cannot be an OSC address segment, so no message can reach '
+                'it; this is a bug in the session, not in the table' % wid)
         by.setdefault(address_of(w), []).append(w)
 
     out = []
