@@ -149,6 +149,41 @@ void OscBridge::forward (const juce::OSCMessage& message)
 
     const auto selector = path[0];
 
+    // /poweroff is for the machine, not the patch. Intercepted here rather
+    // than routed in Pd: the patch cannot power anything off, and giving its
+    // [route] a silent branch would hide where this actually happens.
+    if (selector == powerOffSelector)
+    {
+        // A button in "push" mode sends 1 on press and 0 on release, so act
+        // on the press only. Checking the argument rather than requiring a
+        // particular button mode means the GUI can use push, tap or toggle
+        // and this still fires exactly once.
+        bool pressed = true;
+
+        if (message.size() > 0)
+        {
+            const auto& first = message[0];
+
+            if (first.isFloat32())    pressed = first.getFloat32() != 0.0f;
+            else if (first.isInt32()) pressed = first.getInt32() != 0;
+        }
+
+        if (! pressed)
+            return;
+
+        if (onPowerOffRequested != nullptr)
+        {
+            juce::Logger::writeToLog ("OSC bridge: power off requested by the GUI");
+            onPowerOffRequested();
+        }
+        else
+        {
+            juce::Logger::writeToLog ("OSC bridge: ignoring /poweroff -- no handler is set");
+        }
+
+        return;
+    }
+
     pd->startMessage();
 
     for (int i = 1; i < path.size(); ++i)
