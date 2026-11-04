@@ -5,6 +5,7 @@
 #include "MainComponent.h"
 #include "FormulsLookAndFeel.h"
 #include "ResourceLocator.h"
+#include "PowerOff.h"
 
 namespace formuls
 {
@@ -149,29 +150,42 @@ MainComponent::MainComponent()
     // sends SIGINT to this process and takes the existing clean-stop path --
     // the one KillMode=control-group was fixed for. Duplicating it here
     // would be a second, less-tested way to do the same thing. The quit
-    // below is belt and braces for the case where nothing is watching the
-    // file: the app still goes away, as the button implies it should.
-    engine.onPowerOffRequested = []
+    // below is belt and braces for the narrower case where the directory is
+    // there but the path unit is not running: the app still goes away, as the
+    // button implies it should.
+    //
+    // Only wired where something can act on it -- see PowerOff.h. On a
+    // desktop build the trigger directory does not exist, so this could only
+    // quit the app, which is not what a button labelled POWER OFF promises
+    // and not something the user needs a button for: they start and stop
+    // formuls from their operating system. The GUI server hides the control
+    // in the same case, so this is the second of the two gates rather than
+    // the only one.
+    if (poweroff::isAvailable())
     {
-        // Overridable so this can be exercised without powering a machine
-        // off, and so it is harmless on a desktop build where the path does
-        // not exist.
-        auto path = juce::SystemStats::getEnvironmentVariable ("FORMULS_POWEROFF_FILE",
-                                                               "/run/formuls-ctl/poweroff");
-        const juce::File trigger (path);
+        engine.onPowerOffRequested = []
+        {
+            const auto trigger = poweroff::triggerFile();
 
-        auto result = trigger.create();
+            auto result = trigger.create();
 
-        if (result.wasOk())
-            juce::Logger::writeToLog ("power off: requested via " + trigger.getFullPathName());
-        else
-            juce::Logger::writeToLog ("power off: could NOT write " + trigger.getFullPathName()
-                                      + " (" + result.getErrorMessage().trim() + ") -- the machine "
-                                      "will stay up; quitting anyway");
+            if (result.wasOk())
+                juce::Logger::writeToLog ("power off: requested via " + trigger.getFullPathName());
+            else
+                juce::Logger::writeToLog ("power off: could NOT write " + trigger.getFullPathName()
+                                          + " (" + result.getErrorMessage().trim() + ") -- the "
+                                          "machine will stay up; quitting anyway");
 
-        if (auto* app = juce::JUCEApplication::getInstance())
-            app->systemRequestedQuit();
-    };
+            if (auto* app = juce::JUCEApplication::getInstance())
+                app->systemRequestedQuit();
+        };
+    }
+    else
+    {
+        juce::Logger::writeToLog ("power off: not available ("
+                                  + poweroff::triggerFile().getParentDirectory().getFullPathName()
+                                  + " does not exist) -- leaving the request unwired");
+    }
 
    #if FORMULS_AUTOSTART_TEST
     // Development aid: build with GCC_PREPROCESSOR_DEFINITIONS including
