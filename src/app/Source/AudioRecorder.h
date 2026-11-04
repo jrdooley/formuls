@@ -84,6 +84,12 @@ private:
     // cover a slow disk hiccup without ever making the audio thread wait.
     static constexpr int fifoSizeSamples = 32768;
 
+    // Write buffer for the output file. Much smaller than JUCE's 16 KB
+    // default, so a take reaches the disk as it is encoded rather than only
+    // when the file is closed -- see the comment in start() for why that
+    // matters on the appliance.
+    static constexpr size_t writeBufferBytes = 1024;
+
     juce::TimeSliceThread backgroundThread { "formuls recorder" };
     std::unique_ptr<juce::AudioFormatWriter::ThreadedWriter> threadedWriter;
 
