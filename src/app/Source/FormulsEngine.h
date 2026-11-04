@@ -64,6 +64,15 @@ public:
     /** Called on the message thread when the patch sends to "formuls-quit". */
     std::function<void()> onQuitRequested;
 
+    /** Called on the message thread when the GUI sends /poweroff -- the
+        RESET tab's modal. Distinct from onQuitRequested because the app
+        quitting and the machine powering down are different things: a
+        development build wants the first and not the second. The handler is
+        expected to ask the system to power off and then quit cleanly, in
+        that order, so the recording and the logs are flushed by the normal
+        shutdown path rather than by anything new. */
+    std::function<void()> onPowerOffRequested;
+
     /** The patch's global reset (_main.pd: [s resetglobal-in]). Its
         INIT_PARAMETER_SET subpatch pulses it 1 then 0, 5 s after loading, and
         the GUI's Global Reset does the same; every parameter goes back to its

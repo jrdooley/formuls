@@ -76,6 +76,20 @@ public:
     OscBridge() = default;
     ~OscBridge() override;
 
+    /** First address component that means "shut the machine down", rather
+        than anything the patch should see. The GUI's RESET tab has a modal
+        holding one button that sends /poweroff; this is intercepted in
+        forward() and never reaches Pd, because a DSP patch is the wrong
+        place to decide the machine's power state and [route] would have to
+        grow a branch that does nothing audible. */
+    static constexpr const char* powerOffSelector = "poweroff";
+
+    /** Called on the message thread when /poweroff arrives. Set by
+        FormulsEngine; if it is null the message is dropped with a log line,
+        so a GUI that sends it to a build without the hook does nothing
+        rather than silently feeding "poweroff" to the patch. */
+    std::function<void()> onPowerOffRequested;
+
     /** Pd receive symbol the translated messages are sent to. _main.pd has
         an [r formuls-osc-in] wired where [list trim] used to be. */
     static constexpr const char* receiverName = "formuls-osc-in";

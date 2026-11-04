@@ -163,6 +163,47 @@ MainComponent::MainComponent()
             app->systemRequestedQuit();
     };
 
+    // The GUI's RESET tab can ask the machine to power down. The appliance
+    // had no way to do this short of a keyboard and a shell, which is the
+    // whole reason this exists.
+    //
+    // The app cannot power the machine off itself: it runs as the
+    // unprivileged "formuls" user, the image has no polkit, and logind
+    // refuses a non-root request from a session with no seat (it runs under
+    // Xvfb). So it writes a file that a root-side systemd path unit is
+    // watching, which runs "systemctl poweroff" -- see
+    // formuls-poweroff.path in the formuls-embedded overlay. The app needs
+    // no new privilege beyond writing into a directory it already owns.
+    //
+    // Nothing here flushes the recording or the logs. Writing the file makes
+    // systemd stop formuls.service as part of the normal shutdown, which
+    // sends SIGINT to this process and takes the existing clean-stop path --
+    // the one KillMode=control-group was fixed for. Duplicating it here
+    // would be a second, less-tested way to do the same thing. The quit
+    // below is belt and braces for the case where nothing is watching the
+    // file: the app still goes away, as the button implies it should.
+    engine.onPowerOffRequested = []
+    {
+        // Overridable so this can be exercised without powering a machine
+        // off, and so it is harmless on a desktop build where the path does
+        // not exist.
+        auto path = juce::SystemStats::getEnvironmentVariable ("FORMULS_POWEROFF_FILE",
+                                                               "/run/formuls-ctl/poweroff");
+        const juce::File trigger (path);
+
+        auto result = trigger.create();
+
+        if (result.wasOk())
+            juce::Logger::writeToLog ("power off: requested via " + trigger.getFullPathName());
+        else
+            juce::Logger::writeToLog ("power off: could NOT write " + trigger.getFullPathName()
+                                      + " (" + result.getErrorMessage().trim() + ") -- the machine "
+                                      "will stay up; quitting anyway");
+
+        if (auto* app = juce::JUCEApplication::getInstance())
+            app->systemRequestedQuit();
+    };
+
    #if FORMULS_AUTOSTART_TEST
     // Development aid: build with GCC_PREPROCESSOR_DEFINITIONS including
     // FORMULS_AUTOSTART_TEST=1 to select the first output device and start
