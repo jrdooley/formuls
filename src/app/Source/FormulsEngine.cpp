@@ -165,6 +165,13 @@ juce::Result FormulsEngine::bootPd (int numOutputChannels, double sampleRate, co
     if (appSendsOsc)
         pd.sendFloat ("formuls-app-osc", 1.0f);
 
+    // Forward the bridge's power-off interception to this engine's hook.
+    oscBridge.onPowerOffRequested = [this]
+    {
+        if (onPowerOffRequested != nullptr)
+            onPowerOffRequested();
+    };
+
     // Listen for the GUI's OSC before going live. A failure here is not
     // fatal -- the engine still makes sound, it just cannot be driven from
     // the GUI -- so it is reported rather than aborting the start.
