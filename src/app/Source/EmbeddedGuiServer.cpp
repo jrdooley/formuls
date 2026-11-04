@@ -6,6 +6,7 @@
  */
 
 #include "EmbeddedGuiServer.h"
+#include "PowerOff.h"
 
 namespace formuls
 {
@@ -33,6 +34,42 @@ namespace
     {
         if (auto* a = v.getArray()) out.addArray (*a);
         else                        out.add (v);
+    }
+
+    // Walks the layout's widget tree and sets "visible" false on the widget
+    // with this id, leaving the node in place so a saved .state that mentions
+    // it still loads. Children live under "widgets" and "tabs", and the root
+    // keeps its tabs under "content". Returns true if the widget was found.
+    bool hideWidget (const juce::var& node, const juce::String& id)
+    {
+        if (auto* object = node.getDynamicObject())
+        {
+            if (object->getProperty ("id").toString() == id)
+            {
+                object->setProperty ("visible", false);
+                return true;
+            }
+
+            bool found = false;
+
+            for (auto* key : { "content", "widgets", "tabs" })
+                if (object->hasProperty (key))
+                    found |= hideWidget (object->getProperty (key), id);
+
+            return found;
+        }
+
+        if (auto* array = node.getArray())
+        {
+            bool found = false;
+
+            for (auto& child : *array)
+                found |= hideWidget (child, id);
+
+            return found;
+        }
+
+        return false;
     }
 
     juce::String contentTypeFor (const juce::File& f)
@@ -82,6 +119,21 @@ juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpP
     sessionJson = juce::JSON::parse (sessionFile);
     if (! sessionJson.isObject())
         return juce::Result::fail ("Could not read GUI session " + sessionFile.getFullPathName());
+
+    // The appliance and the desktop builds share one layout file, but only the
+    // appliance can power a machine off -- see PowerOff.h. Hide the control
+    // everywhere else rather than shipping a second layout: on a desktop the
+    // button could only quit the app, and in the plugin nothing is listening
+    // for it at all. Done here, on the parsed copy, so it covers every client
+    // of both the app and the plugin and leaves gui/_main.json alone.
+    if (! poweroff::isAvailable())
+    {
+        if (hideWidget (sessionJson, poweroff::guiWidgetId))
+            juce::Logger::writeToLog ("GUI: hiding " + juce::String (poweroff::guiWidgetId)
+                                      + " -- " + poweroff::triggerFile().getParentDirectory()
+                                                     .getFullPathName()
+                                      + " does not exist, so nothing could act on it");
+    }
 
     // Same rule as OpenStageControlProcess: only a build has the compounds map,
     // and without it the module is not loaded at all.

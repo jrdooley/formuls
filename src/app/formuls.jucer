@@ -22,6 +22,8 @@
             file="Source/OpenStageControlProcess.cpp"/>
       <FILE id="srcLF0" name="FormulsLookAndFeel.h" compile="0" resource="0"
             file="Source/FormulsLookAndFeel.h"/>
+      <FILE id="srcPO0" name="PowerOff.h" compile="0" resource="0"
+            file="Source/PowerOff.h"/>
       <FILE id="srcRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="Source/ResourceLocator.h"/>
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
