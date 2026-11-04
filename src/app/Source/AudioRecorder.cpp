@@ -63,7 +63,28 @@ juce::Result AudioRecorder::start (const juce::File& destination,
     destination.getParentDirectory().createDirectory();
     destination.deleteFile();
 
-    auto fileStream = std::make_unique<juce::FileOutputStream> (destination);
+    // A small write buffer, deliberately: JUCE's default is 16 KB, and nothing
+    // in this path flushes before the file is closed. OggWriter writes its
+    // three Vorbis header packets in its constructor and calls output->flush()
+    // only in its destructor, and it does not override flush(), so there is no
+    // way to ask for one mid-take.
+    //
+    // With the default buffer a short take therefore reaches the disk only at
+    // stop(): a 25 s take of near-silence is about 3.9 KB, so the whole thing
+    // -- headers included -- sits in the buffer and the file on disk is 0
+    // bytes. If the process does not get to run its shutdown, the take is not
+    // truncated, it is lost entirely. That was measured on a booted image on
+    // 4 Nov 2026: 3 of 7 power-offs left a 0-byte .ogg, in every case where
+    // systemd gave the app ~1.9 s to stop instead of the ~5-6 s it needs.
+    //
+    // At this size the headers land immediately -- so the file is valid from
+    // the first moment -- and encoded pages land as libvorbis emits them. What
+    // is still at risk is only the page the encoder has not emitted yet, not
+    // the session. The cost is one write() per kilobyte of compressed audio,
+    // which at a realistic ~20 KB/s is about 20 syscalls a second on the
+    // recorder's own background thread.
+    auto fileStream = std::make_unique<juce::FileOutputStream> (destination,
+                                                                writeBufferBytes);
 
     if (! fileStream->openedOk())
         return juce::Result::fail ("Could not create " + destination.getFullPathName());
