@@ -5,6 +5,11 @@
 # Linux dependencies (see JUCE/docs/Linux Dependencies.md), faust, wget,
 # and python3.
 # Run from the repository root:  ./build-linux.sh
+#
+# FORMULS_MARCH=v3 ./build-linux.sh compiles the Faust DSP externals for
+# AVX2 + FMA instead of the portable SSE4.2 default. Faster on a modern CPU,
+# but the result will not start on anything before Haswell/Excavator. See the
+# note at the MARCH case below.
 
 set -e
 
@@ -77,10 +82,35 @@ mkdir -p build/pd/externals
 # without it. So do what it does, with portable flags: faust writes C++ from
 # the puredata.cpp architecture, and the compiler targets x86-64-v2 (SSE4.2,
 # every x86-64 CPU since about 2009). On arm64, the default target.
+#
+# FORMULS_MARCH overrides the x64 baseline. It is opt-in because raising it
+# makes the externals refuse to start on older CPUs -- the same "Illegal
+# instruction" that faust2puredata's -march=native caused, just chosen on
+# purpose:
+#   v2      (default) -march=x86-64-v2 -- SSE4.2, every x86-64 CPU since ~2009
+#   v3                -march=x86-64-v3 -- AVX2 + FMA, 256-bit vectors. Needs
+#                     Intel Haswell (2013) / AMD Excavator (2015) or later. On
+#                     an Alder Lake-N box this is the largest single lever on
+#                     DSP throughput; on anything older the app dies at startup
+#                     and systemd restarts it until the unit gives up.
+#   native            -march=native -- for a binary that never leaves the
+#                     machine that built it. Do not ship it.
+#   anything else is passed to the compiler verbatim.
 case "$ARCH" in
-    x64)   MARCH="-march=x86-64-v2 -mtune=generic" ;;
+    x64)
+        case "${FORMULS_MARCH:-v2}" in
+            v2)     MARCH="-march=x86-64-v2 -mtune=generic" ;;
+            v3)     MARCH="-march=x86-64-v3 -mtune=generic" ;;
+            native) MARCH="-march=native" ;;
+            *)      MARCH="$FORMULS_MARCH" ;;
+        esac
+        ;;
     *)     MARCH="" ;;
 esac
+echo "==> faust externals: ${MARCH:-compiler default for $ARCH}"
+if [ -n "$FORMULS_MARCH" ] && [ "$FORMULS_MARCH" != v2 ]; then
+    echo "    NOT the portable default -- this build may not run on older CPUs."
+fi
 cd "$ROOT/src/faust"
 for dsp in f_repeater f_reverb formuls; do
     faust -i -a puredata.cpp -vec -lv 0 -vs 4 "$dsp.dsp" -o "$ROOT/build/$dsp.cpp"
