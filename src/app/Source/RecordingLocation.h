@@ -137,6 +137,72 @@ inline juce::File chooseDirectory()
     return homeDirectory();
 }
 
+/** Whether a host that says it can record should still be believed.
+
+    FORMULS_RECORDING_AVAILABLE=0 forces the GUI's record button to be
+    hidden on a build that would otherwise serve it. That is how the gate
+    gets tested: the only host that genuinely hides it is the plugin, which
+    needs a plugin host to run, so without this the one case the gate exists
+    for could never be observed on a booted machine. PowerOff.h carries
+    FORMULS_POWEROFF_FILE for the same reason.
+
+    Anything other than "0" leaves the host's own answer alone. */
+inline bool overriddenUnavailable()
+{
+    return juce::SystemStats::getEnvironmentVariable (
+               "FORMULS_RECORDING_AVAILABLE", {}).trim() == "0";
+}
+
+/** How much room to leave free on the destination's filesystem, in bytes.
+
+    This is not about losing the end of a take. On the appliance the fallback
+    destination is the internal disk, which is also the root filesystem: a
+    take that fills it does not merely fail, it takes journald, logging and
+    anything else that needs to write down with it, on a headless box with no
+    screen to say so. 24-bit stereo at 48 kHz is 288 KB/s, about 1 GB an
+    hour, and the appliance's root is 5.5 GB -- so "record and forget" is well
+    within reach of filling it.
+
+    256 MB by default, which is roughly 15 minutes of stereo headroom.
+    FORMULS_RECORDING_MIN_FREE_MB overrides it; 0 disables the guard. */
+inline juce::int64 minimumFreeBytes()
+{
+    const auto setting = juce::SystemStats::getEnvironmentVariable (
+                             "FORMULS_RECORDING_MIN_FREE_MB", {}).trim();
+
+    const auto megabytes = setting.isNotEmpty() ? setting.getLargeIntValue() : (juce::int64) 256;
+
+    return juce::jmax ((juce::int64) 0, megabytes) * 1024 * 1024;
+}
+
+/** Free space on the volume `destination` lives on, or -1 when it cannot be
+    determined (JUCE returns 0 for an unknown volume, which is indivisible
+    from a genuinely full one -- treat "unknown" as "do not block"). */
+inline juce::int64 freeBytesFor (const juce::File& destination)
+{
+    auto folder = destination.isDirectory() ? destination : destination.getParentDirectory();
+
+    const auto free = folder.getBytesFreeOnVolume();
+
+    return free > 0 ? free : (juce::int64) -1;
+}
+
+/** Whether there is room to start, or to keep going. True when the guard is
+    switched off or the free space cannot be read: this decides whether to
+    refuse a recording, and refusing on a number we do not trust is worse
+    than the risk it guards against. */
+inline bool hasRoomFor (const juce::File& destination)
+{
+    const auto reserve = minimumFreeBytes();
+
+    if (reserve <= 0)
+        return true;
+
+    const auto free = freeBytesFor (destination);
+
+    return free < 0 || free >= reserve;
+}
+
 /** A fresh, non-clashing "formuls-YYYY-MM-DD-HHMMSS.wav" in that folder. */
 inline juce::File makeFile()
 {
