@@ -3,12 +3,10 @@
  */
 
 #include "AudioRecorder.h"
+#include "RecordingLocation.h"
 
 namespace formuls
 {
-
-// Subfolder created inside the user's Music folder for new recordings.
-static const juce::String kRecordingFolderName { "formuls" };
 
 AudioRecorder::~AudioRecorder()
 {
@@ -18,25 +16,12 @@ AudioRecorder::~AudioRecorder()
 //==============================================================================
 juce::File AudioRecorder::getDefaultRecordingDirectory()
 {
-    const juce::File candidates[] =
-    {
-        juce::File::getSpecialLocation (juce::File::userMusicDirectory),
-        juce::File::getSpecialLocation (juce::File::userDocumentsDirectory),
-        juce::File::getSpecialLocation (juce::File::userHomeDirectory)
-    };
-
-    for (const auto& parent : candidates)
-    {
-        if (! parent.isDirectory())
-            continue;
-
-        auto folder = parent.getChildFile (kRecordingFolderName);
-
-        if (folder.isDirectory() || folder.createDirectory().wasOk())
-            return folder;
-    }
-
-    return juce::File::getSpecialLocation (juce::File::tempDirectory);
+    // One place decides this now, because the appliance can answer it with a
+    // USB stick -- see RecordingLocation.h. Takes used to land in
+    // Music/formuls; they go to ~/formulsAudioRecordings instead, so the
+    // folder a tablet user is told about is the same one the desktop Record
+    // button writes to.
+    return recording::chooseDirectory();
 }
 
 juce::File AudioRecorder::makeRecordingFile (const juce::File& folder,

@@ -158,6 +158,16 @@ private:
                  this machine, not that anything acted on it. */
     bool sendOscToOsc (const juce::String& address, const juce::String& value);
 
+    /** The same, with a numeric argument -- what a GUI widget's value has to
+        be. Used to keep the tablet's record button showing what the recorder
+        is actually doing. */
+    bool sendOscFloatToOsc (const juce::String& address, float value);
+
+    /** Tells the tablet whether a take is running, so its button matches the
+        recorder however the take was started -- including from the Record
+        button in this window, and including a start that failed. */
+    void publishRecordingStateToGui();
+
     void setStatus (const juce::String& message);
 
     /** Fills the address panel: the GUI's web addresses when the server is

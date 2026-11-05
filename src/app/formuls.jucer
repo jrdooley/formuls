@@ -24,6 +24,8 @@
             file="Source/FormulsLookAndFeel.h"/>
       <FILE id="srcPO0" name="PowerOff.h" compile="0" resource="0"
             file="Source/PowerOff.h"/>
+      <FILE id="srcRecL" name="RecordingLocation.h" compile="0" resource="0"
+            file="Source/RecordingLocation.h"/>
       <FILE id="srcRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="Source/ResourceLocator.h"/>
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>

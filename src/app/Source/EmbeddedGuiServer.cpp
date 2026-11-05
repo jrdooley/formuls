@@ -7,6 +7,7 @@
 
 #include "EmbeddedGuiServer.h"
 #include "PowerOff.h"
+#include "RecordingLocation.h"
 
 namespace formuls
 {
@@ -133,6 +134,17 @@ juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpP
                                       + " -- " + poweroff::triggerFile().getParentDirectory()
                                                      .getFullPathName()
                                       + " does not exist, so nothing could act on it");
+    }
+
+    // The record button goes the same way, but on a flag rather than a probe
+    // of the filesystem: whether this host can record is something it knows
+    // about itself, not something to deduce. The app says yes; the plugin
+    // says nothing and so gets no button -- see RecordingLocation.h.
+    if (! recordingAvailable)
+    {
+        if (hideWidget (sessionJson, recording::guiWidgetId))
+            juce::Logger::writeToLog ("GUI: hiding " + juce::String (recording::guiWidgetId)
+                                      + " -- this host does not record");
     }
 
     // Same rule as OpenStageControlProcess: only a build has the compounds map,
