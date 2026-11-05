@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # Linux build script for the formuls JUCE app.
-# NOTE: untested -- adapted from the macOS build. You need JUCE at ~/JUCE
-# (its Projucer binary, or one built from extras/Projucer) plus the JUCE
-# Linux dependencies (see JUCE/docs/Linux Dependencies.md), faust, wget,
-# and python3.
+#
+# This is the script the appliance images are built with: formuls-embedded's
+# scripts/build-formuls.sh runs it inside an x86-64 machine to produce every
+# image, so it is exercised on Linux each time one is cut. It began as an
+# adaptation of the macOS build, and said so with a "NOTE: untested" that
+# outlived its truth by a long way.
+#
+# You need JUCE at ~/JUCE (its Projucer binary, or one built from
+# extras/Projucer) plus the JUCE Linux dependencies (see JUCE/docs/Linux
+# Dependencies.md), faust, wget, and python3.
 # Run from the repository root:  ./build-linux.sh
 #
 # FORMULS_MARCH=v3 ./build-linux.sh compiles the Faust DSP externals for
