@@ -102,6 +102,8 @@ Recording refuses to start, and stops cleanly if already running, when the desti
 
 The plugin compiles the same GUI server but has no transport to record, so the server hides the button unless the host calls `setRecordingAvailable(true)`.
 
+On this branch the engine also records the whole session to Ogg for the UX study (`startSessionRecording()`), sharing the one `AudioRecorder`. While that take runs, both buttons refuse: the window's is disabled and relabelled "Recording session", and `/audiorecord` is dropped with a log line and the tablet's toggle re-published. A tablet stop used to end the study's capture, which is the one take that cannot be redone.
+
 ## Critical gotchas
 
 ### abl_link~ on macOS: NEVER build from source

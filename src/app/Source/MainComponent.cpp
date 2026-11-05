@@ -237,6 +237,26 @@ MainComponent::MainComponent()
     {
         engine.onRecordRequested = [this] (bool shouldRecord)
         {
+            // A UX-logging build records the whole session from Start to Stop
+            // (startSessionRecording()), and the desktop Record button is
+            // disabled for as long as it runs so that a stray click cannot end
+            // it (see updateButtonStates()). The tablet's button cannot be
+            // disabled from here, so the request is refused instead -- and the
+            // tablet is told what is actually happening, so its toggle snaps
+            // back to lit rather than sitting dark over a take still running.
+            //
+            // Without this, /audiorecord 0 from the tablet stopped the study's
+            // own capture: the one take in this build that cannot be redone,
+            // because it is started once when the engine goes live and there
+            // is no way to start another from the GUI.
+            if (openStageControl.isUxLogging() && recorder.isRecording())
+            {
+                juce::Logger::writeToLog ("recording: ignoring /audiorecord -- this build is "
+                                          "recording the whole session for the UX study");
+                publishRecordingStateToGui();
+                return;
+            }
+
             if (shouldRecord == recorder.isRecording())
             {
                 // Already in the state being asked for. Happens when the
