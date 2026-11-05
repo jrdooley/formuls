@@ -18432,7 +18432,7 @@
             "alphaFillOn": "auto",
             "lineWidth": 5,
             "padding": 2,
-            "css": "font-size: 250%",
+            "css": "font-size: 200%; line-height: 1.15",
             "colorTextOn": "auto",
             "label": "AUDIO\nRECORD",
             "on": 1,
