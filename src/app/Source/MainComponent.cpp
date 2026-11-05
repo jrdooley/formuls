@@ -604,6 +604,25 @@ void MainComponent::startRecording()
     const auto sampleRate  = engine.getActualSampleRate();
     const auto destination = AudioRecorder::makeRecordingFile();
 
+    // Refuse rather than fill the disk. On the appliance the fallback
+    // destination is the root filesystem, so a take that runs it out of space
+    // breaks the machine and not just the recording -- see
+    // RecordingLocation.h.
+    if (! recording::hasRoomFor (destination))
+    {
+        const auto message = "Not enough room to record on "
+                           + destination.getParentDirectory().getFullPathName()
+                           + " (" + juce::File::descriptionOfSizeInBytes (
+                                        recording::freeBytesFor (destination))
+                           + " free, " + juce::File::descriptionOfSizeInBytes (
+                                             recording::minimumFreeBytes())
+                           + " needed).";
+
+        setStatus (message);
+        juce::Logger::writeToLog ("recording refused: " + message);
+        return;
+    }
+
     if (auto result = recorder.start (destination, numChannels, sampleRate);
         result.failed())
     {
@@ -611,13 +630,54 @@ void MainComponent::startRecording()
         return;
     }
 
+    // Watch the destination while the take runs. Checking only at the start
+    // would leave the long takes -- the ones most likely to fill a disk --
+    // entirely unguarded.
+    diskGuard.startTimer (5000);
+
     setStatus ("Recording " + juce::String (numChannels) + " channels @ "
                + juce::String ((int) sampleRate) + " Hz to "
                + destination.getFileName() + "...");
 }
 
+void MainComponent::checkRecordingSpace()
+{
+    if (! recorder.isRecording())
+    {
+        diskGuard.stopTimer();
+        return;
+    }
+
+    const auto file = recorder.getFile();
+
+    if (recording::hasRoomFor (file))
+        return;
+
+    // Stop cleanly while there is still room to write the header, rather
+    // than letting the write fail somewhere in the middle of the take. false:
+    // no "save as" dialog -- this can fire on the appliance, where nobody is
+    // there to answer one.
+    const auto free = recording::freeBytesFor (file);
+
+    juce::Logger::writeToLog ("recording stopped early: only "
+                              + juce::File::descriptionOfSizeInBytes (free)
+                              + " left on "
+                              + file.getParentDirectory().getFullPathName()
+                              + " -- finishing the take while the file can still be closed");
+
+    finishRecording (false);
+    updateButtonStates();
+    publishRecordingStateToGui();
+
+    setStatus ("Recording stopped: the disk is nearly full ("
+               + juce::File::descriptionOfSizeInBytes (free) + " left).");
+}
+
 void MainComponent::finishRecording (bool offerToSaveRecording)
 {
+    // Whatever ended the take, the space poll has nothing left to watch.
+    diskGuard.stopTimer();
+
     recorder.stop();
 
     const auto recorded = recorder.getFile();
