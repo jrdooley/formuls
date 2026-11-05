@@ -172,6 +172,13 @@ juce::Result FormulsEngine::bootPd (int numOutputChannels, double sampleRate, co
             onPowerOffRequested();
     };
 
+    // Same for the record button.
+    oscBridge.onRecordRequested = [this] (bool shouldRecord)
+    {
+        if (onRecordRequested != nullptr)
+            onRecordRequested (shouldRecord);
+    };
+
     // Listen for the GUI's OSC before going live. A failure here is not
     // fatal -- the engine still makes sound, it just cannot be driven from
     // the GUI -- so it is reported rather than aborting the start.

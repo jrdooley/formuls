@@ -184,6 +184,47 @@ void OscBridge::forward (const juce::OSCMessage& message)
         return;
     }
 
+    // /audiorecord is the app's business too: the patch does not know a file
+    // is being written, and nothing in it would change if it did.
+    if (selector == recordSelector)
+    {
+        // Here the argument IS the message, so a missing one is a protocol
+        // error rather than something to assume about. A toggle sends 1/0; a
+        // push button sends 1 then 0, which would start and immediately stop
+        // a take -- so the GUI's button is a toggle, and this trusts it.
+        bool shouldRecord = false;
+        bool haveValue = false;
+
+        if (message.size() > 0)
+        {
+            const auto& first = message[0];
+
+            if (first.isFloat32())    { shouldRecord = first.getFloat32() != 0.0f; haveValue = true; }
+            else if (first.isInt32()) { shouldRecord = first.getInt32() != 0;      haveValue = true; }
+        }
+
+        if (! haveValue)
+        {
+            juce::Logger::writeToLog ("OSC bridge: ignoring /audiorecord with no "
+                                      "numeric argument -- cannot tell start from stop");
+            return;
+        }
+
+        if (onRecordRequested != nullptr)
+        {
+            juce::Logger::writeToLog (juce::String ("OSC bridge: recording ")
+                                      + (shouldRecord ? "start" : "stop")
+                                      + " requested by the GUI");
+            onRecordRequested (shouldRecord);
+        }
+        else
+        {
+            juce::Logger::writeToLog ("OSC bridge: ignoring /audiorecord -- no handler is set");
+        }
+
+        return;
+    }
+
     pd->startMessage();
 
     for (int i = 1; i < path.size(); ++i)

@@ -85,6 +85,16 @@ public:
     /** Message thread, before start(). Off by default (the app). */
     void setStateCapture (bool shouldCapture)   { capture = shouldCapture; }
 
+    /** Message thread, before start(). Whether this host can record, which
+        decides if the GUI's record button is served at all.
+
+        Off by default, so a host that says nothing gets no button: that is
+        the plugin, which compiles this server and serves the same session
+        but has no transport of its own to record. A button that cannot work
+        is worse than no button, and the same reasoning gates POWER OFF --
+        see RecordingLocation.h and PowerOff.h. */
+    void setRecordingAvailable (bool available)   { recordingAvailable = available; }
+
     /** Any thread. The GUI state as o-s-c state JSON ({widget id: value});
         empty if none has been captured or restored yet. */
     juce::String getStateJson() const;
@@ -165,6 +175,7 @@ private:
     juce::var clipboard;
 
     bool capture = false;
+    bool recordingAvailable = false;
     juce::String stateJson;                   // under lock
     std::map<juce::String, juce::Array<juce::var>> patchValues;   // address -> last args
     juce::StringArray patchOrder;             // first-sent order
