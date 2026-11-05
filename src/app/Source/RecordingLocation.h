@@ -137,6 +137,22 @@ inline juce::File chooseDirectory()
     return homeDirectory();
 }
 
+/** Whether a host that says it can record should still be believed.
+
+    FORMULS_RECORDING_AVAILABLE=0 forces the GUI's record button to be
+    hidden on a build that would otherwise serve it. That is how the gate
+    gets tested: the only host that genuinely hides it is the plugin, which
+    needs a plugin host to run, so without this the one case the gate exists
+    for could never be observed on a booted machine. PowerOff.h carries
+    FORMULS_POWEROFF_FILE for the same reason.
+
+    Anything other than "0" leaves the host's own answer alone. */
+inline bool overriddenUnavailable()
+{
+    return juce::SystemStats::getEnvironmentVariable (
+               "FORMULS_RECORDING_AVAILABLE", {}).trim() == "0";
+}
+
 /** How much room to leave free on the destination's filesystem, in bytes.
 
     This is not about losing the end of a take. On the appliance the fallback
