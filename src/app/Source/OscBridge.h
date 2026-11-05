@@ -90,6 +90,21 @@ public:
         rather than silently feeding "poweroff" to the patch. */
     std::function<void()> onPowerOffRequested;
 
+    /** First address component that starts and stops a recording. Like
+        /poweroff this is the app's business and not the patch's -- the patch
+        has no idea a file is being written -- so it is intercepted in
+        forward() rather than routed in Pd. */
+    static constexpr const char* recordSelector = "audiorecord";
+
+    /** Called on the message thread when /audiorecord arrives, with true to
+        start and false to stop.
+
+        Unlike /poweroff, the argument is the message: a release (0) means
+        "stop", not "ignore this". Null is dropped with a log line, which is
+        what the plugin does -- it shares this GUI but has no transport of
+        its own to record. */
+    std::function<void (bool)> onRecordRequested;
+
     /** Pd receive symbol the translated messages are sent to. _main.pd has
         an [r formuls-osc-in] wired where [list trim] used to be. */
     static constexpr const char* receiverName = "formuls-osc-in";

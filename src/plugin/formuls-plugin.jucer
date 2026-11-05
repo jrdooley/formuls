@@ -46,6 +46,8 @@
             file="../app/Source/OpenStageControlProcess.cpp"/>
       <FILE id="shPwr0" name="PowerOff.h" compile="0" resource="0"
             file="../app/Source/PowerOff.h"/>
+      <FILE id="shRecLo" name="RecordingLocation.h" compile="0" resource="0"
+            file="../app/Source/RecordingLocation.h"/>
       <FILE id="shRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="../app/Source/ResourceLocator.h"/>
     </GROUP>

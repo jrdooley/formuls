@@ -72,6 +72,14 @@ public:
         shutdown path rather than by anything new. */
     std::function<void()> onPowerOffRequested;
 
+    /** Called on the message thread when the GUI's record button is pressed,
+        with true to start a take and false to finish it. The appliance runs
+        headless, so this is the only way to record on it; on a desktop it
+        does the same as the Record button in the window. Left null where
+        nothing can record (the plugin), and the GUI server hides the button
+        in that case -- see RecordingLocation.h. */
+    std::function<void (bool)> onRecordRequested;
+
     /** The patch's global reset (_main.pd: [s resetglobal-in]). Its
         INIT_PARAMETER_SET subpatch pulses it 1 then 0, 5 s after loading, and
         the GUI's Global Reset does the same; every parameter goes back to its

@@ -25,7 +25,9 @@
  * Where the file goes
  * -------------------
  * Recording writes straight to a timestamped file in the folder returned by
- * getDefaultRecordingDirectory() (Music/formuls). The "save as" dialog the
+ * getDefaultRecordingDirectory() -- ~/formulsAudioRecordings, or a mounted
+ * USB stick on the appliance; RecordingLocation.h decides which and says
+ * why. The "save as" dialog the
  * main window shows afterwards moves that finished file wherever the user
  * wants it. Nothing is ever recorded to a temporary file that could be lost:
  * if the app quits mid-take, or the user cancels the dialog, the audio is
@@ -51,8 +53,9 @@ public:
         cannot clip. */
     static constexpr int bitsPerSample = 24;
 
-    /** The folder new recordings are written to (Music/formuls, falling back
-        to Documents and then the temp folder if that cannot be created). */
+    /** The folder new recordings are written to: a mounted USB stick when
+        the appliance has one, otherwise ~/formulsAudioRecordings. See
+        RecordingLocation.h. */
     static juce::File getDefaultRecordingDirectory();
 
     /** A fresh, non-clashing "formuls-YYYY-MM-DD-HHMMSS.wav" in the folder
