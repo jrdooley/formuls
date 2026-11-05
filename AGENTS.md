@@ -94,7 +94,13 @@ libpd ──→ juce::AudioIODeviceCallback ──→ audio output
 ```
 
 ### Recording
-Record button in the app window, enabled only while engine runs. Writes 24-bit PCM WAV to `~/Music/formuls/` during the take; save dialog only moves the file. Channel count matches the selected output (2 or 14). RF64 automatic past 4 GB. No disk I/O on the audio thread (`AudioFormatWriter::ThreadedWriter`).
+Record button in the app window, and an **AUDIO RECORD** toggle on the GUI's RESET tab (`/audiorecord`, intercepted in `OscBridge` like `/poweroff`) — the appliance is headless, so the tablet is the only way to record there. Both drive the same `startRecording()`/`finishRecording()`; a take started from the tablet skips the save dialog.
+
+Writes 24-bit PCM WAV to `~/formulsAudioRecordings/` during the take, or to a mounted USB stick on the appliance — `RecordingLocation.h` decides, and explains why. Save dialog only moves the file. Channel count matches the selected output (2 or 14). RF64 automatic past 4 GB. No disk I/O on the audio thread (`AudioFormatWriter::ThreadedWriter`).
+
+Recording refuses to start, and stops cleanly if already running, when the destination has less than 256 MB free (`FORMULS_RECORDING_MIN_FREE_MB`, 0 disables). That guard is about the machine, not the take: on the appliance the fallback destination is the root filesystem.
+
+The plugin compiles the same GUI server but has no transport to record, so the server hides the button unless the host calls `setRecordingAvailable(true)`.
 
 ## Critical gotchas
 

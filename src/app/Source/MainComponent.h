@@ -97,6 +97,12 @@ private:
         keep the file and moves it there. */
     void finishRecording (bool offerToSaveRecording);
 
+    /** Called while a take runs: stops it cleanly if the destination is
+        about to run out of space. On the appliance that destination can be
+        the root filesystem, so this protects the machine and not just the
+        recording -- see RecordingLocation.h. */
+    void checkRecordingSpace();
+
     /** Enables/disables and re-labels every button whose availability depends
         on the engine or the recorder: record, screenshot and the two preset
         buttons. */
@@ -196,6 +202,12 @@ private:
 
     // Declared before the engine so it outlives the engine's recording tap.
     AudioRecorder recorder;
+
+    // Polls the destination's free space while a take runs. Declared after
+    // the recorder so it stops before the recorder it reads from is
+    // destroyed.
+    juce::TimedCallback diskGuard { [this] { checkRecordingSpace(); } };
+
     FormulsEngine engine;
     OpenStageControlProcess openStageControl;
 
