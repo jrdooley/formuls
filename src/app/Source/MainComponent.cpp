@@ -197,33 +197,45 @@ MainComponent::MainComponent()
     // same take in every respect -- same destination, same channel count,
     // same clean finish -- and there is one place where recording can go
     // wrong instead of two.
-    engine.onRecordRequested = [this] (bool shouldRecord)
+    if (recording::overriddenUnavailable())
     {
-        if (shouldRecord == recorder.isRecording())
+        juce::Logger::writeToLog ("recording: FORMULS_RECORDING_AVAILABLE=0 -- leaving the "
+                                  "request unwired, as the plugin does");
+    }
+    else
+    {
+        engine.onRecordRequested = [this] (bool shouldRecord)
         {
-            // Already in the state being asked for. Happens when the desktop
-            // Record button and the tablet disagree for a moment; re-publish
-            // so the tablet catches up rather than acting twice.
+            if (shouldRecord == recorder.isRecording())
+            {
+                // Already in the state being asked for. Happens when the
+                // desktop Record button and the tablet disagree for a moment;
+                // re-publish so the tablet catches up rather than acting twice.
+                publishRecordingStateToGui();
+                return;
+            }
+
+            if (shouldRecord)
+            {
+                startRecording();
+            }
+            else
+            {
+                // false: no "save as" dialog. On the appliance there is no one
+                // at a screen to answer it, and the take is already where the
+                // user wants it -- see RecordingLocation.h.
+                finishRecording (false);
+            }
+
+            // startRecording() can refuse (the engine is not running, the disk
+            // is nearly full, or the file could not be opened) and says so in
+            // the status line. The tablet cannot see that line, so tell it what
+            // actually happened rather than what was asked for: a button left
+            // lit over a take that never started is the worst outcome here.
+            updateButtonStates();
             publishRecordingStateToGui();
-            return;
-        }
-
-        if (shouldRecord)
-            startRecording();
-        else
-            // false: no "save as" dialog. On the appliance there is no one at
-            // a screen to answer it, and the take is already where the user
-            // wants it -- see RecordingLocation.h.
-            finishRecording (false);
-
-        // startRecording() can refuse (the engine is not running, or the file
-        // could not be opened) and says so in the status line. The tablet
-        // cannot see that line, so tell it what actually happened rather than
-        // what was asked for: a button left lit over a take that never
-        // started is the worst outcome here.
-        updateButtonStates();
-        publishRecordingStateToGui();
-    };
+        };
+    }
 
    #if FORMULS_AUTOSTART_TEST
     // Development aid: build with GCC_PREPROCESSOR_DEFINITIONS including
