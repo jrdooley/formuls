@@ -6,6 +6,7 @@
 #include "FormulsLookAndFeel.h"
 #include "ResourceLocator.h"
 #include "PowerOff.h"
+#include "RecordingLocation.h"
 
 namespace formuls
 {
@@ -217,6 +218,43 @@ MainComponent::MainComponent()
                                   + poweroff::triggerFile().getParentDirectory().getFullPathName()
                                   + " does not exist) -- leaving the request unwired");
     }
+
+    // The GUI's RESET tab can also start and stop a recording. On the
+    // appliance this is the only way to record at all: it runs headless, so
+    // the Record button in this window is on a screen nobody is looking at.
+    //
+    // This deliberately reuses startRecording()/finishRecording() rather than
+    // driving the recorder directly, so a take started from the tablet is the
+    // same take in every respect -- same destination, same channel count,
+    // same clean finish -- and there is one place where recording can go
+    // wrong instead of two.
+    engine.onRecordRequested = [this] (bool shouldRecord)
+    {
+        if (shouldRecord == recorder.isRecording())
+        {
+            // Already in the state being asked for. Happens when the desktop
+            // Record button and the tablet disagree for a moment; re-publish
+            // so the tablet catches up rather than acting twice.
+            publishRecordingStateToGui();
+            return;
+        }
+
+        if (shouldRecord)
+            startRecording();
+        else
+            // false: no "save as" dialog. On the appliance there is no one at
+            // a screen to answer it, and the take is already where the user
+            // wants it -- see RecordingLocation.h.
+            finishRecording (false);
+
+        // startRecording() can refuse (the engine is not running, or the file
+        // could not be opened) and says so in the status line. The tablet
+        // cannot see that line, so tell it what actually happened rather than
+        // what was asked for: a button left lit over a take that never
+        // started is the worst outcome here.
+        updateButtonStates();
+        publishRecordingStateToGui();
+    };
 
    #if FORMULS_AUTOSTART_TEST
     // Development aid: build with GCC_PREPROCESSOR_DEFINITIONS including
@@ -549,6 +587,12 @@ void MainComponent::startEverything()
     }
 
     // 2. the Open Stage Control GUI server
+    //
+    // The app records, so it serves the record button. Set before start():
+    // the session is parsed and gated there, and a flag arriving afterwards
+    // would be read by nobody.
+    embeddedGui.setRecordingAvailable (true);
+
     auto oscResult = useNodeGui
                          ? openStageControl.start (resourceRoot)
                          : embeddedGui.start (resourceRoot, OpenStageControlProcess::guiPort,
@@ -735,6 +779,10 @@ void MainComponent::recordClicked()
         startRecording();
 
     updateButtonStates();
+
+    // A take started here is a take the tablet should show too, so the two
+    // controls never disagree about whether something is being recorded.
+    publishRecordingStateToGui();
 }
 
 void MainComponent::startRecording()
@@ -1159,6 +1207,55 @@ juce::File MainComponent::presetDirectory()
 {
     return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory)
                .getChildFile ("formuls").getChildFile ("presets");
+}
+
+void MainComponent::publishRecordingStateToGui()
+{
+    sendOscFloatToOsc (recording::oscAddress, recorder.isRecording() ? 1.0f : 0.0f);
+}
+
+bool MainComponent::sendOscFloatToOsc (const juce::String& address, float value)
+{
+    // Deliberately a separate name rather than an overload: juce::String has
+    // a non-explicit constructor from int, so sendOscToOsc (addr, 1) would be
+    // ambiguous and the compiler would pick for us.
+    if (! useNodeGui)
+    {
+        if (! embeddedGui.isRunning())
+            return false;
+        embeddedGui.receiveFromApp (juce::OSCMessage (juce::OSCAddressPattern (address), value));
+        return true;
+    }
+
+    // Same minimal encoder as the string version below, with a ",f" tag. A
+    // widget's value has to arrive as a number: o-s-c compares it against the
+    // button's on/off values, and the string "1" is not the number 1, so a
+    // string here would leave the button dark while recording.
+    juce::MemoryBlock msg;
+
+    auto addrBytes = address.toRawUTF8();
+    auto addrLen   = (int) strlen (addrBytes);
+    msg.append (addrBytes, (size_t) addrLen);
+    int addrPad = 4 - (addrLen % 4);
+    for (int i = 0; i < addrPad; ++i)
+        msg.append ("\0", 1);
+
+    msg.append (",f\0\0", 4);
+
+    // OSC floats are big-endian IEEE-754.
+    juce::uint32 bits;
+    static_assert (sizeof (bits) == sizeof (value), "float is not 32 bits");
+    std::memcpy (&bits, &value, sizeof (bits));
+    const auto bigEndian = juce::ByteOrder::swapIfLittleEndian (bits);
+    msg.append (&bigEndian, sizeof (bigEndian));
+
+    juce::DatagramSocket socket (false);
+
+    if (! socket.bindToPort (0))
+        return false;
+
+    return socket.write ("127.0.0.1", OpenStageControlProcess::guiPort,
+                         msg.getData(), (int) msg.getSize()) == (int) msg.getSize();
 }
 
 bool MainComponent::sendOscToOsc (const juce::String& address, const juce::String& value)
