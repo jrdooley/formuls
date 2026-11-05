@@ -140,11 +140,13 @@ juce::Result EmbeddedGuiServer::start (const juce::File& resourceRoot, int httpP
     // of the filesystem: whether this host can record is something it knows
     // about itself, not something to deduce. The app says yes; the plugin
     // says nothing and so gets no button -- see RecordingLocation.h.
-    if (! recordingAvailable)
+    if (! recordingAvailable || recording::overriddenUnavailable())
     {
         if (hideWidget (sessionJson, recording::guiWidgetId))
             juce::Logger::writeToLog ("GUI: hiding " + juce::String (recording::guiWidgetId)
-                                      + " -- this host does not record");
+                                      + " -- this host does not record"
+                                      + (recordingAvailable ? " (forced by FORMULS_RECORDING_AVAILABLE=0)"
+                                                            : ""));
     }
 
     // Same rule as OpenStageControlProcess: only a build has the compounds map,
