@@ -27,7 +27,10 @@ the top of the build script (currently `0.3.2`). Steps:
 6. Runs Projucer (`--resave src/app/formuls.jucer`) then `xcodebuild`
 7. Assembles self-contained `.app` bundle, codesigns, cleans up
 
-**Linux** (untested): `./build-linux.sh` — same flow, needs Linux Projucer build, produces a directory not `.app`.
+**Linux**: `./build-linux.sh` — same flow, needs Linux Projucer build, produces a
+directory not `.app`. This is how the appliance images are built:
+formuls-embedded's `scripts/build-formuls.sh` runs it inside an x86-64 machine
+for every image, so it is exercised on Linux each time one is cut.
 
 **JUCE not at `~/JUCE`?** Set `PROJUCER=/path/to/Projucer` or update the `MODULEPATH` entries in `src/app/formuls.jucer`.
 
