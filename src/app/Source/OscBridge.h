@@ -39,13 +39,22 @@
  *
  * What happens instead
  * --------------------
- * juce::OSCReceiver parses on its own thread, onto the heap. The listener is
- * a MessageLoopCallback one, so messages arrive here on the *message*
- * thread, and libpd_message() -- which is what PdBase::finishMessage()
- * reaches -- takes sys_lock() itself and then runs pd_typedmess() on the
- * calling thread. The patch's message dispatch therefore happens on the
+ * juce::OSCReceiver parses on its own thread, onto the heap. That thread
+ * then queues the message (post()) and the queue is drained on the *message*
+ * thread, where libpd_message() -- which is what PdBase::finishMessage()
+ * reaches -- takes sys_lock() itself and runs pd_typedmess() on the calling
+ * thread. The patch's message dispatch therefore still happens on the
  * message thread's full-size stack, while the audio thread does nothing but
- * audio.
+ * audio. That is what matters for the crash above, and it is unchanged.
+ *
+ * The listener is a RealtimeCallback one rather than MessageLoopCallback,
+ * which is a throughput decision and not a safety one. MessageLoopCallback
+ * posts one CallbackMessage per datagram; a talkative GUI then costs one
+ * message-thread wakeup per message, the unbounded queue grows faster than
+ * it drains, and everything behind it -- including /poweroff, the only
+ * control an appliance has -- waits behind a reverb parameter. Draining a
+ * batch per wakeup is the same work with a fraction of the round trips.
+ * See issue #40.
  *
  * The patch is fed at exactly the point [list trim] used to feed, through
  * [r formuls-osc-in], so everything downstream of that [route] is unchanged.
@@ -69,7 +78,7 @@ namespace pd { class PdBase; }
 namespace formuls
 {
 
-class OscBridge : private juce::OSCReceiver::Listener<juce::OSCReceiver::MessageLoopCallback>,
+class OscBridge : private juce::OSCReceiver::Listener<juce::OSCReceiver::RealtimeCallback>,
                   private juce::AsyncUpdater
 {
 public:
@@ -138,6 +147,13 @@ private:
     void oscBundleReceived (const juce::OSCBundle& bundle) override;
 
     void forward (const juce::OSCMessage& message);
+
+    /** Acts on /poweroff and returns true if it did. Called from whichever
+        thread the message arrived on: it only creates a file (PowerOff.h)
+        and never touches Pd or the UI, so it does not need the message
+        thread -- and must not wait for it, because the queue it would wait
+        in is exactly what stops it arriving (issue #40). */
+    bool interceptPowerOff (const juce::OSCMessage& message);
     void handleAsyncUpdate() override;   // drains `posted`
 
     juce::OSCReceiver receiver;
