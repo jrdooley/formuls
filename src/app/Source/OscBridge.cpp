@@ -28,13 +28,20 @@ juce::Result OscBridge::start (pd::PdBase& pdToFeed, int udpPort)
                                    + " (is another copy of formuls running?)");
     }
 
-    receiver.addListener (this);
+    // Open the gate *before* registering the listener. connect() has already
+    // called startThread(), so the receiver thread is reading datagrams; the
+    // moment addListener() runs, callbacks fire on that thread. Anything that
+    // arrives before accepting is true would be dropped by post() silently.
+    // The old MessageLoopCallback listener hid this: its callbacks could not
+    // run until start() returned, because start() is on the message thread.
     listening = true;
     messageCount = 0;
     {
         const juce::ScopedLock sl (postLock);
         accepting = true;
     }
+
+    receiver.addListener (this);
 
     juce::Logger::writeToLog ("OSC bridge listening on udp " + juce::String (udpPort));
     return juce::Result::ok();
@@ -101,6 +108,56 @@ void OscBridge::stop()
                               + " message(s)");
 }
 
+bool OscBridge::interceptPowerOff (const juce::OSCMessage& message)
+{
+    auto path = juce::StringArray::fromTokens (message.getAddressPattern().toString(), "/", "");
+    path.removeEmptyStrings();
+
+    if (path.isEmpty() || path[0] != powerOffSelector)
+        return false;
+
+    // The same gate post() uses. Once stop() has closed the bridge, a
+    // datagram still in flight on the receiver thread must not power the
+    // machine off -- a Stop is not a shutdown. The old MessageLoopCallback
+    // listener gave this for free: stop() runs on the message thread, so a
+    // queued callback could not run until stop() had finished, by which
+    // point forward()'s pd == nullptr check dropped it. The receiver thread
+    // has no such ordering, so the gate has to be explicit.
+    {
+        const juce::ScopedLock sl (postLock);
+
+        if (! accepting)
+            return true;   // it is a /poweroff, just not an actionable one
+    }
+
+    // A button in "push" mode sends 1 on press and 0 on release, so act on
+    // the press only.
+    bool pressed = true;
+
+    if (message.size() > 0)
+    {
+        const auto& first = message[0];
+
+        if (first.isFloat32())    pressed = first.getFloat32() != 0.0f;
+        else if (first.isInt32()) pressed = first.getInt32() != 0;
+    }
+
+    if (! pressed)
+        return true;
+
+    if (onPowerOffRequested != nullptr)
+    {
+        juce::Logger::writeToLog ("OSC bridge: power off requested by the GUI");
+        onPowerOffRequested();
+    }
+    else
+    {
+        juce::Logger::writeToLog ("OSC bridge: ignoring /poweroff -- no handler is set");
+    }
+
+    return true;
+}
+
 void OscBridge::oscBundleReceived (const juce::OSCBundle& bundle)
 {
     // The case that used to crash the app: Open Stage Control sends its whole
@@ -109,7 +166,7 @@ void OscBridge::oscBundleReceived (const juce::OSCBundle& bundle)
     for (const auto& element : bundle)
     {
         if (element.isMessage())
-            forward (element.getMessage());
+            oscMessageReceived (element.getMessage());
         else if (element.isBundle())
             oscBundleReceived (element.getBundle());
     }
@@ -117,7 +174,15 @@ void OscBridge::oscBundleReceived (const juce::OSCBundle& bundle)
 
 void OscBridge::oscMessageReceived (const juce::OSCMessage& message)
 {
-    forward (message);
+    // This runs on the receiver's own thread (RealtimeCallback), not the
+    // message thread. Nothing here may touch Pd or the UI.
+    if (interceptPowerOff (message))
+        return;
+
+    // post() batches: the whole queue drains in one message-thread wakeup,
+    // where a MessageLoopCallback listener cost one wakeup per datagram.
+    // Under a talkative GUI that difference is the whole of issue #40.
+    post (message);
 }
 
 void OscBridge::forward (const juce::OSCMessage& message)
@@ -149,40 +214,14 @@ void OscBridge::forward (const juce::OSCMessage& message)
 
     const auto selector = path[0];
 
-    // /poweroff is for the machine, not the patch. Intercepted here rather
-    // than routed in Pd: the patch cannot power anything off, and giving its
+    // /poweroff is for the machine, not the patch. Intercepted rather than
+    // routed in Pd: the patch cannot power anything off, and giving its
     // [route] a silent branch would hide where this actually happens.
-    if (selector == powerOffSelector)
-    {
-        // A button in "push" mode sends 1 on press and 0 on release, so act
-        // on the press only. Checking the argument rather than requiring a
-        // particular button mode means the GUI can use push, tap or toggle
-        // and this still fires exactly once.
-        bool pressed = true;
-
-        if (message.size() > 0)
-        {
-            const auto& first = message[0];
-
-            if (first.isFloat32())    pressed = first.getFloat32() != 0.0f;
-            else if (first.isInt32()) pressed = first.getInt32() != 0;
-        }
-
-        if (! pressed)
-            return;
-
-        if (onPowerOffRequested != nullptr)
-        {
-            juce::Logger::writeToLog ("OSC bridge: power off requested by the GUI");
-            onPowerOffRequested();
-        }
-        else
-        {
-            juce::Logger::writeToLog ("OSC bridge: ignoring /poweroff -- no handler is set");
-        }
-
+    //
+    // On the UDP path this already ran on the receiver thread; this is the
+    // in-process path (EmbeddedGuiServer -> post()), which arrives here.
+    if (interceptPowerOff (message))
         return;
-    }
 
     // /audiorecord is the app's business too: the patch does not know a file
     // is being written, and nothing in it would change if it did.
