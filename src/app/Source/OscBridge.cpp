@@ -28,13 +28,20 @@ juce::Result OscBridge::start (pd::PdBase& pdToFeed, int udpPort)
                                    + " (is another copy of formuls running?)");
     }
 
-    receiver.addListener (this);
+    // Open the gate *before* registering the listener. connect() has already
+    // called startThread(), so the receiver thread is reading datagrams; the
+    // moment addListener() runs, callbacks fire on that thread. Anything that
+    // arrives before accepting is true would be dropped by post() silently.
+    // The old MessageLoopCallback listener hid this: its callbacks could not
+    // run until start() returned, because start() is on the message thread.
     listening = true;
     messageCount = 0;
     {
         const juce::ScopedLock sl (postLock);
         accepting = true;
     }
+
+    receiver.addListener (this);
 
     juce::Logger::writeToLog ("OSC bridge listening on udp " + juce::String (udpPort));
     return juce::Result::ok();
@@ -108,6 +115,20 @@ bool OscBridge::interceptPowerOff (const juce::OSCMessage& message)
 
     if (path.isEmpty() || path[0] != powerOffSelector)
         return false;
+
+    // The same gate post() uses. Once stop() has closed the bridge, a
+    // datagram still in flight on the receiver thread must not power the
+    // machine off -- a Stop is not a shutdown. The old MessageLoopCallback
+    // listener gave this for free: stop() runs on the message thread, so a
+    // queued callback could not run until stop() had finished, by which
+    // point forward()'s pd == nullptr check dropped it. The receiver thread
+    // has no such ordering, so the gate has to be explicit.
+    {
+        const juce::ScopedLock sl (postLock);
+
+        if (! accepting)
+            return true;   // it is a /poweroff, just not an actionable one
+    }
 
     // A button in "push" mode sends 1 on press and 0 on release, so act on
     // the press only.
