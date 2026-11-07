@@ -115,6 +115,11 @@ private:
     /** Writes one JSON event into the UX log, via the GUI server. */
     void sendUxLogEvent (const juce::var& event);
 
+    /** The session log o-s-c is currently writing, or a null File before it
+        has opened one. Its existence is the real signal that the log server
+        is up: the custom module creates it as it loads. */
+    static juce::File newestUxLog();
+
     /** True when the newest session log already contains `marker`. */
     static bool uxLogContains (const juce::String& marker);
 
@@ -133,9 +138,11 @@ private:
         the thing being announced has gone away, which abandons the attempt. */
     void announceUxLogEvent (juce::String marker,
                              std::function<juce::var()> makeEvent,
-                             int attemptsLeft);
+                             int sendsLeft,
+                             int ticksUntilSend = 0);
 
-    static constexpr int uxLogAnnounceAttempts = 60;   // ~1 a second
+    static constexpr int uxLogAnnounceSends = 6;      // sends, not ticks
+    static constexpr int uxLogAnnounceGapTicks = 10;  // ~10 s between sends
 
 
     /** Replay mode (UX-logging builds): pick a session log, then play its
