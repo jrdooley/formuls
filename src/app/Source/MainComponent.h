@@ -115,6 +115,29 @@ private:
     /** Writes one JSON event into the UX log, via the GUI server. */
     void sendUxLogEvent (const juce::var& event);
 
+    /** True when the newest session log already contains `marker`. */
+    static bool uxLogContains (const juce::String& marker);
+
+    /** Sends a one-off session-log event until it is actually in the log.
+
+        A datagram sent before o-s-c has opened its .jsonl is simply lost,
+        and the fixed 1500 ms delay this replaces was only a guess at how
+        long that takes. On the appliance the log can open 13 s after the
+        engine starts, and both announcements were lost every time: a
+        session with 1601 spectral frames and no spec-start describing them,
+        and no rec-start, which is what findSessionAudio() needs to replay
+        the session's audio at all.
+
+        So rather than guess, send and then check: the event counts as made
+        only once it appears in the log. makeEvent returns a void var when
+        the thing being announced has gone away, which abandons the attempt. */
+    void announceUxLogEvent (juce::String marker,
+                             std::function<juce::var()> makeEvent,
+                             int attemptsLeft);
+
+    static constexpr int uxLogAnnounceAttempts = 60;   // ~1 a second
+
+
     /** Replay mode (UX-logging builds): pick a session log, then play its
         audio while the GUI replays the session. See SessionReplayer.h. */
     void replayClicked();
