@@ -79,7 +79,8 @@ namespace formuls
 {
 
 class OscBridge : private juce::OSCReceiver::Listener<juce::OSCReceiver::RealtimeCallback>,
-                  private juce::AsyncUpdater
+                  private juce::AsyncUpdater,
+                  private juce::Timer
 {
 public:
     OscBridge() = default;
@@ -155,6 +156,32 @@ private:
         in is exactly what stops it arriving (issue #40). */
     bool interceptPowerOff (const juce::OSCMessage& message);
     void handleAsyncUpdate() override;   // drains `posted`
+
+    /** Watchdog. juce::OSCReceiver's thread returns for good if
+        waitUntilReady() ever reports an error (juce_OSCReceiver.cpp, "if
+        (ready < 0 ... ) return;"), and says nothing when it does: the bridge
+        is then deaf for the lifetime of the process with no log line and no
+        visible cause. On a headless appliance that is a brick -- no POWER
+        OFF, no record, no control of any kind.
+
+        So the bridge proves to itself that it can still hear. Every tick
+        sends one /oscwatchdog to its own port; receiving it clears the flag.
+        Two ticks in a row unanswered and the receiver is rebuilt, loudly.
+        Never seen in the wild; it costs one datagram a minute and turns an
+        invisible, unrecoverable failure into a logged and survivable one. */
+    void timerCallback() override;
+    bool sendWatchdogProbe();
+    void rebuildReceiver();
+
+    static constexpr const char* watchdogAddress = "/oscwatchdog";
+    static constexpr int watchdogIntervalMs = 30000;
+    static constexpr int watchdogMissesBeforeRebuild = 2;
+
+    int udpPortInUse = 0;             // message thread
+    bool probeOutstanding = false;    // message thread
+    int consecutiveMisses = 0;        // message thread
+    bool warnedAboutProbeSend = false;// message thread
+    std::atomic<bool> probeSeen { false };
 
     juce::OSCReceiver receiver;
     bool direct = false;

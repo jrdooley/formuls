@@ -43,6 +43,13 @@ juce::Result OscBridge::start (pd::PdBase& pdToFeed, int udpPort)
 
     receiver.addListener (this);
 
+    udpPortInUse = udpPort;
+    probeOutstanding = false;
+    consecutiveMisses = 0;
+    warnedAboutProbeSend = false;
+    probeSeen = false;
+    startTimer (watchdogIntervalMs);
+
     juce::Logger::writeToLog ("OSC bridge listening on udp " + juce::String (udpPort));
     return juce::Result::ok();
 }
@@ -94,6 +101,7 @@ void OscBridge::stop()
         posted.clear();
     }
     cancelPendingUpdate();
+    stopTimer();
 
     if (! direct)
     {
@@ -158,6 +166,79 @@ bool OscBridge::interceptPowerOff (const juce::OSCMessage& message)
     return true;
 }
 
+bool OscBridge::sendWatchdogProbe()
+{
+    juce::OSCSender sender;
+
+    if (! sender.connect ("127.0.0.1", udpPortInUse))
+        return false;
+
+    return sender.send (juce::OSCMessage (juce::OSCAddressPattern (watchdogAddress)));
+}
+
+void OscBridge::rebuildReceiver()
+{
+    juce::Logger::writeToLog ("OSC bridge: receiver stopped answering -- rebuilding it");
+
+    receiver.removeListener (this);
+    receiver.disconnect();
+
+    if (receiver.connect (udpPortInUse))
+    {
+        receiver.addListener (this);
+        juce::Logger::writeToLog ("OSC bridge: receiver rebuilt on udp "
+                                  + juce::String (udpPortInUse));
+    }
+    else
+    {
+        juce::Logger::writeToLog ("OSC bridge: could NOT rebind udp "
+                                  + juce::String (udpPortInUse)
+                                  + " -- the GUI cannot reach this machine");
+    }
+}
+
+void OscBridge::timerCallback()
+{
+    // Judge the probe sent last tick before sending another, so a starved
+    // message thread delays detection rather than inventing a miss.
+    if (probeOutstanding)
+    {
+        if (probeSeen.exchange (false))
+        {
+            consecutiveMisses = 0;
+        }
+        else if (++consecutiveMisses >= watchdogMissesBeforeRebuild)
+        {
+            consecutiveMisses = 0;
+            probeOutstanding = false;
+            rebuildReceiver();
+            return;   // give the new receiver a full tick before judging it
+        }
+    }
+
+    // A probe that could not be sent says nothing about the receiver, so it
+    // is not counted against it -- but it does mean nothing is being
+    // guarded, and that has to be said out loud. Otherwise a watchdog that
+    // cannot send (no fds left, say -- the kind of state it exists for)
+    // sits there judging nothing, as quiet as the fault it is watching for.
+    const bool sent = sendWatchdogProbe();
+
+    if (! sent && ! warnedAboutProbeSend)
+    {
+        warnedAboutProbeSend = true;
+        juce::Logger::writeToLog ("OSC bridge: cannot send the watchdog probe to udp "
+                                  + juce::String (udpPortInUse)
+                                  + " -- the receiver is no longer being checked");
+    }
+    else if (sent && warnedAboutProbeSend)
+    {
+        warnedAboutProbeSend = false;
+        juce::Logger::writeToLog ("OSC bridge: watchdog probe sending again");
+    }
+
+    probeOutstanding = sent;
+}
+
 void OscBridge::oscBundleReceived (const juce::OSCBundle& bundle)
 {
     // The case that used to crash the app: Open Stage Control sends its whole
@@ -176,6 +257,16 @@ void OscBridge::oscMessageReceived (const juce::OSCMessage& message)
 {
     // This runs on the receiver's own thread (RealtimeCallback), not the
     // message thread. Nothing here may touch Pd or the UI.
+
+    // The watchdog's own probe. Answered here and dropped: the patch has no
+    // use for it, and routing it through Pd would make the health check
+    // depend on the thing it is checking.
+    if (message.getAddressPattern().toString() == watchdogAddress)
+    {
+        probeSeen = true;
+        return;
+    }
+
     if (interceptPowerOff (message))
         return;
 
