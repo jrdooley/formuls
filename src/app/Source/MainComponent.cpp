@@ -669,24 +669,99 @@ void MainComponent::startSessionRecording()
     startSpectralLogging (engine.getNumPatchChannels(), sampleRate);
 
     // The first block's time is only known once the audio thread has handed
-    // one over, so report the start a moment later. The log server may also
-    // still be loading the layout; o-s-c handles OSC once it is listening.
+    // one over, so the first attempt waits for that. After it, the sending
+    // repeats until the log actually has it: o-s-c can take far longer than
+    // any fixed delay to open its .jsonl, and this event is what
+    // findSessionAudio() needs to replay the session at all (issue #44).
     juce::Timer::callAfterDelay (1500, [safeThis = juce::Component::SafePointer (this),
                                         destination, numChannels, sampleRate]
     {
-        if (safeThis == nullptr || safeThis->sessionRecorder.getFile() != destination)
+        if (safeThis == nullptr)
             return;
 
-        auto* ev = new juce::DynamicObject();
-        ev->setProperty ("k", "rec-start");
-        ev->setProperty ("take", "session");
-        ev->setProperty ("file", destination.getFileName());
-        ev->setProperty ("first_block_st", safeThis->sessionRecorder.getFirstBlockTimeMs());
-        ev->setProperty ("sr", sampleRate);
-        ev->setProperty ("ch", numChannels);
-        if (auto* device = safeThis->deviceManager.getCurrentAudioDevice())
-            ev->setProperty ("buffer", device->getCurrentBufferSizeSamples());
-        safeThis->sendUxLogEvent (juce::var (ev));
+        safeThis->announceUxLogEvent (destination.getFileName(),
+            [safeThis, destination, numChannels, sampleRate]() -> juce::var
+            {
+                if (safeThis == nullptr || safeThis->sessionRecorder.getFile() != destination)
+                    return {};
+
+                auto* ev = new juce::DynamicObject();
+                ev->setProperty ("k", "rec-start");
+                ev->setProperty ("take", "session");
+                ev->setProperty ("file", destination.getFileName());
+                ev->setProperty ("first_block_st", safeThis->sessionRecorder.getFirstBlockTimeMs());
+                ev->setProperty ("sr", sampleRate);
+                ev->setProperty ("ch", numChannels);
+                if (auto* device = safeThis->deviceManager.getCurrentAudioDevice())
+                    ev->setProperty ("buffer", device->getCurrentBufferSizeSamples());
+                return juce::var (ev);
+            },
+            uxLogAnnounceAttempts);
+    });
+}
+
+bool MainComponent::uxLogContains (const juce::String& marker)
+{
+    // The newest .jsonl in the log directory is this session's: the custom
+    // module opens one per run, named with the time it started.
+    const auto folder = OpenStageControlProcess::getUxLogDirectory();
+    juce::File newest;
+
+    for (const auto& entry : juce::RangedDirectoryIterator (folder, false, "*.jsonl"))
+    {
+        const auto candidate = entry.getFile();
+
+        // Last-modified rather than created: only the current log is being
+        // written to, and creation time is not dependable on Linux.
+        if (newest == juce::File()
+            || candidate.getLastModificationTime() > newest.getLastModificationTime())
+            newest = candidate;
+    }
+
+    if (newest == juce::File())
+        return false;   // o-s-c has not opened a log yet
+
+    // Line by line, and capped: this runs once a second while the session
+    // starts, and the log is only a few lines long then -- but it keeps
+    // growing, and a give-up should not mean reading a multi-hour file.
+    juce::FileInputStream in (newest);
+
+    for (int lines = 0; in.openedOk() && ! in.isExhausted() && lines < 20000; ++lines)
+        if (in.readNextLine().contains (marker))
+            return true;
+
+    return false;
+}
+
+void MainComponent::announceUxLogEvent (juce::String marker,
+                                        std::function<juce::var()> makeEvent,
+                                        int attemptsLeft)
+{
+    if (makeEvent == nullptr)
+        return;
+
+    const auto event = makeEvent();
+
+    if (event.isVoid())
+        return;   // what was being announced has gone away
+
+    if (uxLogContains (marker))
+        return;   // it landed
+
+    if (attemptsLeft <= 0)
+    {
+        juce::Logger::writeToLog ("uxlog: gave up announcing " + marker
+                                  + " -- the log server never wrote it down");
+        return;
+    }
+
+    sendUxLogEvent (event);
+
+    juce::Timer::callAfterDelay (1000, [safeThis = juce::Component::SafePointer (this),
+                                        marker, makeEvent, attemptsLeft]
+    {
+        if (safeThis != nullptr)
+            safeThis->announceUxLogEvent (marker, makeEvent, attemptsLeft - 1);
     });
 }
 
@@ -704,25 +779,29 @@ void MainComponent::startSpectralLogging (int numChannels, double sampleRate)
     engine.setSpectralAnalyser (&spectral);
     spectralTick.startTimerHz (hz);
 
-    // Delayed for the same reason rec-start is: the log server may still be
-    // loading the layout when the engine starts, and a datagram sent before
-    // it listens is simply lost. A first run without this delay logged 209
-    // spec frames and no spec-start at all.
-    juce::Timer::callAfterDelay (1500, [safeThis = juce::Component::SafePointer (this),
-                                        hz, numChannels, sampleRate]
-    {
-        if (safeThis == nullptr || ! safeThis->spectralTick.isTimerRunning())
-            return;
+    // Repeated until the log has it, for the same reason rec-start is: a
+    // datagram sent before o-s-c opens its .jsonl is simply lost. The fixed
+    // delay that used to stand here was a guess, and it lost every time on
+    // the appliance -- 1601 spec frames in one session with no spec-start
+    // describing any of them (issue #44). Without it the frames cannot be
+    // read: nothing says how many channels, at what rate, how often.
+    announceUxLogEvent ("\"k\":\"spec-start\"",
+        [safeThis = juce::Component::SafePointer (this),
+         hz, numChannels, sampleRate]() -> juce::var
+        {
+            if (safeThis == nullptr || ! safeThis->spectralTick.isTimerRunning())
+                return {};
 
-        auto* ev = new juce::DynamicObject();
-        ev->setProperty ("k", "spec-start");
-        ev->setProperty ("hz", hz);
-        ev->setProperty ("n", SpectralAnalyser::windowSize);
-        ev->setProperty ("ch", numChannels);                        // channels analysed
-        ev->setProperty ("audible", safeThis->engine.getNumOutputChannels()); // channels heard
-        ev->setProperty ("sr", sampleRate);
-        safeThis->sendUxLogEvent (juce::var (ev));
-    });
+            auto* ev = new juce::DynamicObject();
+            ev->setProperty ("k", "spec-start");
+            ev->setProperty ("hz", hz);
+            ev->setProperty ("n", SpectralAnalyser::windowSize);
+            ev->setProperty ("ch", numChannels);                        // channels analysed
+            ev->setProperty ("audible", safeThis->engine.getNumOutputChannels()); // channels heard
+            ev->setProperty ("sr", sampleRate);
+            return juce::var (ev);
+        },
+        uxLogAnnounceAttempts);
 }
 
 void MainComponent::stopSpectralLogging()
