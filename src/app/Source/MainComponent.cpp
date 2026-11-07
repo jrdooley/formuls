@@ -974,6 +974,23 @@ void MainComponent::checkRecordingSpace()
                                   + sessionFile.getParentDirectory().getFullPathName()
                                   + " -- finishing the session take while it can still be closed");
 
+        // Into the log as well as the journal, and before the take is
+        // stopped so the counts are still there to read. Without this the
+        // log keeps a rec-start with no rec-stop and the audio quietly ends
+        // early: events would go on being logged for hours against a
+        // recording that had already finished, with nothing saying where it
+        // stopped. The journal has it, but the journal is not what the
+        // study reads and is not collected with the logs.
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "rec-stop");
+        ev->setProperty ("take", "session");
+        ev->setProperty ("file", sessionFile.getFileName());
+        ev->setProperty ("samples", sessionRecorder.getSamplesWritten());
+        ev->setProperty ("first_block_st", sessionRecorder.getFirstBlockTimeMs());
+        ev->setProperty ("why", "disk-full");   // absent on a normal stop
+        ev->setProperty ("free", (juce::int64) sessionFree);
+        sendUxLogEvent (juce::var (ev));
+
         sessionRecorder.stop();
         setStatus ("Session recording stopped: the disk is nearly full ("
                    + juce::File::descriptionOfSizeInBytes (sessionFree) + " left).");
