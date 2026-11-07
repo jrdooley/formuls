@@ -46,6 +46,7 @@ juce::Result OscBridge::start (pd::PdBase& pdToFeed, int udpPort)
     udpPortInUse = udpPort;
     probeOutstanding = false;
     consecutiveMisses = 0;
+    warnedAboutProbeSend = false;
     probeSeen = false;
     startTimer (watchdogIntervalMs);
 
@@ -216,8 +217,26 @@ void OscBridge::timerCallback()
     }
 
     // A probe that could not be sent says nothing about the receiver, so it
-    // is not counted against it.
-    probeOutstanding = sendWatchdogProbe();
+    // is not counted against it -- but it does mean nothing is being
+    // guarded, and that has to be said out loud. Otherwise a watchdog that
+    // cannot send (no fds left, say -- the kind of state it exists for)
+    // sits there judging nothing, as quiet as the fault it is watching for.
+    const bool sent = sendWatchdogProbe();
+
+    if (! sent && ! warnedAboutProbeSend)
+    {
+        warnedAboutProbeSend = true;
+        juce::Logger::writeToLog ("OSC bridge: cannot send the watchdog probe to udp "
+                                  + juce::String (udpPortInUse)
+                                  + " -- the receiver is no longer being checked");
+    }
+    else if (sent && warnedAboutProbeSend)
+    {
+        warnedAboutProbeSend = false;
+        juce::Logger::writeToLog ("OSC bridge: watchdog probe sending again");
+    }
+
+    probeOutstanding = sent;
 }
 
 void OscBridge::oscBundleReceived (const juce::OSCBundle& bundle)

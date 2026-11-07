@@ -180,6 +180,7 @@ private:
     int udpPortInUse = 0;             // message thread
     bool probeOutstanding = false;    // message thread
     int consecutiveMisses = 0;        // message thread
+    bool warnedAboutProbeSend = false;// message thread
     std::atomic<bool> probeSeen { false };
 
     juce::OSCReceiver receiver;
