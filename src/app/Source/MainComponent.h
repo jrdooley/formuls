@@ -203,6 +203,11 @@ private:
     // Declared before the engine so it outlives the engine's recording tap.
     AudioRecorder recorder;
 
+    // The UX study's own take, running from Start to Stop alongside whatever
+    // the participant records. Separate from `recorder` so that the two
+    // cannot end one another: this is the take that cannot be redone.
+    AudioRecorder sessionRecorder;
+
     // Polls the destination's free space while a take runs. Declared after
     // the recorder so it stops before the recorder it reads from is
     // destroyed.
