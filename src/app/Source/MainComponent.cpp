@@ -607,6 +607,10 @@ void MainComponent::startEverything()
     // would be read by nobody.
     embeddedGui.setRecordingAvailable (true);
 
+    // Before the log server is launched, so every .jsonl already on disk is
+    // older than this and none of them can be mistaken for this run's.
+    uxLogSince = juce::Time::getCurrentTime();
+
     auto oscResult = useNodeGui
                          ? openStageControl.start (resourceRoot)
                          : embeddedGui.start (resourceRoot, OpenStageControlProcess::guiPort,
@@ -700,7 +704,7 @@ void MainComponent::startSessionRecording()
     });
 }
 
-juce::File MainComponent::newestUxLog()
+juce::File MainComponent::newestUxLog() const
 {
     // The newest .jsonl in the log directory is this session's: the custom
     // module opens one per run, named with the time it started.
@@ -711,8 +715,12 @@ juce::File MainComponent::newestUxLog()
     {
         const auto candidate = entry.getFile();
 
-        // Last-modified rather than created: only the current log is being
-        // written to, and creation time is not dependable on Linux.
+        // Anything last written before this run began belongs to an earlier
+        // one. Last-modified rather than created: only the current log is
+        // being written to, and creation time is not dependable on Linux.
+        if (candidate.getLastModificationTime() < uxLogSince)
+            continue;
+
         if (newest == juce::File()
             || candidate.getLastModificationTime() > newest.getLastModificationTime())
             newest = candidate;
@@ -721,7 +729,7 @@ juce::File MainComponent::newestUxLog()
     return newest;
 }
 
-bool MainComponent::uxLogContains (const juce::String& marker)
+bool MainComponent::uxLogContains (const juce::String& marker) const
 {
     const auto newest = newestUxLog();
 

@@ -115,13 +115,22 @@ private:
     /** Writes one JSON event into the UX log, via the GUI server. */
     void sendUxLogEvent (const juce::var& event);
 
-    /** The session log o-s-c is currently writing, or a null File before it
-        has opened one. Its existence is the real signal that the log server
-        is up: the custom module creates it as it loads. */
-    static juce::File newestUxLog();
+    /** The session log o-s-c is writing *for this run*, or a null File
+        before it has opened one. Its existence is the real signal that the
+        log server is up: the custom module creates it as it loads.
 
-    /** True when the newest session log already contains `marker`. */
-    static bool uxLogContains (const juce::String& marker);
+        Logs from earlier runs are ignored. The appliance accumulates them,
+        and an old one answers "yes, already logged" to anything that is not
+        unique to this session -- which silently stopped spec-start being
+        announced at all, with no send and no give-up to show for it. */
+    juce::File newestUxLog() const;
+
+    /** True when this run's session log already contains `marker`. */
+    bool uxLogContains (const juce::String& marker) const;
+
+    /** Set just before o-s-c is launched; nothing older than this is a log
+        belonging to this run. */
+    juce::Time uxLogSince;
 
     /** Sends a one-off session-log event until it is actually in the log.
 
