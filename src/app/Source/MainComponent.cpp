@@ -607,6 +607,10 @@ void MainComponent::startEverything()
     // would be read by nobody.
     embeddedGui.setRecordingAvailable (true);
 
+    // Before the log server is launched, so every .jsonl already on disk is
+    // older than this and none of them can be mistaken for this run's.
+    uxLogSince = juce::Time::getCurrentTime();
+
     auto oscResult = useNodeGui
                          ? openStageControl.start (resourceRoot)
                          : embeddedGui.start (resourceRoot, OpenStageControlProcess::guiPort,
@@ -696,11 +700,11 @@ void MainComponent::startSessionRecording()
                     ev->setProperty ("buffer", device->getCurrentBufferSizeSamples());
                 return juce::var (ev);
             },
-            uxLogAnnounceAttempts);
+            uxLogAnnounceSends);
     });
 }
 
-bool MainComponent::uxLogContains (const juce::String& marker)
+juce::File MainComponent::newestUxLog() const
 {
     // The newest .jsonl in the log directory is this session's: the custom
     // module opens one per run, named with the time it started.
@@ -711,12 +715,23 @@ bool MainComponent::uxLogContains (const juce::String& marker)
     {
         const auto candidate = entry.getFile();
 
-        // Last-modified rather than created: only the current log is being
-        // written to, and creation time is not dependable on Linux.
+        // Anything last written before this run began belongs to an earlier
+        // one. Last-modified rather than created: only the current log is
+        // being written to, and creation time is not dependable on Linux.
+        if (candidate.getLastModificationTime() < uxLogSince)
+            continue;
+
         if (newest == juce::File()
             || candidate.getLastModificationTime() > newest.getLastModificationTime())
             newest = candidate;
     }
+
+    return newest;
+}
+
+bool MainComponent::uxLogContains (const juce::String& marker) const
+{
+    const auto newest = newestUxLog();
 
     if (newest == juce::File())
         return false;   // o-s-c has not opened a log yet
@@ -735,7 +750,8 @@ bool MainComponent::uxLogContains (const juce::String& marker)
 
 void MainComponent::announceUxLogEvent (juce::String marker,
                                         std::function<juce::var()> makeEvent,
-                                        int attemptsLeft)
+                                        int sendsLeft,
+                                        int ticksUntilSend)
 {
     if (makeEvent == nullptr)
         return;
@@ -748,7 +764,39 @@ void MainComponent::announceUxLogEvent (juce::String marker,
     if (uxLogContains (marker))
         return;   // it landed
 
-    if (attemptsLeft <= 0)
+    const auto again = [this, marker, makeEvent] (int sends, int ticks)
+    {
+        juce::Timer::callAfterDelay (1000, [safeThis = juce::Component::SafePointer (this),
+                                            marker, makeEvent, sends, ticks]
+        {
+            if (safeThis != nullptr)
+                safeThis->announceUxLogEvent (marker, makeEvent, sends, ticks);
+        });
+    };
+
+    // Nothing to send to yet. The module creates the log as it loads, so
+    // until the file is there o-s-c is not listening and a datagram would
+    // only be lost -- which is the whole of issue #44. Waiting costs a
+    // send from the budget, so it does not.
+    if (newestUxLog() == juce::File())
+    {
+        again (sendsLeft, 0);
+        return;
+    }
+
+    // Checking is cheap and the log is read once a second; sending is not
+    // idempotent, because the module appends whatever it is given. The
+    // module's write stream buffers, so a landed event can take a few
+    // seconds to become visible here -- resending on that lag is what put
+    // three identical rec-start lines in a log. So: check every tick,
+    // send rarely, and give each send time to show up.
+    if (ticksUntilSend > 0)
+    {
+        again (sendsLeft, ticksUntilSend - 1);
+        return;
+    }
+
+    if (sendsLeft <= 0)
     {
         juce::Logger::writeToLog ("uxlog: gave up announcing " + marker
                                   + " -- the log server never wrote it down");
@@ -756,13 +804,7 @@ void MainComponent::announceUxLogEvent (juce::String marker,
     }
 
     sendUxLogEvent (event);
-
-    juce::Timer::callAfterDelay (1000, [safeThis = juce::Component::SafePointer (this),
-                                        marker, makeEvent, attemptsLeft]
-    {
-        if (safeThis != nullptr)
-            safeThis->announceUxLogEvent (marker, makeEvent, attemptsLeft - 1);
-    });
+    again (sendsLeft - 1, uxLogAnnounceGapTicks);
 }
 
 void MainComponent::startSpectralLogging (int numChannels, double sampleRate)
@@ -801,7 +843,7 @@ void MainComponent::startSpectralLogging (int numChannels, double sampleRate)
             ev->setProperty ("sr", sampleRate);
             return juce::var (ev);
         },
-        uxLogAnnounceAttempts);
+        uxLogAnnounceSends);
 }
 
 void MainComponent::stopSpectralLogging()
