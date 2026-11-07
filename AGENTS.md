@@ -102,7 +102,9 @@ Recording refuses to start, and stops cleanly if already running, when the desti
 
 The plugin compiles the same GUI server but has no transport to record, so the server hides the button unless the host calls `setRecordingAvailable(true)`.
 
-On this branch the engine also records the whole session to Ogg for the UX study (`startSessionRecording()`), sharing the one `AudioRecorder`. While that take runs, both buttons refuse: the window's is disabled and relabelled "Recording session", and `/audiorecord` is dropped with a log line and the tablet's toggle re-published. A tablet stop used to end the study's capture, which is the one take that cannot be redone.
+On this branch the engine also records the whole session to Ogg for the UX study (`startSessionRecording()`), through a **second** `AudioRecorder` — `sessionRecorder`, attached with `setSessionRecorder()`. Every block is offered to both; each ignores it unless running. They are separate so that neither can end the other: when they shared one recorder, a tablet `/audiorecord 0` stopped the study's capture, which is the one take that cannot be redone. Both buttons now drive the participant's take only, normally.
+
+The session take lands next to its log in the uxlog directory; a participant's take goes wherever `RecordingLocation.h` puts a normal take. Both write `rec-start`/`rec-stop` into the log, distinguished by a **`take`** property (`"session"` or `"user"`) — `findSessionAudio()` matches on it, and treats a rec-start with no `take` as a session take so that logs recorded before participants had their own still replay. The disk guard watches both, and the session take is not exempt: it runs for hours and writes the most.
 
 ## Critical gotchas
 

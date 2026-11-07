@@ -385,7 +385,7 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
                                                                        : pdOutputChannels,
                                               pdOutputChannels);
 
-    if (recorder != nullptr
+    if ((recorder != nullptr || sessionRecorder != nullptr)
         && channelsToRecord > 0
         && (int) recordChannels.size() >= channelsToRecord
         && (size_t) numSamples <= recordSilence.size())
@@ -395,7 +395,15 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
                                             ? outputChannelData[ch]
                                             : recordSilence.data();
 
-        recorder->write (recordChannels.data(), channelsToRecord, numSamples);
+        // Both takes are offered the same block, from the one set of channel
+        // pointers. Each recorder ignores it unless it is running, so the
+        // participant's take and the study's session take start and stop
+        // independently and neither can end the other.
+        if (recorder != nullptr)
+            recorder->write (recordChannels.data(), channelsToRecord, numSamples);
+
+        if (sessionRecorder != nullptr)
+            sessionRecorder->write (recordChannels.data(), channelsToRecord, numSamples);
     }
 
 }

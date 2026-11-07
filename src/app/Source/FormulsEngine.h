@@ -30,7 +30,8 @@
  * message thread while the audio callback is *not* attached, so no extra
  * locking is required.
  *
- * If a recorder has been attached with setRecorder(), every block the engine
+ * If a recorder has been attached with setRecorder() or setSessionRecorder(),
+ * every block the engine
  * renders is also handed to it, straight from the audio callback (see
  * AudioRecorder.h -- the recorder ignores blocks until the user starts a
  * take, so this costs nothing while not recording).
@@ -142,6 +143,19 @@ public:
         is stopped (MainComponent does it once, at construction); the
         recorder itself decides when a block is actually written. */
     void setRecorder (AudioRecorder* recorderToUse) noexcept  { recorder = recorderToUse; }
+
+    /** Attaches a second recorder fed the same blocks, or nullptr.
+
+        A UX-logging build runs two takes at once: the study's session take,
+        which runs from Start to Stop, and the participant's own take, which
+        they start and stop from the GUI. They are separate recorders so that
+        neither can end the other -- a tablet press used to stop the study's
+        capture, which is the one take that cannot be redone.
+
+        Set once before the device starts and cleared on the way down, like
+        setRecorder(): the audio thread reads these pointers every block and
+        they are not meant to change underneath it. */
+    void setSessionRecorder (AudioRecorder* recorderToUse) noexcept  { sessionRecorder = recorderToUse; }
 
     /** Attaches the spectral analyser every rendered block is handed to, or
         nullptr to detach. Message thread, engine stopped. Only a UX-logging
@@ -262,6 +276,7 @@ private:
     // audioDeviceAboutToStart() so the audio callback never allocates;
     // recordSilence stands in for any device channel JUCE hands us as null.
     AudioRecorder* recorder = nullptr;
+    AudioRecorder* sessionRecorder = nullptr;
 
     // Spectral analysis tap, for UX-logging builds (SpectralAnalyser.h).
     // analysisScratch de-interleaves one libpd tick for it, and is sized once

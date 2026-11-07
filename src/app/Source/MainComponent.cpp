@@ -86,6 +86,7 @@ MainComponent::MainComponent()
     // Every block the engine renders is offered to the recorder from the
     // audio thread; the recorder ignores them until a take is started.
     engine.setRecorder (&recorder);
+    engine.setSessionRecorder (&sessionRecorder);
 
     recordButton.onClick = [this] { recordClicked(); };
     addAndMakeVisible (recordButton);
@@ -237,26 +238,6 @@ MainComponent::MainComponent()
     {
         engine.onRecordRequested = [this] (bool shouldRecord)
         {
-            // A UX-logging build records the whole session from Start to Stop
-            // (startSessionRecording()), and the desktop Record button is
-            // disabled for as long as it runs so that a stray click cannot end
-            // it (see updateButtonStates()). The tablet's button cannot be
-            // disabled from here, so the request is refused instead -- and the
-            // tablet is told what is actually happening, so its toggle snaps
-            // back to lit rather than sitting dark over a take still running.
-            //
-            // Without this, /audiorecord 0 from the tablet stopped the study's
-            // own capture: the one take in this build that cannot be redone,
-            // because it is started once when the engine goes live and there
-            // is no way to start another from the GUI.
-            if (openStageControl.isUxLogging() && recorder.isRecording())
-            {
-                juce::Logger::writeToLog ("recording: ignoring /audiorecord -- this build is "
-                                          "recording the whole session for the UX study");
-                publishRecordingStateToGui();
-                return;
-            }
-
             if (shouldRecord == recorder.isRecording())
             {
                 // Already in the state being asked for. Happens when the
@@ -391,6 +372,7 @@ MainComponent::~MainComponent()
     stopReplay();
     stopEverything (false);
     engine.setRecorder (nullptr);
+    engine.setSessionRecorder (nullptr);
 }
 
 //==============================================================================
@@ -668,13 +650,17 @@ void MainComponent::startSessionRecording()
     const auto numChannels = engine.getNumOutputChannels();
     const auto sampleRate  = engine.getActualSampleRate();
 
-    if (auto result = recorder.start (destination, numChannels, sampleRate,
-                                      AudioRecorder::Format::oggVorbis);
+    if (auto result = sessionRecorder.start (destination, numChannels, sampleRate,
+                                             AudioRecorder::Format::oggVorbis);
         result.failed())
     {
         setStatus ("UX logging on, but session audio failed: " + result.getErrorMessage());
         return;
     }
+
+    // The session take runs for hours and is the bigger consumer of the two,
+    // so it gets the same running disk check a participant's take gets.
+    diskGuard.startTimer (5000);
 
     updateButtonStates();
     setStatus ("Running. UX logging and recording this session to "
@@ -688,13 +674,14 @@ void MainComponent::startSessionRecording()
     juce::Timer::callAfterDelay (1500, [safeThis = juce::Component::SafePointer (this),
                                         destination, numChannels, sampleRate]
     {
-        if (safeThis == nullptr || safeThis->recorder.getFile() != destination)
+        if (safeThis == nullptr || safeThis->sessionRecorder.getFile() != destination)
             return;
 
         auto* ev = new juce::DynamicObject();
         ev->setProperty ("k", "rec-start");
+        ev->setProperty ("take", "session");
         ev->setProperty ("file", destination.getFileName());
-        ev->setProperty ("first_block_st", safeThis->recorder.getFirstBlockTimeMs());
+        ev->setProperty ("first_block_st", safeThis->sessionRecorder.getFirstBlockTimeMs());
         ev->setProperty ("sr", sampleRate);
         ev->setProperty ("ch", numChannels);
         if (auto* device = safeThis->deviceManager.getCurrentAudioDevice())
@@ -764,20 +751,25 @@ void MainComponent::stopEverything (bool offerToSaveRecording)
     // recording isn't cut off by the engine shutting down.
     const bool wasRecording = recorder.isRecording();
 
-    if (wasRecording && openStageControl.isUxLogging())
+    if (sessionRecorder.isRecording())
     {
-        // Sent while the log server still runs. No save dialog: the session
-        // audio belongs next to its log.
+        // Sent while the log server still runs. No save dialog ever: the
+        // session audio belongs next to its log, not wherever a player
+        // happens to point a file chooser.
         auto* ev = new juce::DynamicObject();
         ev->setProperty ("k", "rec-stop");
-        ev->setProperty ("file", recorder.getFile().getFileName());
-        ev->setProperty ("samples", recorder.getSamplesWritten());
-        ev->setProperty ("first_block_st", recorder.getFirstBlockTimeMs());
+        ev->setProperty ("take", "session");
+        ev->setProperty ("file", sessionRecorder.getFile().getFileName());
+        ev->setProperty ("samples", sessionRecorder.getSamplesWritten());
+        ev->setProperty ("first_block_st", sessionRecorder.getFirstBlockTimeMs());
         sendUxLogEvent (juce::var (ev));
-        offerToSaveRecording = false;
+        sessionRecorder.stop();
         juce::Thread::sleep (50);   // let the datagram land before the server is killed
     }
 
+    // A participant's take still running when the engine stops is finished
+    // the way any take is -- it is theirs, and on the desktop they are asked
+    // where to put it.
     if (wasRecording)
         finishRecording (offerToSaveRecording);
 
@@ -863,6 +855,17 @@ void MainComponent::startRecording()
     // entirely unguarded.
     diskGuard.startTimer (5000);
 
+    if (openStageControl.isUxLogging())
+    {
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "rec-start");
+        ev->setProperty ("take", "user");
+        ev->setProperty ("file", destination.getFileName());
+        ev->setProperty ("sr", sampleRate);
+        ev->setProperty ("ch", numChannels);
+        sendUxLogEvent (juce::var (ev));
+    }
+
     setStatus ("Recording " + juce::String (numChannels) + " channels @ "
                + juce::String ((int) sampleRate) + " Hz to "
                + destination.getFileName() + "...");
@@ -870,11 +873,52 @@ void MainComponent::startRecording()
 
 void MainComponent::checkRecordingSpace()
 {
-    if (! recorder.isRecording())
+    if (! recorder.isRecording() && ! sessionRecorder.isRecording())
     {
         diskGuard.stopTimer();
         return;
     }
+
+    // The guard is about the machine, not the take: on the appliance the
+    // fallback destination is the root filesystem, so a take that fills it
+    // breaks more than the recording. The session take is not exempt --
+    // it runs for hours and writes the most, so exempting it would leave
+    // the biggest consumer unguarded.
+    if (sessionRecorder.isRecording() && ! recording::hasRoomFor (sessionRecorder.getFile()))
+    {
+        const auto sessionFile = sessionRecorder.getFile();
+        const auto sessionFree = recording::freeBytesFor (sessionFile);
+
+        juce::Logger::writeToLog ("session recording stopped early: only "
+                                  + juce::File::descriptionOfSizeInBytes (sessionFree)
+                                  + " left on "
+                                  + sessionFile.getParentDirectory().getFullPathName()
+                                  + " -- finishing the session take while it can still be closed");
+
+        // Into the log as well as the journal, and before the take is
+        // stopped so the counts are still there to read. Without this the
+        // log keeps a rec-start with no rec-stop and the audio quietly ends
+        // early: events would go on being logged for hours against a
+        // recording that had already finished, with nothing saying where it
+        // stopped. The journal has it, but the journal is not what the
+        // study reads and is not collected with the logs.
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "rec-stop");
+        ev->setProperty ("take", "session");
+        ev->setProperty ("file", sessionFile.getFileName());
+        ev->setProperty ("samples", sessionRecorder.getSamplesWritten());
+        ev->setProperty ("first_block_st", sessionRecorder.getFirstBlockTimeMs());
+        ev->setProperty ("why", "disk-full");   // absent on a normal stop
+        ev->setProperty ("free", (juce::int64) sessionFree);
+        sendUxLogEvent (juce::var (ev));
+
+        sessionRecorder.stop();
+        setStatus ("Session recording stopped: the disk is nearly full ("
+                   + juce::File::descriptionOfSizeInBytes (sessionFree) + " left).");
+    }
+
+    if (! recorder.isRecording())
+        return;
 
     const auto file = recorder.getFile();
 
@@ -903,12 +947,32 @@ void MainComponent::checkRecordingSpace()
 
 void MainComponent::finishRecording (bool offerToSaveRecording)
 {
-    // Whatever ended the take, the space poll has nothing left to watch.
-    diskGuard.stopTimer();
+    // The space poll stops only when there is genuinely nothing left to
+    // watch. On a UX-logging build the session take usually outlives a
+    // participant's, and stopping the poll here would leave the longest
+    // recording on the machine unguarded for the rest of the session.
+    if (! sessionRecorder.isRecording())
+        diskGuard.stopTimer();
+
+    const auto samplesWritten = recorder.getSamplesWritten();
+    const auto firstBlockMs   = recorder.getFirstBlockTimeMs();
 
     recorder.stop();
 
     const auto recorded = recorder.getFile();
+
+    // The participant's take is the thing the study is watching them use,
+    // so when it started and stopped belongs in the log beside the touches.
+    if (openStageControl.isUxLogging() && recorded != juce::File())
+    {
+        auto* ev = new juce::DynamicObject();
+        ev->setProperty ("k", "rec-stop");
+        ev->setProperty ("take", "user");
+        ev->setProperty ("file", recorded.getFileName());
+        ev->setProperty ("samples", samplesWritten);
+        ev->setProperty ("first_block_st", firstBlockMs);
+        sendUxLogEvent (juce::var (ev));
+    }
 
     if (! recorded.existsAsFile())
     {
@@ -978,12 +1042,10 @@ void MainComponent::updateButtonStates()
 {
     const bool isRecording = recorder.isRecording();
 
-    // In a UX-logging build the session take runs from Start to Stop; a
-    // stray click must not end it, so the button only reports it.
-    const bool sessionTake = isRecording && openStageControl.isUxLogging();
-
-    recordButton.setButtonText (sessionTake ? "Recording session" : isRecording ? kStopRecordText : kRecordText);
-    recordButton.setEnabled (engine.isRunning() && ! sessionTake);
+    // The study's session take has its own recorder now, so this button and
+    // the tablet's drive the participant's take only and cannot end it.
+    recordButton.setButtonText (isRecording ? kStopRecordText : kRecordText);
+    recordButton.setEnabled (engine.isRunning());
     if (isRecording)
         recordButton.setColour (juce::TextButton::buttonColourId, style::recordActive);
     else
@@ -1468,6 +1530,20 @@ juce::File MainComponent::findSessionAudio (const juce::File& sessionLog)
             continue;
 
         const auto ev = juce::JSON::parse (line);
+
+        // Two takes write rec-start: the study's session take, which lives
+        // next to the log, and the participant's own, which does not (it
+        // goes wherever RecordingLocation.h puts a normal take, including a
+        // USB stick). Only the session take can be replayed from here.
+        //
+        // Logs written before participants had their own take carry no
+        // "take" property at all, and every rec-start in those is a session
+        // take -- so a missing property means session, not "unknown".
+        const auto take = ev.getProperty ("take", {}).toString();
+
+        if (take.isNotEmpty() && take != "session")
+            continue;
+
         const auto name = ev.getProperty ("file", {}).toString();
 
         if (name.isNotEmpty())
