@@ -168,27 +168,96 @@ and comes straight back, so the aliasing is brief and largely masked. But it
 happens a thousand times, and the cause is the commonest thing the instrument
 does.
 
-## Shipped since: the recording no longer clips
+## Shipped since (1): the recording no longer clips
 
 `AudioRecorder::bitsPerSample` is now **32**, so takes are 32-bit IEEE float and
 JUCE's `convertFloatsToInts` clamp (`samp >= 1.0` → `INT_MAX`) is never reached;
 overshoot survives into the file and the level can be brought down afterwards
 with the waveform whole.
 
-This is **not** a fix for the problem this document is about. The audio device
-still clamps, so the room still hears it. It only stops the archive being
-damaged while the real decision is outstanding.
+This was never a fix for the problem this document is about — the audio device
+clamps too, so the room still heard it. It stopped the archive being damaged
+while the real decision was outstanding.
 
-## If someone picks this up
+## Shipped since (2): a safety limiter in the engine
 
-The decision is still between the options in the table above; the measurement
-narrows it rather than settling it. A true-peak limiter in
-`FormulsEngine::render()` is the candidate that was not in the original table:
-it sits after the de-interleave and before both the device buffers and the
-recorder tap, so one implementation covers all 14 channels — including the
-`dac~ 9..14` multi-outs, which bypass `AUDIO_SAFETY______` entirely and so get
-no protection from anything added there. Cost is look-ahead latency.
+`SafetyLimiter` (`src/app/Source/SafetyLimiter.h`), called from
+`FormulsEngine::render()` after the de-interleave and before both the VU meters
+and the recorder tap. This is the option that was not in the table above, and
+it is now the answer to "where, and how gracefully".
 
-Cheapest experiment remains: chord size into that `[* 1]`, small and reversible.
-Note that it is global, so on the evidence above it belongs on the per-instance
-`volume` in `formuls.dsp` instead.
+**Why the engine and not the patch.** It is the last stage, which is where a
+ceiling belongs; one implementation covers every channel, including the
+`dac~ 9..14` per-instance sends and the `TEST_TONE~~~` subpatch, both of which
+are wired straight to the `dac~` and bypass `AUDIO_SAFETY______`; the device and
+the recorder get the same samples, so the file and the room agree; and it
+survives patch edits, which a guard inside `_main.pd` does not.
+
+**What it guarantees, and how.** Audio is read in frames of 64 samples (one
+libpd tick) and each frame's peak is recorded. While frame *m* is read, frame
+*m−2* is emitted, so the peaks of frames *m−2* and *m−1* are both known. Frame
+*j* is emitted under a gain ramping linearly from `a[j]` to
+
+```
+b[j] = min (1, ceiling/P[j], ceiling/P[j+1], a[j] * riseLimit)
+```
+
+with `a[j] = b[j−1]`. Because `b[j−1]` already included the `ceiling/P[j]` term,
+**both ends of the ramp are ≤ ceiling/P[j]**, and a linear ramp never leaves the
+interval between its ends — so every gain applied to frame *j* is at or below
+`ceiling/P[j]`, and `P[j]` is the largest sample in that frame. The ceiling
+therefore holds for every sample, however violent the input, with **no final
+clamp behind it** — a clamp would be the hard clipping the thing exists to
+avoid. Needing `P[j+1]` is what costs two frames rather than one.
+
+| | |
+|---|---|
+| ceiling | −1 dBFS (`FORMULS_LIMITER_CEILING_DB`) |
+| latency | 128 samples, 2.67 ms at 48 kHz, constant |
+| release | 40 dB/s (`FORMULS_LIMITER_RELEASE_DB_PER_SEC`) |
+| linking | channels 1–8 in stereo pairs, 9–14 independent |
+| bypass | `FORMULS_LIMITER=off`, which also removes the latency |
+
+The channel map that linking follows was read out of `_main.pd` rather than
+assumed: channels 1/2 are the main mix (`catch~ $0-limiter-l`/`-r`), 3/4 the
+reverb, 5/6 the repeater, 7/8 the dry pair through `hip~ 5`, and 9–14 six mono
+per-instance sends. The first eight are four stereo stems, so they are linked in
+pairs and no limiter action can shift an image; 9–14 are separate recorded
+stems, so ducking one because another peaked would be wrong.
+
+The plugin reports the latency (`FormulsPluginProcessor::prepareToPlay` calls
+`setLatencySamples`), without which a host would line formuls up 2.67 ms early
+against everything else in the session.
+
+**It is checked, not asserted.** `src/tools/limiter-probe.cpp` compiles the
+header on its own — no JUCE, no libpd, no audio device — and runs 33 checks: the
+ceiling against six hostile signals up to +21.6 dBFS, bit-exact transparency
+below the ceiling, the exact latency, pair linking and stem independence, the
+release rate, identical output across nine device block sizes, NaN/infinity
+handling, and the bypass. All passing as of 9 November 2026.
+
+**What it costs on real material.** The 29 October take, with 3 dB of pre-gain
+to put the peaks back roughly where they were before the device clamped them:
+
+| pre-gain | limiter engaged | mean reduction | worst | RMS cost | output peak |
+|---|---|---|---|---|---|
+| 0 dB | 1.3% of the take | 0.8 dB | 1.0 dB | −0.21 dB | −1.00 dBFS |
+| **+3 dB** | **4.0%** | **2.1 dB** | **4.0 dB** | **−0.91 dB** | **−1.00 dBFS** |
+| +6 dB | 8.3% | 3.2 dB | 7.0 dB | −1.70 dB | −1.00 dBFS |
+
+So at the level that was actually clipping, it works on about one twenty-fifth
+of the performance, by around 2 dB, and costs under 1 dB of loudness — in place
+of roughly a thousand bursts of aliasing.
+
+## What is still open
+
+The limiter is a backstop, not a gain structure. It makes clipping impossible;
+it does not make the engine's level sensible. The options table above still
+stands for that, and the measurement still points at **chord size** as the
+honest per-instance control — on the per-instance `volume` in `formuls.dsp`
+rather than the global `[* 1]`, since one instance playing chords is the cause.
+
+With a guaranteed ceiling in place, that is now a tuning question rather than a
+safety one, and the fixed `[*~ 0.5]` in `AUDIO_SAFETY______` is worth
+revisiting: it costs 6 dB on every single-voice passage to buy headroom the
+limiter no longer needs it to buy.

@@ -76,6 +76,15 @@ void FormulsPluginProcessor::prepareToPlay (double sampleRate, int maximumExpect
          + " samples, " + juce::String (getTotalNumInputChannels()) + " in / "
          + juce::String (getTotalNumOutputChannels()) + " out");
 
+    // The engine's safety limiter is a look-ahead limiter, so it delays the
+    // audio by a constant number of samples (SafetyLimiter.h). Report it, or
+    // the host lines this plugin's output up against everything else in the
+    // session 2.67 ms early.
+    const auto limiterLatency = SafetyLimiter::configFromEnvironment().enabled
+                                    ? SafetyLimiter::latencySamples : 0;
+    setLatencySamples (limiterLatency);
+    log ("reported latency: " + juce::String (limiterLatency) + " samples");
+
     engine->prepare (sampleRate, maximumExpectedSamplesPerBlock);
 }
 

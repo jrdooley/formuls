@@ -33,7 +33,38 @@ It is one app that:
 | `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server with `juce::ChildProcess`; also works out the GUI's web addresses. |
 | `Source/FormulsLookAndFeel.h` | **All styling** — window title/size, colours, fonts, layout metrics. |
 | `Source/ResourceLocator.h` | Finds the `pd/` and `gui/` resources both in the packaged app and in development builds. |
+| `Source/SafetyLimiter.h` | Look-ahead peak limiter on the engine's way out, so nothing above its ceiling reaches the device or the recorder. JUCE-free, so `src/tools/limiter-probe.cpp` can check it on its own. |
 | `formuls.jucer` | Projucer project. Generates `Builds/MacOSX` (Xcode) and `Builds/LinuxMakefile`. |
+
+## The safety limiter
+
+Every block passes through `SafetyLimiter` in `FormulsEngine::render()`, after
+the de-interleave and **before** both the VU meters and the recorder tap, so
+the file, the meters and the room all agree.
+
+It is there because nothing in the Pd patch limits anything: `fsynth.lib` sums
+`POLYPHONY = 20` voices with no `1/N` normalisation, so one instance playing a
+chord goes past 1.0, and `AUDIO_SAFETY______`'s flat 6 dB of headroom covers
+about two voices at full velocity. Past that the audio device clamps. See
+`docs/headroom/README.md`.
+
+* **Ceiling** — −1 dBFS. Guaranteed, not approximated: no output sample exceeds
+  it, and there is no final clamp behind it.
+* **Latency** — a constant 128 samples (2.67 ms at 48 kHz), reported to plugin
+  hosts by `FormulsPluginProcessor::prepareToPlay`.
+* **Transparent below the ceiling** — quieter material comes out bit-identical,
+  only delayed. The limiter is not a tone control and does nothing in normal
+  use.
+* **Gain linking** — channels 1–8 are four stereo stems (main, reverb,
+  repeater, dry) and are linked in pairs so the image cannot shift; 9–14 are
+  separate per-instance sends and each gets its own gain.
+* **Off switch** — `FORMULS_LIMITER=off` bypasses it entirely (and then it adds
+  no latency); `FORMULS_LIMITER_CEILING_DB` and
+  `FORMULS_LIMITER_RELEASE_DB_PER_SEC` change the ceiling and the release rate.
+
+On the 29 October 2026 take, with 3 dB of pre-gain to put the peaks back where
+they were before the device clamped them, it engaged in 4% of the take, by a
+mean of 2.1 dB and a worst case of 4.0 dB, for 0.9 dB of RMS loudness.
 
 ## Recording
 

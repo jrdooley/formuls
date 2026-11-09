@@ -260,9 +260,12 @@ A **Record** button beside Start/Stop, enabled only while the engine runs. The f
 matches what the engine actually produces, not what was requested: the rate the
 device really opened at, and one WAV channel per *selected* output channel — so a
 14-channel take keeps its channel numbering even on a stereo interface, with the
-missing channels written as silence. 32-bit float, so engine overshoot is kept
-rather than clipped into the file (`docs/headroom/README.md`), and automatically
-RF64 past 4 GB.
+missing channels written as silence. 32-bit float, so any overshoot upstream of
+the safety limiter is kept rather than clipped into the file
+(`docs/headroom/README.md`), and automatically RF64 past 4 GB. The engine's
+output passes through a −1 dBFS look-ahead limiter (`SafetyLimiter.h`, 128
+samples of latency, `FORMULS_LIMITER=off` to bypass) before both the meters and
+the recorder, because the patch itself limits nothing.
 
 Audio goes straight to a timestamped file in `~/Music/formuls/` while recording and
 the save dialog only *moves* it, so cancelling the dialog, pressing Stop mid-take

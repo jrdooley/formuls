@@ -247,6 +247,22 @@ void FormulsEngine::prepareRender (int maxBlockSize)
     // ever having to allocate.
     recordChannels.assign ((size_t) juce::jmax (1, pdOutputChannels), nullptr);
     recordSilence.assign ((size_t) juce::jmax (8192, maxBlockSize * 4), 0.0f);
+
+    // bootPd() has already set actualSampleRate, so the limiter's release
+    // rate is derived from the rate the device really opened at.
+    const auto limiterConfig = SafetyLimiter::configFromEnvironment();
+    limiter.prepare (limiterConfig, pdOutputChannels, actualSampleRate);
+
+    if (limiter.isEnabled())
+        juce::Logger::writeToLog ("safety limiter: ceiling "
+                                  + juce::String (20.0f * std::log10 (limiter.getCeiling()), 2)
+                                  + " dBFS, release "
+                                  + juce::String (limiterConfig.releaseDbPerSecond, 0)
+                                  + " dB/s, latency "
+                                  + juce::String (limiter.getLatencySamples()) + " samples");
+    else
+        juce::Logger::writeToLog ("safety limiter: OFF (FORMULS_LIMITER) -- the engine"
+                                  " can clip the device and the recording");
 }
 
 void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
@@ -323,6 +339,12 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
         samplesLeftInTick -= numToCopy;
         sampleIndex += numToCopy;
     }
+
+    // Last stage: nothing above the ceiling reaches the device, the meters or
+    // the recorder. The patch has no limiter of its own and a chord on one
+    // instance sums past 0 dBFS -- see SafetyLimiter.h and
+    // docs/headroom/README.md. In place, on the device's own buffers.
+    limiter.process (outputChannelData, numOutputChannels, numSamples);
 
     // Compute peak levels for the first two channels (VU meter source).
     for (int ch = 0; ch < 2 && ch < numOutputChannels; ++ch)
