@@ -425,8 +425,23 @@ hand-run `xcodebuild` experiment may -- then `cp -r` nests the *fresh*
 resources at `Resources/pd/pd/` and the **stale external stays where Pd will
 load it**. The tell is an external whose hash matches the previous build while
 the build log clearly shows faust recompiling it. `rm -rf
-src/app/Builds/MacOSX/build` before the build, and check the external's hash
-changed when the DSP did.
+src/app/Builds/MacOSX/build` before the build.
+
+Hashing the external tells you only half of that, because
+**`formuls~.pd_darwin` is not reproducible**: two builds of identical sources
+came out the same size with 1,129,762 of 1,338,224 bytes different and
+different `LC_UUID`s. So an *identical* hash proves it was not rebuilt, but a
+*different* hash proves nothing about whether your change landed. Check the
+folded constant instead -- it is the gain, not a proxy for it:
+
+```sh
+python3 -c 'import struct,sys;h=open(sys.argv[1],"rb").read().hex();\
+print("4.41f:",h.count(struct.pack("<f",4.41).hex()))' \
+  formuls-0.3.2.app/Contents/Resources/pd/externals/formuls~.pd_darwin
+```
+
+One occurrence means the 20 dB pad is in; zero means the build shipped a
+pre-pad external, whatever its hash and whatever the log said.
 
 ## What is still open
 
@@ -437,13 +452,17 @@ stands for that, and the measurement still points at **chord size** as the
 honest per-instance control — on the per-instance `volume` in `formuls.dsp`
 rather than the global `[* 1]`, since one instance playing chords is the cause.
 
-With a guaranteed ceiling and a 20 dB pad in place, that is now a tuning
-question rather than a safety one, and the fixed `[*~ 0.5]` in
-`AUDIO_SAFETY______` -- which halves the master amp control feeding `lop~ 100`,
-so 6 dB off all eight channels -- is the open item. It was bought when nothing
-else protected the output, to cover "about two voices". It now stacks on the
-pad: 26 dB in total, putting solo chords at −22.5 dBFS and the six-instance
-worst case at −6.9 dBFS, which wastes half the range the pad was sized to use.
-Removing it (back to `[*~ 1]`) would leave the numbers in the table above. That
-is a change to the patch, which is the instrument, so it is the player's call
-rather than a cleanup.
+**The patch's own 6 dB is gone, 9 November 2026.** `AUDIO_SAFETY______`'s
+`[*~ 0.5]` is now `[*~ 1]`. It sat on the *control* path -- `loadbang` and
+`r $0-master-amp` into `sig~ 0`, then the halving, then `lop~ 100`, whose
+output drives the right inlet of all eight `*~` objects feeding
+`dac~ 1 2 3 4 5 6 7 8` -- so it took 6 dB off every output channel at once. It
+was bought when nothing else protected the output, to cover "about two voices",
+and it stacked on the pad: 26 dB in total, solo chords at −22.5 dBFS and the
+six-instance worst case at −6.9, wasting half the range the pad was sized to
+use. The pad is now the only attenuation, and the table above is what the
+instrument does.
+
+The edit changes one object and no connection, so the subpatch's 32 `#X
+connect` lines and every object index are untouched -- worth preserving in a
+file that is also an editable Pd document.
