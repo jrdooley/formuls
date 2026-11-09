@@ -374,15 +374,76 @@ file with a worst-case error of 1.1e-16, i.e. −319 dBFS — float rounding, so
 200 dB below the noise floor of anything that could be played. A single gain
 move in post is exact for practical purposes.
 
+## The gain structure, 9 November 2026
+
+The limiter made clipping impossible without making the levels sensible, which
+is the architectural half of the problem: formuls is meant to be played as six
+instances layered together, each summing 20 voices with no 1/N normalisation,
+and each voice reaching about full scale on its own. No mix survives that, and
+no live engineer would try -- they would pad the inputs so the *sum* fits, then
+mix with the faders.
+
+So `formuls.dsp` now pads each instance by **20 dB**:
+
+```faust
+vol = hslider("volume",0,0,1,0.01) : *(0.1) : si.smoo;
+```
+
+Worked against the measured solo-instance peak of 1.508 (+3.57 dBFS):
+
+| | peak | |
+|---|---|---|
+| one instance, chords | 0.1508 | −16.4 dBFS |
+| six instances, incoherent (realistic) | 0.3695 | −8.6 dBFS |
+| six instances, coherent (worst case there is) | 0.9051 | −0.87 dBFS |
+
+The worst case lands 0.13 dB past the −1 dBFS ceiling, so the limiter stays a
+backstop that barely engages rather than a mix stage. A true 1/(20·6) pad would
+be −41.6 dB and would make sparse playing inaudible; a fixed pad keeps the
+distance between one note and a dense chord, which is the instrument.
+
+Three details that are not arbitrary:
+
+- **It goes after `fx.fx`**, where `volume` already sat. `ffx.lib`'s chain holds
+  `saturation` and `bitcrush2`, both level-dependent, so padding after them
+  leaves every effect seeing the drive it sees today. Padding into `fs.synth`
+  or before `fx.fx` would have retuned two effects as a side effect of a level
+  fix.
+- **The slider keeps its 0..1 range**, so the Open Stage Control widgets and the
+  OSC namespace are unchanged; only what 1.0 means has moved.
+- **`si.smoo` is unaffected.** Faust folds the factor into the smoother's input
+  coefficient -- `fSlow0 = (4.41/fs) * slider` against the old `44.1/fs`, with
+  the pole `1 - 44.1/fs` unchanged in both -- so the steady-state gain is
+  exactly a tenth and the smoothing time is identical. That was read out of the
+  generated C++, not assumed.
+
+**A build trap worth recording.** `build-macOS.sh` line 145 is
+`cp -r build/pd "formuls-$VERSION.app/Contents/Resources/pd"`. If that
+destination already exists -- which it does whenever something has written a
+`Resources/pd` into `src/app/Builds/MacOSX/build/Release/formuls.app`, as a
+hand-run `xcodebuild` experiment may -- then `cp -r` nests the *fresh*
+resources at `Resources/pd/pd/` and the **stale external stays where Pd will
+load it**. The tell is an external whose hash matches the previous build while
+the build log clearly shows faust recompiling it. `rm -rf
+src/app/Builds/MacOSX/build` before the build, and check the external's hash
+changed when the DSP did.
+
 ## What is still open
 
-The limiter is a backstop, not a gain structure. It makes clipping impossible;
-it does not make the engine's level sensible. The options table above still
+The limiter is a backstop, not a gain structure. The 20 dB pad above is the
+gain structure; what remains is whether the **patch's own 6 dB** still earns
+its place. The options table above still
 stands for that, and the measurement still points at **chord size** as the
 honest per-instance control — on the per-instance `volume` in `formuls.dsp`
 rather than the global `[* 1]`, since one instance playing chords is the cause.
 
-With a guaranteed ceiling in place, that is now a tuning question rather than a
-safety one, and the fixed `[*~ 0.5]` in `AUDIO_SAFETY______` is worth
-revisiting: it costs 6 dB on every single-voice passage to buy headroom the
-limiter no longer needs it to buy.
+With a guaranteed ceiling and a 20 dB pad in place, that is now a tuning
+question rather than a safety one, and the fixed `[*~ 0.5]` in
+`AUDIO_SAFETY______` -- which halves the master amp control feeding `lop~ 100`,
+so 6 dB off all eight channels -- is the open item. It was bought when nothing
+else protected the output, to cover "about two voices". It now stacks on the
+pad: 26 dB in total, putting solo chords at −22.5 dBFS and the six-instance
+worst case at −6.9 dBFS, which wastes half the range the pad was sized to use.
+Removing it (back to `[*~ 1]`) would leave the numbers in the table above. That
+is a change to the patch, which is the instrument, so it is the player's call
+rather than a cleanup.
