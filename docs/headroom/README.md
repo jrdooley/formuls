@@ -143,3 +143,35 @@ Cheapest experiment: chord size into that `[* 1]`, small and reversible. Before
 that, worth establishing **whether the clipping comes from one channel playing
 chords or from several channels stacking** — those point at different fixes, and
 the answer is a listening test, not a code change.
+
+## Each instance is padded 20 dB, 9 November 2026
+
+This branch now carries the gain-structure fix from `main`, and only that:
+
+```faust
+vol = hslider("volume",0,0,1,0.01) : *(0.1) : si.smoo;
+```
+
+`AUDIO_SAFETY______`'s `[*~ 0.5]` is left at 0.5 **here**, because the two were
+sized together on `main` and this branch does not have the rest of that work.
+
+The reasoning, measured on `main`: six instances each summing 20 unnormalised
+voices, with a solo instance playing chords peaking at 1.508 (+3.57 dBFS) on its
+own. With the pad, one instance peaks at −16.4 dBFS and six in unison -- the
+worst case -- at −0.87. A true 1/(20·6) would be −41.6 dB and would make sparse
+playing inaudible. It goes after `fx.fx`, where `volume` already sat, because
+`ffx.lib` holds `saturation` and `bitcrush2` and padding after them leaves every
+effect seeing the drive it saw before.
+
+**What this branch still does not have**, deliberately, because merging it would
+mean resolving conflicts in the recorder, OSC and GUI files this branch rewrote
+for participant takes and logging:
+
+- the `−1 dBFS` look-ahead safety limiter (`SafetyLimiter.h` on `main`)
+- 32-bit float recording -- takes here are still 24-bit integer, so anything
+  past full scale is **clamped into the file**, not merely stored
+- the pre-limiter recording tap
+
+With the pad in place a take reaching full scale is unlikely, but it is not
+impossible the way the limiter makes it on `main`. See `main`'s copy of this
+file for that half of the story.
