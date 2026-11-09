@@ -2095,7 +2095,7 @@
 #X obj 511 31 inlet~;
 #X obj 511 205 *~;
 #X obj 511 229 outlet~;
-#X obj 581 138 *~ 0.5;
+#X obj 581 138 *~ 1;
 #X connect 0 0 1 0;
 #X connect 1 0 2 0;
 #X connect 3 0 31 0;

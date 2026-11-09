@@ -106,7 +106,8 @@ juce::Result AudioRecorder::start (const juce::File& destination,
     juce::Logger::writeToLog ("recording started: " + destination.getFullPathName()
                               + ", " + juce::String (numChannels) + " channels @ "
                               + juce::String ((int) sampleRate) + " Hz, "
-                              + juce::String (bitsPerSample) + "-bit");
+                              + juce::String (bitsPerSample)
+                              + (bitsPerSample == 32 ? "-bit float" : "-bit PCM"));
     return juce::Result::ok();
 }
 
