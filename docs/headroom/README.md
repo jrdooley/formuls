@@ -443,6 +443,40 @@ print("4.41f:",h.count(struct.pack("<f",4.41).hex()))' \
 One occurrence means the 20 dB pad is in; zero means the build shipped a
 pre-pad external, whatever its hash and whatever the log said.
 
+## Measured after the pad, 9 November 2026
+
+`formuls-2026-11-09-205242.wav`, 241.4 s on the gainfix build (20 dB pad,
+`[*~ 1]`, pre-limiter tap), against the pre-pad take of the same evening:
+
+| | before | after |
+|---|---|---|
+| peak | 1.508472, **+3.57 dBFS** | 0.264918, **−11.54 dBFS** |
+| RMS | −11.53 dBFS | −27.87 dBFS |
+| crest factor | 15.10 dB | 16.34 dB |
+| samples above the −1 dBFS ceiling | 11,495 | **0** |
+| samples above 1.0 | 2,920 | **0** |
+| headroom left to the ceiling | −4.57 dB | **+10.54 dB** |
+
+**The limiter never engaged.** Not one sample reached the ceiling in four
+minutes of playing, which is what a backstop should do. The crest factor is
+unchanged within a dB and a bit -- so the pad moved the level without touching
+the dynamics, which is the whole point of padding rather than compressing.
+
+The peak sits 4.9 dB above the solo-instance prediction of −16.4 dBFS and well
+below the six-instance incoherent estimate of −8.6, which is where a few
+instances layered should land. Note that the instance `volume` sliders and the
+master amp were wherever the player had them, so the absolute number is not the
+pad alone.
+
+**There is 10.5 dB of unused range** (×3.36 to reach −1 dBFS), with the loudest
+one-second window at −23.8 dBFS. That is deliberate rather than a miss: the
+pad is sized so the *worst* case fits, not the typical one, and with float
+recording and a master amp the unused range costs nothing recoverable. Raising
+the pad to 0.2 would put this take at −5.5 dBFS and the coherent six-instance
+worst case about 6 dB into the limiter -- a defensible trade, but it buys
+loudness that post can supply for free with limiter action that it cannot undo.
+Left at 0.1 for that reason.
+
 ## What is still open
 
 The limiter is a backstop, not a gain structure. The 20 dB pad above is the
