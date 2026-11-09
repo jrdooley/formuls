@@ -137,9 +137,58 @@ There is also the option of **measuring the outcome instead of predicting it**. 
 `[env~]` on the summed bus reports the actual level whatever its cause, and a slow
 gain riding on that is a compressor in all but name.
 
+## Measured, 9 November 2026: one instance is enough
+
+The open question below — one channel playing chords, or several channels
+stacking — has been answered by measuring a performance recording made with a
+**single** synth instance, on a build that already had the `[*~ 0.5]` hotfix.
+
+`solo2-Dphyrigian#4-57.wav`, 2 ch 24-bit 48 kHz, 466.8 s:
+
+| | |
+|---|---|
+| peak | 0.00 dBFS (exactly ±1.0, both channels) |
+| RMS | −21.5 dBFS (crest factor ~21 dB) |
+| frames pinned at full scale | 8,784 (0.039%) |
+| clipped runs | ~1,000 runs of ≥3 samples, longest **4 samples** (83 µs) |
+| seconds containing clipping | **27 of 466** |
+
+So: **one instance playing chords clips on its own.** That favours per-instance
+control (chord size) over anything that only watches the master sum, and it
+confirms 6 dB of fixed headroom covers only about two voices at full velocity.
+
+The overshoot is small. Just below full scale the material occupies roughly
+4,000–6,000 frames per dB; 9,000 frames are heaped at exactly 0 dBFS, which puts
+the true peaks **on the order of 2–3 dB over** — an estimate from that density,
+not a measurement, because the file is already clamped. Working back through the
+−6 dB safety gain, the summed bus inside Pd reached about 2.8 linear (+9 dB).
+
+Runs of 1–4 samples are the benign kind of clipping: the waveform pokes through
+and comes straight back, so the aliasing is brief and largely masked. But it
+happens a thousand times, and the cause is the commonest thing the instrument
+does.
+
+## Shipped since: the recording no longer clips
+
+`AudioRecorder::bitsPerSample` is now **32**, so takes are 32-bit IEEE float and
+JUCE's `convertFloatsToInts` clamp (`samp >= 1.0` → `INT_MAX`) is never reached;
+overshoot survives into the file and the level can be brought down afterwards
+with the waveform whole.
+
+This is **not** a fix for the problem this document is about. The audio device
+still clamps, so the room still hears it. It only stops the archive being
+damaged while the real decision is outstanding.
+
 ## If someone picks this up
 
-Cheapest experiment: chord size into that `[* 1]`, small and reversible. Before
-that, worth establishing **whether the clipping comes from one channel playing
-chords or from several channels stacking** — those point at different fixes, and
-the answer is a listening test, not a code change.
+The decision is still between the options in the table above; the measurement
+narrows it rather than settling it. A true-peak limiter in
+`FormulsEngine::render()` is the candidate that was not in the original table:
+it sits after the de-interleave and before both the device buffers and the
+recorder tap, so one implementation covers all 14 channels — including the
+`dac~ 9..14` multi-outs, which bypass `AUDIO_SAFETY______` entirely and so get
+no protection from anything added there. Cost is look-ahead latency.
+
+Cheapest experiment remains: chord size into that `[* 1]`, small and reversible.
+Note that it is global, so on the evidence above it belongs on the per-instance
+`volume` in `formuls.dsp` instead.

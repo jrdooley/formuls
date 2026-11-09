@@ -26,10 +26,11 @@
  *   + the file is on removable media the whole time, so a take survives the
  *     machine losing power, and nothing has to be copied when it ends;
  *   - pulling the stick mid-take truncates that file, and a FAT32 stick
- *     cannot hold a single file over 4 GB (about 50 minutes of 24-bit stereo
- *     at 48 kHz, or 7 minutes of 14 channels). juce::WavAudioFormat switches
- *     to RF64 past that point, which FAT32 still cannot store, so a take that
- *     long wants an exFAT stick or the internal disk.
+ *     cannot hold a single file over 4 GB (about 3 hours of 32-bit float
+ *     stereo at 48 kHz, or 27 minutes of 14 channels).
+ *     juce::WavAudioFormat switches to RF64 past that point, which FAT32
+ *     still cannot store, so a take that long wants an exFAT stick or the
+ *     internal disk.
  */
 
 #pragma once
@@ -159,11 +160,13 @@ inline bool overriddenUnavailable()
     destination is the internal disk, which is also the root filesystem: a
     take that fills it does not merely fail, it takes journald, logging and
     anything else that needs to write down with it, on a headless box with no
-    screen to say so. 24-bit stereo at 48 kHz is 288 KB/s, about 1 GB an
-    hour, and the appliance's root is 5.5 GB -- so "record and forget" is well
-    within reach of filling it.
+    screen to say so. 32-bit float stereo at 48 kHz is 384 KB/s, about
+    1.4 GB an hour, and the appliance's root is 5.5 GB -- so "record and
+    forget" is well within reach of filling it.
 
-    256 MB by default, which is roughly 15 minutes of stereo headroom.
+    256 MB by default, which is roughly 11 minutes of stereo headroom -- but
+    only about 100 seconds at 14 channels (2.7 MB/s), so a multichannel take
+    is stopped much sooner after the warning than a stereo one.
     FORMULS_RECORDING_MIN_FREE_MB overrides it; 0 disables the guard. */
 inline juce::int64 minimumFreeBytes()
 {

@@ -50,11 +50,13 @@ The file always matches what the engine is actually producing:
   the combo box, not the hardware: if the device has fewer outputs than that,
   the channels it does not have are recorded as silence, so a 14-channel take
   keeps its channel numbering on any device.
-* **Format** — 24-bit PCM WAV (`AudioRecorder::bitsPerSample`; set it to 32 to
-  write 32-bit float instead, which `juce::WavAudioFormat` does automatically
-  at that depth and which cannot clip). Files over 4 GB become RF64, which the
-  JUCE writer switches to on its own, so long multichannel takes are not
-  truncated.
+* **Format** — 32-bit float WAV (`AudioRecorder::bitsPerSample`; set it to 24
+  for 24-bit PCM). Float because nothing in the signal path limits the engine's
+  output and an integer depth would hard clip the overshoot into the file — see
+  `docs/headroom/README.md`. It does not stop the *live* output clipping; it
+  keeps the recording recoverable. Files are 33% larger (384 KB/s stereo,
+  2.7 MB/s at 14 channels). Files over 4 GB become RF64, which the JUCE writer
+  switches to on its own, so long multichannel takes are not truncated.
 
 Audio is written straight to a timestamped file in **`~/Music/formuls/`**
 (falling back to `~/Documents/formuls`, then the temp folder) while recording;

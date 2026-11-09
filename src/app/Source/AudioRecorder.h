@@ -47,11 +47,32 @@ public:
     AudioRecorder() = default;
     ~AudioRecorder();
 
-    /** Bit depth of the recorded WAV files. 24-bit PCM is the most widely
-        readable choice; set this to 32 to write 32-bit float instead, which
-        juce::WavAudioFormat does automatically at that depth and which
-        cannot clip. */
-    static constexpr int bitsPerSample = 24;
+    /** Sample format of the recorded WAV files: 32 writes 32-bit IEEE
+        float, 24 writes 24-bit PCM.
+
+        **Float, because the engine clips and the file should not.** Nothing
+        between the Pd patch and this writer limits the signal (see
+        docs/headroom/README.md): a polyphonic instance playing a chord sums
+        past 1.0, and at any integer depth
+        juce::AudioFormatWriter::writeFromFloatArrays clamps it -- `samp >=
+        1.0` becomes INT_MAX -- so the take is hard clipped in the file, with
+        the overshoot gone for good. A take measured on 29 October 2026 had
+        8,784 frames pinned at exactly 0 dBFS across 27 of its 467 seconds.
+
+        At 32 bits juce::WavAudioFormat writes IEEE float unless the options
+        ask for SampleFormat::integral, and the float path hands the samples
+        to the writer untouched (it reinterprets the float* as int* and
+        copies 32 bits verbatim). Values above 1.0 therefore survive into the
+        file intact, and the level can be brought down afterwards with the
+        waveform still whole.
+
+        This does nothing for the live output -- the audio device clamps
+        too, so the room still hears it. It protects the recording only.
+
+        Costs: files are 33% larger than at 24-bit (384 KB/s stereo, 2.7 MB/s
+        at 14 channels), and 32-bit float is slightly less universally
+        readable than 24-bit PCM, though every current DAW handles it. */
+    static constexpr int bitsPerSample = 32;
 
     /** The folder new recordings are written to: a mounted USB stick when
         the appliance has one, otherwise ~/formulsAudioRecordings. See
