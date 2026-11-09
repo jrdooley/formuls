@@ -525,3 +525,68 @@ Before the per-connection queue, the stalled client was dropped about 7,000
 messages into the first reset; see `docs/embedded-gui/README.md`. It needs
 to bind a local port, so it does not run inside a sandbox that forbids that.
 
+
+
+## limiter-probe
+
+Checks the guarantees `src/app/Source/SafetyLimiter.h` claims. It compiles that
+header on its own -- no JUCE, no libpd, no audio device, no patch -- so it runs
+anywhere in under a second and is suitable for CI as-is.
+
+```bash
+cd src/tools
+clang++ -std=c++17 -O2 -Wall -Wextra -I../app/Source limiter-probe.cpp -o /tmp/limiter-probe
+/tmp/limiter-probe
+```
+
+`g++` with the same flags works too, and is what to use on Linux.
+
+Exit status is 0 only when every check passes.
+
+### What it establishes
+
+- **The ceiling holds on hostile input.** A 440 Hz sine at +8.9 dBFS, a step
+  from silence straight to +12 dBFS, isolated +21.6 dBFS impulses with nothing
+  to warn of them, uniform noise at +14 dBFS, constant DC at +9.5 dBFS and a
+  slow ramp to +20 dBFS all come out at or under −1.00 dBFS.
+- **It is transparent below the ceiling.** Material under −1 dBFS comes out
+  with every float bit identical, merely delayed -- so the limiter cannot be
+  colouring anything in normal use.
+- **Latency is exactly the 128 samples it reports**, and the impulse comes out
+  at its original amplitude.
+- **Stereo pairs share a gain** (a peak on channel 1 ducks channel 2 by the
+  same factor, to the last bit), **and separate stems do not** (a peak on
+  channel 9 leaves channel 10 untouched).
+- **Release runs at about the configured rate**: 7 dB of reduction recovers in
+  178 ms against the 175 ms that 40 dB/s predicts, and not instantly.
+- **The output does not depend on the device's block size**: block sizes of 1,
+  7, 32, 64, 100, 128, 480, 512 and 1024 all produce identical samples.
+- **NaN and infinity are replaced with silence and counted**, and the gain is
+  not poisoned afterwards.
+- **Switched off it is a true bypass**: input passes through untouched,
+  overshoot included, and it reports zero latency.
+- **The reduction report is usable as a meter**, and reading it clears it.
+
+33 checks as of 9 November 2026, all passing -- and passing identically on
+clang 17/arm64 (macOS) and g++ 13/x86_64 (Linux): same ceiling to six figures
+(0.891251), same linked gain (0.297084), same release time (0.1778 s). Worth
+knowing, because the guarantee rests on float arithmetic in a gain ramp.
+
+### Checked against the real engine as well
+
+The unit checks above use synthetic signals. The limiter has also been run
+inside the built plugin through `plugin-probe`, which renders the real
+`_main.pd` and the real Faust synth with no audio device (one synth instance,
+MIDI IN on, volume and master at 1, a 22-note stack):
+
+| limiter | ceiling | peak |
+| --- | --- | --- |
+| `FORMULS_LIMITER=off` | -- | 0.348509 |
+| on | -1 dBFS (0.891251) | 0.348509 -- identical, so transparent |
+| on | -20 dBFS (0.1), forced | 0.100000 -- exactly the ceiling |
+
+The default preset will not reach -1 dBFS from MIDI notes alone (22 stacked
+notes peak at 0.3485), which is why the ceiling itself is exercised with
+`FORMULS_LIMITER_CEILING_DB=-20` on that material and with the synthetic
+signals above. The unmodified test-tone run still prints the documented healthy
+`peak 0.099832`, so the limiter changes nothing about normal operation.

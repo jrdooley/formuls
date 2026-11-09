@@ -35,6 +35,19 @@
  * renders is also handed to it, straight from the audio callback (see
  * AudioRecorder.h -- the recorder ignores blocks until the user starts a
  * take, so this costs nothing while not recording).
+ *
+ * Every block passes through a SafetyLimiter on its way to the DEVICE, so
+ * nothing above its ceiling ever reaches the speakers -- the patch has no
+ * limiter of its own and sums past 0 dBFS on a chord. See SafetyLimiter.h; it
+ * adds a constant 128 samples of latency when enabled.
+ *
+ * The recording tap is taken BEFORE the limiter by default, so a take is the
+ * engine's own output, limiter included or not. Because the file is 32-bit
+ * float (AudioRecorder.h) samples above 1.0 are stored exactly rather than
+ * clipped, so the overshoot survives into post and can be scaled down there
+ * without distortion. Set FORMULS_RECORD_PRE_LIMITER=0 to record what the
+ * device hears instead -- limited, never above the ceiling, and sample-aligned
+ * with the speakers rather than the limiter's 128 samples ahead of them.
  */
 
 #pragma once
@@ -44,6 +57,7 @@
 #include <atomic>
 #include "PdBase.hpp"
 #include "AudioRecorder.h"
+#include "SafetyLimiter.h"
 #include "OscBridge.h"
 #include "PdOscOut.h"
 #include "SpectralAnalyser.h"
@@ -206,8 +220,21 @@ public:
     void queueNoteOn (int channel, int note, int velocity) noexcept;
 
     /** Peak levels for the first two output channels, updated on the audio
-        thread. Read from the GUI thread to drive VU meters. */
+        thread. These are read AFTER the safety limiter, so the meters show
+        what actually leaves the engine. */
     std::array<std::atomic<float>, 2> peakLevels {{ 0.0f, 0.0f }};
+
+    /** Latency the safety limiter adds, in samples: 0 when it is switched
+        off. Constant while running, so a plugin host can compensate for it. */
+    int getLimiterLatencySamples() const noexcept   { return limiter.getLatencySamples(); }
+
+    /** Deepest gain reduction the limiter has applied since this was last
+        called, in dB (0 if it has not engaged). Reading it clears it. */
+    float takeLimiterReductionDb() noexcept         { return limiter.takeMaxReductionDb(); }
+
+    /** Non-finite samples the limiter has replaced with silence. Should stay
+        at zero; anything else is a fault in the patch or a Faust external. */
+    long long getNonFiniteSampleCount() const noexcept { return limiter.getNonFiniteCount(); }
 
 private:
     // juce::AudioIODeviceCallback
@@ -291,6 +318,20 @@ private:
     int deviceOutputChannels = 0;
     std::vector<const float*> recordChannels;
     std::vector<float> recordSilence;
+
+    // Pre-limiter recording tap (the default). preLimiterStore holds one
+    // de-interleaved copy of the block as the patch produced it, taken before
+    // limiter.process() overwrites the device buffers in place; it is sized in
+    // prepareRender() alongside recordSilence so the audio callback never
+    // allocates. recordPreLimiter is read from FORMULS_RECORD_PRE_LIMITER once,
+    // in prepareRender(), not per block.
+    bool recordPreLimiter = true;
+    std::vector<float> preLimiterStore;
+    int preLimiterCapacity = 0;         // samples per channel in preLimiterStore
+
+    // Last stage before the device and the recorder. Sized in prepareRender()
+    // so the audio callback never allocates. See SafetyLimiter.h.
+    SafetyLimiter limiter;
 
     bool running = false;
 

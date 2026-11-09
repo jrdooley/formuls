@@ -126,7 +126,9 @@ juce::Result AudioRecorder::start (const juce::File& destination,
                               + ", " + juce::String (numChannels) + " channels @ "
                               + juce::String ((int) sampleRate) + " Hz, "
                               + (ogg ? "Ogg Vorbis q0." + juce::String (oggQualityIndex)
-                                     : juce::String (bitsPerSample) + "-bit WAV"));
+                                     : juce::String (bitsPerSample)
+                                       + (bitsPerSample == 32 ? "-bit float WAV"
+                                                              : "-bit PCM WAV")));
     return juce::Result::ok();
 }
 

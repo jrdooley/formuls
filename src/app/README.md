@@ -33,7 +33,69 @@ It is one app that:
 | `Source/OpenStageControlProcess.h/.cpp` | Starts/stops the Open Stage Control server with `juce::ChildProcess`; also works out the GUI's web addresses. |
 | `Source/FormulsLookAndFeel.h` | **All styling** — window title/size, colours, fonts, layout metrics. |
 | `Source/ResourceLocator.h` | Finds the `pd/` and `gui/` resources both in the packaged app and in development builds. |
+| `Source/SafetyLimiter.h` | Look-ahead peak limiter on the engine's way out, so nothing above its ceiling reaches the audio device (the recorder taps before it by default). JUCE-free, so `src/tools/limiter-probe.cpp` can check it on its own. |
 | `formuls.jucer` | Projucer project. Generates `Builds/MacOSX` (Xcode) and `Builds/LinuxMakefile`. |
+
+## The safety limiter
+
+Every block passes through `SafetyLimiter` in `FormulsEngine::render()`, after
+the de-interleave and **before** the VU meters and the audio device, so nothing
+above its ceiling can reach the speakers. The **recorder tap sits before it**,
+so a take holds the engine's own output — see *Where the recorder takes its
+copy from* below.
+
+It is there because nothing in the Pd patch limits anything: `fsynth.lib` sums
+`POLYPHONY = 20` voices with no `1/N` normalisation, so one instance playing a
+chord goes past 1.0, and `AUDIO_SAFETY______`'s flat 6 dB of headroom covers
+about two voices at full velocity. Past that the audio device clamps. See
+`docs/headroom/README.md`.
+
+* **Ceiling** — −1 dBFS. Guaranteed, not approximated: no output sample exceeds
+  it, and there is no final clamp behind it.
+* **Latency** — a constant 128 samples (2.67 ms at 48 kHz), reported to plugin
+  hosts by `FormulsPluginProcessor::prepareToPlay`.
+* **Transparent below the ceiling** — quieter material comes out bit-identical,
+  only delayed. The limiter is not a tone control and does nothing in normal
+  use.
+* **Gain linking** — channels 1–8 are four stereo stems (main, reverb,
+  repeater, dry) and are linked in pairs so the image cannot shift; 9–14 are
+  separate per-instance sends and each gets its own gain.
+* **Off switch** — `FORMULS_LIMITER=off` bypasses it entirely (and then it adds
+  no latency); `FORMULS_LIMITER_CEILING_DB` and
+  `FORMULS_LIMITER_RELEASE_DB_PER_SEC` change the ceiling and the release rate.
+
+### Where the recorder takes its copy from
+
+By default the recording tap is **before** the limiter: `render()` copies the
+de-interleaved block into `preLimiterStore` and hands *that* to the recorder,
+while `limiter.process()` goes on to work in place on the device's buffers.
+So the speakers are always protected, and the file is the engine as it played,
+overshoot included.
+
+That is safe because takes are **32-bit float** (`Source/AudioRecorder.h`).
+Float WAV has no full-scale ceiling: a sample of 1.8 is stored as 1.8, exactly,
+not clamped to 1.0. Pulling the gain down in post therefore recovers the
+original shape with no distortion — nothing was ever lost to clipping. The
+numbers only have to stay below 1.0 at the final 16- or 24-bit export.
+
+Two consequences worth knowing:
+
+* A pre-limiter take sits **128 samples ahead** of what the speakers emitted,
+  because it skips the limiter's look-ahead delay. It matters only if you line
+  a take up against a room recording of the same performance.
+* Players and editors that assume 0 dBFS is the maximum will *show* the
+  overshoot as clipping and may clip it on playback. The samples are intact;
+  the meter is not lying about the level, only about the damage.
+
+Set `FORMULS_RECORD_PRE_LIMITER=0` (or `off`, or `false`) to move the tap after
+the limiter instead: the file then matches the room sample for sample and can
+never exceed the ceiling, at the cost of recording the limiter's gain reduction
+permanently into the take. Either way, `prepareRender()` logs which tap is in
+use at startup.
+
+On the 29 October 2026 take, with 3 dB of pre-gain to put the peaks back where
+they were before the device clamped them, it engaged in 4% of the take, by a
+mean of 2.1 dB and a worst case of 4.0 dB, for 0.9 dB of RMS loudness.
 
 ## Recording
 
@@ -50,11 +112,13 @@ The file always matches what the engine is actually producing:
   the combo box, not the hardware: if the device has fewer outputs than that,
   the channels it does not have are recorded as silence, so a 14-channel take
   keeps its channel numbering on any device.
-* **Format** — 24-bit PCM WAV (`AudioRecorder::bitsPerSample`; set it to 32 to
-  write 32-bit float instead, which `juce::WavAudioFormat` does automatically
-  at that depth and which cannot clip). Files over 4 GB become RF64, which the
-  JUCE writer switches to on its own, so long multichannel takes are not
-  truncated.
+* **Format** — 32-bit float WAV (`AudioRecorder::bitsPerSample`; set it to 24
+  for 24-bit PCM). Float because nothing in the signal path limits the engine's
+  output and an integer depth would hard clip the overshoot into the file — see
+  `docs/headroom/README.md`. It does not stop the *live* output clipping; it
+  keeps the recording recoverable. Files are 33% larger (384 KB/s stereo,
+  2.7 MB/s at 14 channels). Files over 4 GB become RF64, which the JUCE writer
+  switches to on its own, so long multichannel takes are not truncated.
 
 Audio is written straight to a timestamped file in **`~/Music/formuls/`**
 (falling back to `~/Documents/formuls`, then the temp folder) while recording;

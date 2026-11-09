@@ -50,6 +50,8 @@
             file="../app/Source/RecordingLocation.h"/>
       <FILE id="shRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="../app/Source/ResourceLocator.h"/>
+      <FILE id="shSL0" name="SafetyLimiter.h" compile="0" resource="0"
+            file="../app/Source/SafetyLimiter.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>

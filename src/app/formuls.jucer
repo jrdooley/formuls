@@ -28,6 +28,8 @@
             file="Source/RecordingLocation.h"/>
       <FILE id="srcRL0" name="ResourceLocator.h" compile="0" resource="0"
             file="Source/ResourceLocator.h"/>
+      <FILE id="srcSL0" name="SafetyLimiter.h" compile="0" resource="0"
+            file="Source/SafetyLimiter.h"/>
       <FILE id="srcSM0" name="StereoMeter.h" compile="0" resource="0" file="Source/StereoMeter.h"/>
       <FILE id="srcSA0" name="SpectralAnalyser.h" compile="0" resource="0"
             file="Source/SpectralAnalyser.h"/>

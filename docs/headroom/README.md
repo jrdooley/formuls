@@ -137,43 +137,386 @@ There is also the option of **measuring the outcome instead of predicting it**. 
 `[env~]` on the summed bus reports the actual level whatever its cause, and a slow
 gain riding on that is a compressor in all but name.
 
-## If someone picks this up
+## Measured, 9 November 2026: one instance is enough
 
-Cheapest experiment: chord size into that `[* 1]`, small and reversible. Before
-that, worth establishing **whether the clipping comes from one channel playing
-chords or from several channels stacking** — those point at different fixes, and
-the answer is a listening test, not a code change.
+The open question below — one channel playing chords, or several channels
+stacking — has been answered by measuring a performance recording made with a
+**single** synth instance, on a build that already had the `[*~ 0.5]` hotfix.
 
-## Each instance is padded 20 dB, 9 November 2026
+`solo2-Dphyrigian#4-57.wav`, 2 ch 24-bit 48 kHz, 466.8 s:
 
-This branch now carries the gain-structure fix from `main`, and only that:
+| | |
+|---|---|
+| peak | 0.00 dBFS (exactly ±1.0, both channels) |
+| RMS | −21.5 dBFS (crest factor ~21 dB) |
+| frames pinned at full scale | 8,784 (0.039%) |
+| clipped runs | ~1,000 runs of ≥3 samples, longest **4 samples** (83 µs) |
+| seconds containing clipping | **27 of 466** |
+
+So: **one instance playing chords clips on its own.** That favours per-instance
+control (chord size) over anything that only watches the master sum, and it
+confirms 6 dB of fixed headroom covers only about two voices at full velocity.
+
+The overshoot is small. Just below full scale the material occupies roughly
+4,000–6,000 frames per dB; 9,000 frames are heaped at exactly 0 dBFS, which puts
+the true peaks **on the order of 2–3 dB over** — an estimate from that density,
+not a measurement, because the file is already clamped. Working back through the
+−6 dB safety gain, the summed bus inside Pd reached about 2.8 linear (+9 dB).
+
+Runs of 1–4 samples are the benign kind of clipping: the waveform pokes through
+and comes straight back, so the aliasing is brief and largely masked. But it
+happens a thousand times, and the cause is the commonest thing the instrument
+does.
+
+## Shipped since (1): the recording no longer clips
+
+`AudioRecorder::bitsPerSample` is now **32**, so takes are 32-bit IEEE float and
+JUCE's `convertFloatsToInts` clamp (`samp >= 1.0` → `INT_MAX`) is never reached;
+overshoot survives into the file and the level can be brought down afterwards
+with the waveform whole.
+
+This was never a fix for the problem this document is about — the audio device
+clamps too, so the room still heard it. It stopped the archive being damaged
+while the real decision was outstanding.
+
+## Shipped since (2): a safety limiter in the engine
+
+`SafetyLimiter` (`src/app/Source/SafetyLimiter.h`), called from
+`FormulsEngine::render()` after the de-interleave and before both the VU meters
+and the recorder tap. This is the option that was not in the table above, and
+it is now the answer to "where, and how gracefully".
+
+**Why the engine and not the patch.** It is the last stage, which is where a
+ceiling belongs; one implementation covers every channel, including the
+`dac~ 9..14` per-instance sends and the `TEST_TONE~~~` subpatch, both of which
+are wired straight to the `dac~` and bypass `AUDIO_SAFETY______`; the device and
+the recorder get the same samples, so the file and the room agree; and it
+survives patch edits, which a guard inside `_main.pd` does not.
+
+**What it guarantees, and how.** Audio is read in frames of 64 samples (one
+libpd tick) and each frame's peak is recorded. While frame *m* is read, frame
+*m−2* is emitted, so the peaks of frames *m−2* and *m−1* are both known. Frame
+*j* is emitted under a gain ramping linearly from `a[j]` to
+
+```
+b[j] = min (1, ceiling/P[j], ceiling/P[j+1], a[j] * riseLimit)
+```
+
+with `a[j] = b[j−1]`. Because `b[j−1]` already included the `ceiling/P[j]` term,
+**both ends of the ramp are ≤ ceiling/P[j]**, and a linear ramp never leaves the
+interval between its ends — so every gain applied to frame *j* is at or below
+`ceiling/P[j]`, and `P[j]` is the largest sample in that frame. The ceiling
+therefore holds for every sample, however violent the input, with **no final
+clamp behind it** — a clamp would be the hard clipping the thing exists to
+avoid. Needing `P[j+1]` is what costs two frames rather than one.
+
+| | |
+|---|---|
+| ceiling | −1 dBFS (`FORMULS_LIMITER_CEILING_DB`) |
+| latency | 128 samples, 2.67 ms at 48 kHz, constant |
+| release | 40 dB/s (`FORMULS_LIMITER_RELEASE_DB_PER_SEC`) |
+| linking | channels 1–8 in stereo pairs, 9–14 independent |
+| bypass | `FORMULS_LIMITER=off`, which also removes the latency |
+
+The channel map that linking follows was read out of `_main.pd` rather than
+assumed: channels 1/2 are the main mix (`catch~ $0-limiter-l`/`-r`), 3/4 the
+reverb, 5/6 the repeater, 7/8 the dry pair through `hip~ 5`, and 9–14 six mono
+per-instance sends. The first eight are four stereo stems, so they are linked in
+pairs and no limiter action can shift an image; 9–14 are separate recorded
+stems, so ducking one because another peaked would be wrong.
+
+The plugin reports the latency (`FormulsPluginProcessor::prepareToPlay` calls
+`setLatencySamples`), without which a host would line formuls up 2.67 ms early
+against everything else in the session.
+
+**It is checked, not asserted.** `src/tools/limiter-probe.cpp` compiles the
+header on its own — no JUCE, no libpd, no audio device — and runs 33 checks: the
+ceiling against six hostile signals up to +21.6 dBFS, bit-exact transparency
+below the ceiling, the exact latency, pair linking and stem independence, the
+release rate, identical output across nine device block sizes, NaN/infinity
+handling, and the bypass. All passing as of 9 November 2026.
+
+**What it costs on real material.** The 29 October take, with 3 dB of pre-gain
+to put the peaks back roughly where they were before the device clamped them:
+
+| pre-gain | limiter engaged | mean reduction | worst | RMS cost | output peak |
+|---|---|---|---|---|---|
+| 0 dB | 1.3% of the take | 0.8 dB | 1.0 dB | −0.21 dB | −1.00 dBFS |
+| **+3 dB** | **4.0%** | **2.1 dB** | **4.0 dB** | **−0.91 dB** | **−1.00 dBFS** |
+| +6 dB | 8.3% | 3.2 dB | 7.0 dB | −1.70 dB | −1.00 dBFS |
+
+So at the level that was actually clipping, it works on about one twenty-fifth
+of the performance, by around 2 dB, and costs under 1 dB of loudness — in place
+of roughly a thousand bursts of aliasing.
+
+## Built and checked on Linux, 9 November 2026
+
+Both commits build and the limiter behaves, in the OrbStack `formuls-x64` VM:
+
+- `build-linux.sh` from scratch (libpd included) in 2m50s, exit 0, no warning
+  on any touched file. The binary contains the limiter's strings, and Projucer's
+  re-save of `formuls.jucer` left the tree clean -- the new `<FILE>` entry
+  matches Projucer's own formatting.
+- `build-plugin-linux.sh` in 2m27s: VST3 and LV2, `PluginProcessor.cpp`
+  compiled, no warnings. libpd prints its banner during LV2 manifest
+  generation, so the plugin instantiates.
+- `limiter-probe`: 33/33 under g++ 13/x86_64, with the same numbers as
+  clang 17/arm64 (0.891251, 0.297084, 0.1778 s).
+- `plugin-probe` against the built VST3, rendering the real patch and the real
+  Faust synth with no audio device: the test tone gives the documented healthy
+  `peak 0.099832`; a 22-note stack peaks at 0.348509 with the limiter off and
+  **0.348509 with it on** (transparent); with the ceiling forced to -20 dBFS the
+  same material peaks at **exactly 0.100000**.
+
+The default preset cannot be driven past -1 dBFS from MIDI notes alone, so the
+engine-level ceiling check uses a lowered ceiling; the clipping in the
+29 October take came from performance settings, not the defaults.
+
+## And on the appliance, against a real audio device
+
+An image was cut from `ca12461` (`formuls-20261109-x86_64.img`) and booted in
+QEMU on a qcow2 overlay, with an emulated HDA codec so the guest has a real
+ALSA device. The guest found it --
+
+```
+card 0: Intel [HDA Intel], device 0: Generic Analog [Generic Analog]
+```
+
+-- and the app's own journal shows the limiter configured and the engine
+opening that device:
+
+```
+safety limiter: ceiling -1.00 dBFS, release 40 dB/s, latency 128 samples
+formuls engine started: "Default ALSA Output", 2 channels @ 48000 Hz
+```
+
+So the limiter is live on the appliance, at the intended ceiling, release and
+latency. The dist image's sha256 was identical before and after the boot, so
+the overlay held.
+
+**Not verified: a real take written on the appliance.** `/audiorecord 1` sent
+to udp 9000 did nothing, and the reason is not a fault in any of this:
+`FormulsEngine::start` calls `oscBridge.startDirect (pd)` when the GUI is
+served in-process, as it is on the appliance, so **udp 9000 is never bound**
+there and the message was silently lost -- no take, and
+`~/formulsAudioRecordings/` was never created. Triggering the record button on
+the appliance needs Open Stage Control's WebSocket protocol on 9001. The
+recording format itself is verified at the JUCE level (`src/tools/README.md`
+and `AudioRecorder.h`), which is the same writer the appliance runs.
+
+Also still open: whether any of this is **audibly** better, which is a
+listening test and not a measurement.
+
+## Where the recorder taps, 9 November 2026
+
+The limiter shipped with the recorder taking its copy *after* it, which made a
+take identical to what the speakers emitted and incapable of exceeding the
+ceiling. Measured on the user's own 205.8 s take of that build: peak exactly
+`0.891251` (the ceiling constant to the last digit), 0 samples above it, 0 at
+full scale, `fmt` tag 3.
+
+That was changed to tap **before** the limiter, which is what 32-bit float
+recording was for in the first place. The reasoning:
+
+- A float WAV has no full-scale ceiling. A sample of 1.8 is written as 1.8 and
+  read back as 1.8; the 24-bit integer writer's `samp >= 1.0 -> INT_MAX` clamp,
+  the thing that was destroying the overshoot, does not exist on this path. So
+  scaling a take down in post recovers the original waveform exactly — the
+  overshoot was never clipped, only stored above 1.0. Distortion would need
+  something in the chain to have *clamped* it, and nothing does.
+- That makes the limiter purely a loudspeaker and converter protection, which
+  is the only place it is unavoidable, and leaves the artistic decision — how
+  much to pull down, and with what — in post, where it can be heard and undone.
+- The limiter's gain reduction is otherwise baked into the file permanently.
+
+The cost is two things, both stated in `src/app/README.md`: the file runs 128
+samples ahead of the room because it skips the look-ahead delay, and any player
+that assumes 0 dBFS is maximum will display (and may itself clip) the
+overshoot. Neither touches the stored samples.
+
+`FORMULS_RECORD_PRE_LIMITER=0` restores the post-limiter tap. `prepareRender()`
+logs which one is in use, so a take's provenance is in the journal rather than
+inferred.
+
+**Checked.** The macOS app builds with no new warning, and the shipped binary
+logs the right tap in all three environment states -- unset and
+`FORMULS_RECORD_PRE_LIMITER=0` / `=off` -- beside an unchanged limiter line. A
+standalone probe over the real `SafetyLimiter`, mirroring `render()`'s tap
+block on a 1.8-peak block, confirms the copy is bit-identical to the engine
+output, still holds samples above full scale, keeps its per-channel stride, and
+that the device buffers come out at exactly 0.891251 (the ceiling).
+`limiter-probe` still passes 33/33.
+
+**Confirmed end to end on a played take**, 9 November 2026,
+`formuls-2026-11-09-184307.wav`, 134.9 s of chords on one instance through the
+pre-limiter build:
+
+| | |
+|---|---|
+| format | `fmt` tag 3 (IEEE float), 2 ch, 48000 Hz, 32-bit |
+| peak | **1.508472 = +3.57 dBFS** |
+| RMS | −11.53 dBFS |
+| samples above 1.0 | 2920, 0.023% of 12,948,480 |
+| samples above the −1 dBFS ceiling | 11,495 |
+| samples at exactly 1.0 | **0** |
+| samples at exactly the ceiling | **0** |
+
+Every part of that is the point. The peak is 3.57 dB *past* full scale, so the
+tap really is upstream of the limiter. Nothing sits at exactly 1.0, so the
+integer writer's clamp never ran — on the old 24-bit path those 2920 samples
+would all have become the same number, in runs of up to 38 samples (0.4 ms),
+which is the audible part. Nothing sits at exactly the ceiling either, which is
+what the post-limiter take of the previous build read to the last digit.
+
+And it is recoverable, not merely stored: ×0.5908 (−4.57 dB) brings the peak to
+0.891251 with 0 samples above 1.0, and scaling down and back up returns the
+file with a worst-case error of 1.1e-16, i.e. −319 dBFS — float rounding, some
+200 dB below the noise floor of anything that could be played. A single gain
+move in post is exact for practical purposes.
+
+## The gain structure, 9 November 2026
+
+The limiter made clipping impossible without making the levels sensible, which
+is the architectural half of the problem: formuls is meant to be played as six
+instances layered together, each summing 20 voices with no 1/N normalisation,
+and each voice reaching about full scale on its own. No mix survives that, and
+no live engineer would try -- they would pad the inputs so the *sum* fits, then
+mix with the faders.
+
+So `formuls.dsp` now pads each instance by **20 dB**:
 
 ```faust
 vol = hslider("volume",0,0,1,0.01) : *(0.1) : si.smoo;
 ```
 
-`AUDIO_SAFETY______`'s `[*~ 0.5]` is now `[*~ 1]`, as on `main`. The two were
-sized together: that 6 dB was bought when nothing else protected the output, and
-left in place it would stack on the pad for 26 dB in total, putting solo chords
-at −22.5 dBFS and wasting half the range the pad was sized to use.
+Worked against the measured solo-instance peak of 1.508 (+3.57 dBFS):
 
-The reasoning, measured on `main`: six instances each summing 20 unnormalised
-voices, with a solo instance playing chords peaking at 1.508 (+3.57 dBFS) on its
-own. With the pad, one instance peaks at −16.4 dBFS and six in unison -- the
-worst case -- at −0.87. A true 1/(20·6) would be −41.6 dB and would make sparse
-playing inaudible. It goes after `fx.fx`, where `volume` already sat, because
-`ffx.lib` holds `saturation` and `bitcrush2` and padding after them leaves every
-effect seeing the drive it saw before.
+| | peak | |
+|---|---|---|
+| one instance, chords | 0.1508 | −16.4 dBFS |
+| six instances, incoherent (realistic) | 0.3695 | −8.6 dBFS |
+| six instances, coherent (worst case there is) | 0.9051 | −0.87 dBFS |
 
-**What this branch still does not have**, deliberately, because merging it would
-mean resolving conflicts in the recorder, OSC and GUI files this branch rewrote
-for participant takes and logging:
+The worst case lands 0.13 dB past the −1 dBFS ceiling, so the limiter stays a
+backstop that barely engages rather than a mix stage. A true 1/(20·6) pad would
+be −41.6 dB and would make sparse playing inaudible; a fixed pad keeps the
+distance between one note and a dense chord, which is the instrument.
 
-- the `−1 dBFS` look-ahead safety limiter (`SafetyLimiter.h` on `main`)
-- 32-bit float recording -- takes here are still 24-bit integer, so anything
-  past full scale is **clamped into the file**, not merely stored
-- the pre-limiter recording tap
+Three details that are not arbitrary:
 
-With the pad in place a take reaching full scale is unlikely, but it is not
-impossible the way the limiter makes it on `main`. See `main`'s copy of this
-file for that half of the story.
+- **It goes after `fx.fx`**, where `volume` already sat. `ffx.lib`'s chain holds
+  `saturation` and `bitcrush2`, both level-dependent, so padding after them
+  leaves every effect seeing the drive it sees today. Padding into `fs.synth`
+  or before `fx.fx` would have retuned two effects as a side effect of a level
+  fix.
+- **The slider keeps its 0..1 range**, so the Open Stage Control widgets and the
+  OSC namespace are unchanged; only what 1.0 means has moved.
+- **`si.smoo` is unaffected.** Faust folds the factor into the smoother's input
+  coefficient -- `fSlow0 = (4.41/fs) * slider` against the old `44.1/fs`, with
+  the pole `1 - 44.1/fs` unchanged in both -- so the steady-state gain is
+  exactly a tenth and the smoothing time is identical. That was read out of the
+  generated C++, not assumed.
+
+**A build trap worth recording.** `build-macOS.sh` line 145 is
+`cp -r build/pd "formuls-$VERSION.app/Contents/Resources/pd"`. If that
+destination already exists -- which it does whenever something has written a
+`Resources/pd` into `src/app/Builds/MacOSX/build/Release/formuls.app`, as a
+hand-run `xcodebuild` experiment may -- then `cp -r` nests the *fresh*
+resources at `Resources/pd/pd/` and the **stale external stays where Pd will
+load it**. The tell is an external whose hash matches the previous build while
+the build log clearly shows faust recompiling it. `rm -rf
+src/app/Builds/MacOSX/build` before the build.
+
+Hashing the external tells you only half of that, because
+**`formuls~.pd_darwin` is not reproducible**: two builds of identical sources
+came out the same size with 1,129,762 of 1,338,224 bytes different and
+different `LC_UUID`s. So an *identical* hash proves it was not rebuilt, but a
+*different* hash proves nothing about whether your change landed. Check the
+folded constant instead -- it is the gain, not a proxy for it:
+
+```sh
+python3 -c 'import struct,sys;h=open(sys.argv[1],"rb").read().hex();\
+print("4.41f:",h.count(struct.pack("<f",4.41).hex()))' \
+  formuls-0.3.2.app/Contents/Resources/pd/externals/formuls~.pd_darwin
+```
+
+One occurrence means the 20 dB pad is in; zero means the build shipped a
+pre-pad external, whatever its hash and whatever the log said.
+
+## Measured after the pad, 9 November 2026
+
+`formuls-2026-11-09-205242.wav`, 241.4 s on the gainfix build (20 dB pad,
+`[*~ 1]`, pre-limiter tap), against the pre-pad take of the same evening:
+
+| | before | after |
+|---|---|---|
+| peak | 1.508472, **+3.57 dBFS** | 0.264918, **−11.54 dBFS** |
+| RMS | −11.53 dBFS | −27.87 dBFS |
+| crest factor | 15.10 dB | 16.34 dB |
+| samples above the −1 dBFS ceiling | 11,495 | **0** |
+| samples above 1.0 | 2,920 | **0** |
+| headroom left to the ceiling | −4.57 dB | **+10.54 dB** |
+
+**The limiter never engaged.** Not one sample reached the ceiling in four
+minutes of playing, which is what a backstop should do. The crest factor is
+unchanged within a dB and a bit -- so the pad moved the level without touching
+the dynamics, which is the whole point of padding rather than compressing.
+
+The peak sits 4.9 dB above the solo-instance prediction of −16.4 dBFS and well
+below the six-instance incoherent estimate of −8.6, which is where a few
+instances layered should land. Note that the instance `volume` sliders and the
+master amp were wherever the player had them, so the absolute number is not the
+pad alone.
+
+**There is 10.5 dB of unused range** (×3.36 to reach −1 dBFS), with the loudest
+one-second window at −23.8 dBFS. That is deliberate rather than a miss: the
+pad is sized so the *worst* case fits, not the typical one, and with float
+recording and a master amp the unused range costs nothing recoverable. Raising
+the pad to 0.2 would put this take at −5.5 dBFS and the coherent six-instance
+worst case about 6 dB into the limiter -- a defensible trade, but it buys
+loudness that post can supply for free with limiter action that it cannot undo.
+Left at 0.1 for that reason.
+
+## On the uxlog study branch
+
+This branch has everything above, merged from `main` on 9 November 2026, plus
+two things that change how it applies:
+
+- **Two recorders, one tap.** `sessionRecorder` captures the whole study
+  session alongside whatever the participant records. Both are offered the same
+  channel pointers, so `FormulsEngine::render()`'s `tapPreLimiter` test asks
+  whether *either* recorder is live -- otherwise a session take could be
+  written post-limiter while the participant's take was written pre-limiter,
+  and two files of one performance would disagree about what was played.
+- **The session take is Ogg Vorbis, not float WAV.** It runs for hours, so
+  q0.7 at ~100 MB an hour is the difference between a study that fits on the
+  box and one that does not. The 32-bit float depth therefore protects the
+  participant's WAV take only. That is acceptable because the limiter now makes
+  clipping impossible before either recorder sees the audio, so the session
+  take has nothing to overshoot into -- the float headroom is what lets the
+  *participant's* take keep the engine's own output, and the Ogg take simply
+  records what the speakers played.
+
+## What is still open
+
+The limiter is a backstop, not a gain structure. The 20 dB pad above is the
+gain structure; what remains is whether the **patch's own 6 dB** still earns
+its place. The options table above still
+stands for that, and the measurement still points at **chord size** as the
+honest per-instance control — on the per-instance `volume` in `formuls.dsp`
+rather than the global `[* 1]`, since one instance playing chords is the cause.
+
+**The patch's own 6 dB is gone, 9 November 2026.** `AUDIO_SAFETY______`'s
+`[*~ 0.5]` is now `[*~ 1]`. It sat on the *control* path -- `loadbang` and
+`r $0-master-amp` into `sig~ 0`, then the halving, then `lop~ 100`, whose
+output drives the right inlet of all eight `*~` objects feeding
+`dac~ 1 2 3 4 5 6 7 8` -- so it took 6 dB off every output channel at once. It
+was bought when nothing else protected the output, to cover "about two voices",
+and it stacked on the pad: 26 dB in total, solo chords at −22.5 dBFS and the
+six-instance worst case at −6.9, wasting half the range the pad was sized to
+use. The pad is now the only attenuation, and the table above is what the
+instrument does.
+
+The edit changes one object and no connection, so the subpatch's 32 `#X
+connect` lines and every object index are untouched -- worth preserving in a
+file that is also an editable Pd document.
