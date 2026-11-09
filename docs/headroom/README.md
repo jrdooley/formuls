@@ -347,11 +347,32 @@ output, still holds samples above full scale, keeps its per-channel stride, and
 that the device buffers come out at exactly 0.891251 (the ceiling).
 `limiter-probe` still passes 33/33.
 
-Not checked end to end: a *recorded take* whose peak exceeds 0 dBFS. The
-desktop app takes notes only from a MIDI input device, so an unattended run
-records silence, and the appliance cannot be triggered over udp 9000 (above).
-The remaining gap is the recorder's own write path, which 9 November's take
-already exercised at 32-bit float.
+**Confirmed end to end on a played take**, 9 November 2026,
+`formuls-2026-11-09-184307.wav`, 134.9 s of chords on one instance through the
+pre-limiter build:
+
+| | |
+|---|---|
+| format | `fmt` tag 3 (IEEE float), 2 ch, 48000 Hz, 32-bit |
+| peak | **1.508472 = +3.57 dBFS** |
+| RMS | −11.53 dBFS |
+| samples above 1.0 | 2920, 0.023% of 12,948,480 |
+| samples above the −1 dBFS ceiling | 11,495 |
+| samples at exactly 1.0 | **0** |
+| samples at exactly the ceiling | **0** |
+
+Every part of that is the point. The peak is 3.57 dB *past* full scale, so the
+tap really is upstream of the limiter. Nothing sits at exactly 1.0, so the
+integer writer's clamp never ran — on the old 24-bit path those 2920 samples
+would all have become the same number, in runs of up to 38 samples (0.4 ms),
+which is the audible part. Nothing sits at exactly the ceiling either, which is
+what the post-limiter take of the previous build read to the last digit.
+
+And it is recoverable, not merely stored: ×0.5908 (−4.57 dB) brings the peak to
+0.891251 with 0 samples above 1.0, and scaling down and back up returns the
+file with a worst-case error of 1.1e-16, i.e. −319 dBFS — float rounding, some
+200 dB below the noise floor of anything that could be played. A single gain
+move in post is exact for practical purposes.
 
 ## What is still open
 
