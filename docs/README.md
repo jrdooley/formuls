@@ -264,8 +264,11 @@ missing channels written as silence. 32-bit float, so any overshoot upstream of
 the safety limiter is kept rather than clipped into the file
 (`docs/headroom/README.md`), and automatically RF64 past 4 GB. The engine's
 output passes through a −1 dBFS look-ahead limiter (`SafetyLimiter.h`, 128
-samples of latency, `FORMULS_LIMITER=off` to bypass) before both the meters and
-the recorder, because the patch itself limits nothing.
+samples of latency, `FORMULS_LIMITER=off` to bypass) before the meters and the
+audio device, because the patch itself limits nothing — but the recorder taps
+*before* it, so a take holds the engine's own output and may read above 0 dBFS.
+Float stores that exactly, so pulling it down in post is lossless.
+`FORMULS_RECORD_PRE_LIMITER=0` records the limited signal instead.
 
 Audio goes straight to a timestamped file in `~/Music/formuls/` while recording and
 the save dialog only *moves* it, so cancelling the dialog, pressing Stop mid-take

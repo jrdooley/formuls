@@ -5,6 +5,9 @@
 #include "FormulsEngine.h"
 #include "OpenStageControlProcess.h"   // patchOscPort
 
+#include <cstdlib>    // getenv, for the recording-tap switch
+#include <string>
+
 namespace formuls
 {
 
@@ -248,6 +251,25 @@ void FormulsEngine::prepareRender (int maxBlockSize)
     recordChannels.assign ((size_t) juce::jmax (1, pdOutputChannels), nullptr);
     recordSilence.assign ((size_t) juce::jmax (8192, maxBlockSize * 4), 0.0f);
 
+    // Where the recorder takes its copy from. Pre-limiter by default: the file
+    // then holds the engine's own output, overshoot and all, which 32-bit float
+    // stores exactly (see AudioRecorder.h). Only an explicit 0/off/false moves
+    // the tap after the limiter, on the same reasoning as the limiter's own
+    // environment parsing -- a mistyped variable must not silently change what
+    // a take contains.
+    recordPreLimiter = true;
+
+    if (const auto* post = std::getenv ("FORMULS_RECORD_PRE_LIMITER"))
+    {
+        const std::string value (post);
+        if (value == "0" || value == "off" || value == "false")
+            recordPreLimiter = false;
+    }
+
+    preLimiterCapacity = recordPreLimiter ? (int) recordSilence.size() : 0;
+    preLimiterStore.assign ((size_t) preLimiterCapacity
+                                * (size_t) juce::jmax (1, pdOutputChannels), 0.0f);
+
     // bootPd() has already set actualSampleRate, so the limiter's release
     // rate is derived from the rate the device really opened at.
     const auto limiterConfig = SafetyLimiter::configFromEnvironment();
@@ -262,7 +284,14 @@ void FormulsEngine::prepareRender (int maxBlockSize)
                                   + juce::String (limiter.getLatencySamples()) + " samples");
     else
         juce::Logger::writeToLog ("safety limiter: OFF (FORMULS_LIMITER) -- the engine"
-                                  " can clip the device and the recording");
+                                  " can clip the device");
+
+    juce::Logger::writeToLog (recordPreLimiter
+                                  ? "recording tap: BEFORE the limiter -- takes hold the engine's"
+                                    " own output and may exceed 0 dBFS (32-bit float stores it;"
+                                    " reduce the gain in post)"
+                                  : "recording tap: AFTER the limiter (FORMULS_RECORD_PRE_LIMITER=0)"
+                                    " -- takes cannot exceed the ceiling");
 }
 
 void FormulsEngine::audioDeviceIOCallbackWithContext (const float* const*, int,
@@ -340,9 +369,33 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
         sampleIndex += numToCopy;
     }
 
-    // Last stage: nothing above the ceiling reaches the device, the meters or
-    // the recorder. The patch has no limiter of its own and a chord on one
-    // instance sums past 0 dBFS -- see SafetyLimiter.h and
+    // The recording tap, when it is set before the limiter: copy the block as
+    // the patch produced it, because limiter.process() below works in place on
+    // these very buffers. Only while a take is actually running -- recorder is
+    // null otherwise, so this costs nothing the rest of the time. If the block
+    // is somehow larger than prepareRender() allowed for, fall through to the
+    // post-limiter pointers rather than writing past the buffer.
+    const bool tapPreLimiter = recordPreLimiter
+                               && recorder != nullptr
+                               && pdOutputChannels > 0
+                               && numSamples <= preLimiterCapacity;
+
+    if (tapPreLimiter)
+    {
+        for (int ch = 0; ch < pdOutputChannels; ++ch)
+        {
+            auto* dest = preLimiterStore.data() + (size_t) ch * (size_t) preLimiterCapacity;
+
+            if (ch < numOutputChannels && outputChannelData[ch] != nullptr)
+                juce::FloatVectorOperations::copy (dest, outputChannelData[ch], numSamples);
+            else
+                juce::FloatVectorOperations::clear (dest, numSamples);
+        }
+    }
+
+    // Last stage before the device: nothing above the ceiling reaches the
+    // speakers or the meters. The patch has no limiter of its own and a chord
+    // on one instance sums past 0 dBFS -- see SafetyLimiter.h and
     // docs/headroom/README.md. In place, on the device's own buffers.
     limiter.process (outputChannelData, numOutputChannels, numSamples);
 
@@ -367,9 +420,15 @@ void FormulsEngine::render (float* const* outputChannelData, int numOutputChanne
         && (size_t) numSamples <= recordSilence.size())
     {
         for (int ch = 0; ch < pdOutputChannels; ++ch)
-            recordChannels[(size_t) ch] = (ch < numOutputChannels && outputChannelData[ch] != nullptr)
-                                            ? outputChannelData[ch]
-                                            : recordSilence.data();
+        {
+            if (tapPreLimiter)
+                recordChannels[(size_t) ch] = preLimiterStore.data()
+                                              + (size_t) ch * (size_t) preLimiterCapacity;
+            else
+                recordChannels[(size_t) ch] = (ch < numOutputChannels && outputChannelData[ch] != nullptr)
+                                                ? outputChannelData[ch]
+                                                : recordSilence.data();
+        }
 
         recorder->write (recordChannels.data(), pdOutputChannels, numSamples);
     }

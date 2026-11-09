@@ -307,6 +307,52 @@ and `AudioRecorder.h`), which is the same writer the appliance runs.
 Also still open: whether any of this is **audibly** better, which is a
 listening test and not a measurement.
 
+## Where the recorder taps, 9 November 2026
+
+The limiter shipped with the recorder taking its copy *after* it, which made a
+take identical to what the speakers emitted and incapable of exceeding the
+ceiling. Measured on the user's own 205.8 s take of that build: peak exactly
+`0.891251` (the ceiling constant to the last digit), 0 samples above it, 0 at
+full scale, `fmt` tag 3.
+
+That was changed to tap **before** the limiter, which is what 32-bit float
+recording was for in the first place. The reasoning:
+
+- A float WAV has no full-scale ceiling. A sample of 1.8 is written as 1.8 and
+  read back as 1.8; the 24-bit integer writer's `samp >= 1.0 -> INT_MAX` clamp,
+  the thing that was destroying the overshoot, does not exist on this path. So
+  scaling a take down in post recovers the original waveform exactly — the
+  overshoot was never clipped, only stored above 1.0. Distortion would need
+  something in the chain to have *clamped* it, and nothing does.
+- That makes the limiter purely a loudspeaker and converter protection, which
+  is the only place it is unavoidable, and leaves the artistic decision — how
+  much to pull down, and with what — in post, where it can be heard and undone.
+- The limiter's gain reduction is otherwise baked into the file permanently.
+
+The cost is two things, both stated in `src/app/README.md`: the file runs 128
+samples ahead of the room because it skips the look-ahead delay, and any player
+that assumes 0 dBFS is maximum will display (and may itself clip) the
+overshoot. Neither touches the stored samples.
+
+`FORMULS_RECORD_PRE_LIMITER=0` restores the post-limiter tap. `prepareRender()`
+logs which one is in use, so a take's provenance is in the journal rather than
+inferred.
+
+**Checked.** The macOS app builds with no new warning, and the shipped binary
+logs the right tap in all three environment states -- unset and
+`FORMULS_RECORD_PRE_LIMITER=0` / `=off` -- beside an unchanged limiter line. A
+standalone probe over the real `SafetyLimiter`, mirroring `render()`'s tap
+block on a 1.8-peak block, confirms the copy is bit-identical to the engine
+output, still holds samples above full scale, keeps its per-channel stride, and
+that the device buffers come out at exactly 0.891251 (the ceiling).
+`limiter-probe` still passes 33/33.
+
+Not checked end to end: a *recorded take* whose peak exceeds 0 dBFS. The
+desktop app takes notes only from a MIDI input device, so an unattended run
+records silence, and the appliance cannot be triggered over udp 9000 (above).
+The remaining gap is the recorder's own write path, which 9 November's take
+already exercised at 32-bit float.
+
 ## What is still open
 
 The limiter is a backstop, not a gain structure. It makes clipping impossible;

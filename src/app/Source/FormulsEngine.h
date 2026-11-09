@@ -35,10 +35,18 @@
  * AudioRecorder.h -- the recorder ignores blocks until the user starts a
  * take, so this costs nothing while not recording).
  *
- * Every block passes through a SafetyLimiter on its way out, so nothing above
- * its ceiling reaches the device OR the recorder -- the patch has no limiter
- * of its own and sums past 0 dBFS on a chord. See SafetyLimiter.h; it adds a
- * constant 128 samples of latency when enabled.
+ * Every block passes through a SafetyLimiter on its way to the DEVICE, so
+ * nothing above its ceiling ever reaches the speakers -- the patch has no
+ * limiter of its own and sums past 0 dBFS on a chord. See SafetyLimiter.h; it
+ * adds a constant 128 samples of latency when enabled.
+ *
+ * The recording tap is taken BEFORE the limiter by default, so a take is the
+ * engine's own output, limiter included or not. Because the file is 32-bit
+ * float (AudioRecorder.h) samples above 1.0 are stored exactly rather than
+ * clipped, so the overshoot survives into post and can be scaled down there
+ * without distortion. Set FORMULS_RECORD_PRE_LIMITER=0 to record what the
+ * device hears instead -- limited, never above the ceiling, and sample-aligned
+ * with the speakers rather than the limiter's 128 samples ahead of them.
  */
 
 #pragma once
@@ -261,6 +269,16 @@ private:
     AudioRecorder* recorder = nullptr;
     std::vector<const float*> recordChannels;
     std::vector<float> recordSilence;
+
+    // Pre-limiter recording tap (the default). preLimiterStore holds one
+    // de-interleaved copy of the block as the patch produced it, taken before
+    // limiter.process() overwrites the device buffers in place; it is sized in
+    // prepareRender() alongside recordSilence so the audio callback never
+    // allocates. recordPreLimiter is read from FORMULS_RECORD_PRE_LIMITER once,
+    // in prepareRender(), not per block.
+    bool recordPreLimiter = true;
+    std::vector<float> preLimiterStore;
+    int preLimiterCapacity = 0;         // samples per channel in preLimiterStore
 
     // Last stage before the device and the recorder. Sized in prepareRender()
     // so the audio callback never allocates. See SafetyLimiter.h.
