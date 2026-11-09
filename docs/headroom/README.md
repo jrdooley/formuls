@@ -268,12 +268,44 @@ Both commits build and the limiter behaves, in the OrbStack `formuls-x64` VM:
   **0.348509 with it on** (transparent); with the ceiling forced to -20 dBFS the
   same material peaks at **exactly 0.100000**.
 
-Still not verified: the app running against a real audio device (the VM has no
-sound card and no `snd-dummy`, see the build-rig notes -- that needs the image
-booted in QEMU), and whether any of it is audibly better, which is a listening
-test. The default preset cannot be driven past -1 dBFS from MIDI notes alone,
-so the engine-level ceiling check uses a lowered ceiling; the clipping in the
+The default preset cannot be driven past -1 dBFS from MIDI notes alone, so the
+engine-level ceiling check uses a lowered ceiling; the clipping in the
 29 October take came from performance settings, not the defaults.
+
+## And on the appliance, against a real audio device
+
+An image was cut from `ca12461` (`formuls-20261109-x86_64.img`) and booted in
+QEMU on a qcow2 overlay, with an emulated HDA codec so the guest has a real
+ALSA device. The guest found it --
+
+```
+card 0: Intel [HDA Intel], device 0: Generic Analog [Generic Analog]
+```
+
+-- and the app's own journal shows the limiter configured and the engine
+opening that device:
+
+```
+safety limiter: ceiling -1.00 dBFS, release 40 dB/s, latency 128 samples
+formuls engine started: "Default ALSA Output", 2 channels @ 48000 Hz
+```
+
+So the limiter is live on the appliance, at the intended ceiling, release and
+latency. The dist image's sha256 was identical before and after the boot, so
+the overlay held.
+
+**Not verified: a real take written on the appliance.** `/audiorecord 1` sent
+to udp 9000 did nothing, and the reason is not a fault in any of this:
+`FormulsEngine::start` calls `oscBridge.startDirect (pd)` when the GUI is
+served in-process, as it is on the appliance, so **udp 9000 is never bound**
+there and the message was silently lost -- no take, and
+`~/formulsAudioRecordings/` was never created. Triggering the record button on
+the appliance needs Open Stage Control's WebSocket protocol on 9001. The
+recording format itself is verified at the JUCE level (`src/tools/README.md`
+and `AudioRecorder.h`), which is the same writer the appliance runs.
+
+Also still open: whether any of this is **audibly** better, which is a
+listening test and not a measurement.
 
 ## What is still open
 
