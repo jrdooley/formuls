@@ -152,8 +152,10 @@ This branch now carries the gain-structure fix from `main`, and only that:
 vol = hslider("volume",0,0,1,0.01) : *(0.1) : si.smoo;
 ```
 
-`AUDIO_SAFETY______`'s `[*~ 0.5]` is left at 0.5 **here**, because the two were
-sized together on `main` and this branch does not have the rest of that work.
+`AUDIO_SAFETY______`'s `[*~ 0.5]` is now `[*~ 1]`, as on `main`. The two were
+sized together: that 6 dB was bought when nothing else protected the output, and
+left in place it would stack on the pad for 26 dB in total, putting solo chords
+at −22.5 dBFS and wasting half the range the pad was sized to use.
 
 The reasoning, measured on `main`: six instances each summing 20 unnormalised
 voices, with a solo instance playing chords peaking at 1.508 (+3.57 dBFS) on its
