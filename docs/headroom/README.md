@@ -249,6 +249,32 @@ So at the level that was actually clipping, it works on about one twenty-fifth
 of the performance, by around 2 dB, and costs under 1 dB of loudness — in place
 of roughly a thousand bursts of aliasing.
 
+## Built and checked on Linux, 9 November 2026
+
+Both commits build and the limiter behaves, in the OrbStack `formuls-x64` VM:
+
+- `build-linux.sh` from scratch (libpd included) in 2m50s, exit 0, no warning
+  on any touched file. The binary contains the limiter's strings, and Projucer's
+  re-save of `formuls.jucer` left the tree clean -- the new `<FILE>` entry
+  matches Projucer's own formatting.
+- `build-plugin-linux.sh` in 2m27s: VST3 and LV2, `PluginProcessor.cpp`
+  compiled, no warnings. libpd prints its banner during LV2 manifest
+  generation, so the plugin instantiates.
+- `limiter-probe`: 33/33 under g++ 13/x86_64, with the same numbers as
+  clang 17/arm64 (0.891251, 0.297084, 0.1778 s).
+- `plugin-probe` against the built VST3, rendering the real patch and the real
+  Faust synth with no audio device: the test tone gives the documented healthy
+  `peak 0.099832`; a 22-note stack peaks at 0.348509 with the limiter off and
+  **0.348509 with it on** (transparent); with the ceiling forced to -20 dBFS the
+  same material peaks at **exactly 0.100000**.
+
+Still not verified: the app running against a real audio device (the VM has no
+sound card and no `snd-dummy`, see the build-rig notes -- that needs the image
+booted in QEMU), and whether any of it is audibly better, which is a listening
+test. The default preset cannot be driven past -1 dBFS from MIDI notes alone,
+so the engine-level ceiling check uses a lowered ceiling; the clipping in the
+29 October take came from performance settings, not the defaults.
+
 ## What is still open
 
 The limiter is a backstop, not a gain structure. It makes clipping impossible;
