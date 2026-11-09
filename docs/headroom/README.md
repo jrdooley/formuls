@@ -440,8 +440,38 @@ print("4.41f:",h.count(struct.pack("<f",4.41).hex()))' \
   formuls-0.3.2.app/Contents/Resources/pd/externals/formuls~.pd_darwin
 ```
 
-One occurrence means the 20 dB pad is in; zero means the build shipped a
-pre-pad external, whatever its hash and whatever the log said.
+One occurrence means the 20 dB pad is in -- **but only on x86_64**. That check
+is architecture-dependent, and it reads as a failure on Apple silicon even when
+the pad is there: the app's own arm64 slice has zero occurrences while its
+x86_64 slice has one, from the same universal binary.
+
+| | 4.41f | 44.1f |
+|---|---|---|
+| app, x86_64 slice | 1 | 1 |
+| app, arm64 slice | **0** | **0** |
+| plugin (thinned to arm64) | **0** | **0** |
+
+x86_64 materialises a constant like 4.41 from a literal in `__TEXT,__const`;
+arm64 builds it in registers with a `movz`/`movk` immediate sequence and
+`fmov`, so the bytes never appear contiguously. The Linux appliance check above
+is sound because that build is x86_64. The macOS plugins are thinned to arm64
+by `bind-externals-to-libpd.py`, so the check cannot be used on them at all.
+
+**On arm64, measure instead.** `src/tools/plugin-probe` hosts the built plugin
+and renders the real patch:
+
+```sh
+PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 \
+  PROBE_GUI_AT="0.2:/midikeyboard1:1,0.4:/volume1:1,0.6:/masteramp:1" \
+  PROBE_NOTES_AT="1.00:36,1.06:40,...,2.26:91" \
+  plugin_probe formuls-0.3.2.vst3 12 9001
+```
+
+22 stacked notes on the default preset read **0.348509** before any of this
+work. On 9 November 2026 the same preset read **0.0662557**, against 0.0697
+predicted from 0.348509 x 0.1 (the pad) / 0.5 (the patch's 6 dB, removed) --
+a 5% residual from the note timing, and the only architecture-independent proof
+that a given binary carries the pad.
 
 ## Measured after the pad, 9 November 2026
 
