@@ -1,0 +1,44 @@
+# Checks that the six build scripts agree on VERSION, on every pull request.
+#
+# This exists to be a *required* status check on main. release.yml has the same
+# check, but its pull_request trigger is filtered by path, so it does not run on
+# a PR that only touches the patch, the DSP, the app or the docs. A required
+# check that never runs leaves a PR stuck at "Expected — waiting for status to
+# be reported" forever, so the requirement cannot be put on release.yml's jobs.
+#
+# It also makes `gh pr merge --auto` queue a merge instead of merging straight
+# away: with no required check at all, that flag merges immediately, which once
+# landed a version bump before its platform builds had finished.
+#
+# Deliberately duplicated rather than shared with release.yml: this must keep
+# working even while release.yml is being changed, and factoring six lines into
+# a reusable workflow costs more clarity than it saves. Keep the two in step —
+# release.yml's `version` job is the one that gates the release itself.
+
+name: version check
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  version-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The six build scripts must agree on VERSION
+        run: |
+          # Matches both `VERSION="x"` (sh) and `set VERSION=x` (bat); tr -d
+          # strips the CR the .bat files carry.
+          get() { sed -n 's/^\(set \)\{0,1\}VERSION="\{0,1\}\([^"]*\)"\{0,1\}$/\2/p' "$1" | tr -d '\r'; }
+          v=$(get build-linux.sh)
+          [ -n "$v" ] || { echo "no VERSION found in build-linux.sh"; exit 1; }
+          fail=0
+          for f in build-linux.sh build-macOS.sh build-windows.bat \
+                   build-plugin-linux.sh build-plugin-macOS.sh build-plugin-windows.bat; do
+            got=$(get "$f")
+            echo "$f: $got"
+            [ "$got" = "$v" ] || { echo "::error file=$f::VERSION is '$got', expected '$v' (build-linux.sh)"; fail=1; }
+          done
+          [ "$fail" = 0 ] || exit 1
+          echo "all six agree on $v"
