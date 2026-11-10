@@ -164,6 +164,21 @@ var dupTimer = setInterval(function () {
 }, 10000)
 
 var stats = { k: 'stats', internal_param: 0, internal_in: 0, collapsed_param: 0 }
+var statsWritten = ''
+
+// The appliance is switched off at the wall, so unload() cannot be relied on
+// to be the place these counts are written. They go in once a minute as well,
+// whenever they have moved: a log cut short by the power still says what the
+// logger dropped. The last line of a session wins.
+function writeStats() {
+    var now = JSON.stringify([stats.internal_param, stats.internal_in, stats.collapsed_param])
+    if (now === statsWritten) return
+    statsWritten = now
+    stats.st = Date.now()
+    write(stats)
+}
+
+var statsTimer = setInterval(writeStats, 60000)
 
 function round(v) {
     return typeof v === 'number' ? Number(v.toPrecision(5)) : v
@@ -304,6 +319,7 @@ module.exports = {
         clearInterval(inTimer)
         clearInterval(writeTimer)
         clearInterval(dupTimer)
+        clearInterval(statsTimer)
         if (inner.unload) inner.unload()
         stats.st = Date.now()
         write(stats)

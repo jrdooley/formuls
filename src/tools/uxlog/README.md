@@ -43,7 +43,7 @@ assuming the two agree.
 | `spec` | **spectral descriptors**: every engine channel's level (`db`) and its spectral centroid, spread, flatness, irregularity and skewness, at `FORMULS_UXLOG_SPEC_HZ` frames a second (default 5). Written by the app, not the tablet. `spec-start` records the frame rate, window size, channel count and sample rate. See `docs/uxlog-spectral/README.md` |
 | `preset` | a preset load from the app window |
 | `clock` | a tablet's clock offset, `st - ft`: add `off` to that session's `t` to put its events on the computer's clock. Written the first time the offset is known and whenever it improves by more than 100 ms |
-| `stats` | written when the log server shuts down: `internal_param` and `internal_in` (`/GET` and the like, dropped), `collapsed_param` (duplicate sends written once). Nothing is silently discarded |
+| `stats` | `internal_param` and `internal_in` (`/GET` and the like, dropped) and `collapsed_param` (duplicate sends written once), so nothing is silently discarded. Written once a minute whenever the counts have moved, and again at shutdown — the appliance is switched off at the wall, where no shutdown line is ever reached. The last one in a log is the one to read |
 | `client`, `hidden`/`visible`, `resize`, `orientation` | session context |
 
 ### Session audio
