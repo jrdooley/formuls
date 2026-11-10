@@ -19,6 +19,13 @@ contains none of this: the app turns logging on only if
 Logs go to `~/Music/formuls/uxlog/uxlog-YYYY-MM-DD-HHMMSS.jsonl`: one file per
 app start, one JSON event per line. Each event has two timestamps: `t` (the
 tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets.
+An event from the app also carries `at`, the app's own clock when it sent the
+event: `st` is when the line was written, which on a busy log server can be
+seconds later, so a gap in a fixed-rate stream such as `spec` tells you whether
+the app stopped sending (`at` gaps too) or the server stopped writing (it does
+not). A tablet's clock may be hours out — 835.4 s on the appliance on
+10 November 2026 — so take the offset from the `clock` event rather than
+assuming the two agree.
 
 | event | meaning |
 |---|---|
@@ -28,13 +35,15 @@ tablet's clock) and `st` (the computer's clock). Use `st` when comparing tablets
 | `down.param` / `layer` / `cell` / `modes` | on a slider canvas: the parameter, which layer the touch adjusts (`main`, `chaos`, `lfofreq`, `lfodepth`, `moddepth`, `mod` cell 0-5, `label`) and which mode buttons were on. The layer is worked out with slider-lib.js's own rule, because the mode buttons choose it, not the touch position |
 | `up` summary | duration, path length, value before and after, `changes`, `fturns_x`/`fturns_y` (direction changes of the finger, ignoring under 4 px), `addr` (the address the control sends), `reversals` (of the displayed value; unreliable on sliders, see below) |
 | `tab` | a tab switch (navigation) |
-| `param` | every value the GUI sent to the sound engine |
+| `param` | every value the GUI sent to the sound engine. Open Stage Control's own `/GET` housekeeping is dropped, and an identical value on one address from one client inside 50 ms (`FORMULS_UXLOG_DUP_MS`) is written once: the same message reaches the filter once per send target, which doubled the connect-time state dump. Both are counted in `stats` |
 | `in` | values the sound engine sent to the GUI that **modulate the sound** (LFOs, chaos, automation, `extmodulation`): up to 5 frames a second, changed values only (`FORMULS_UXLOG_IN_HZ` to change) |
 | `disp` | **display feedback**: values the engine sent to the GUI that the player never sets and that change no sound — the sequencer playhead (`/seqpos*`), the step it is on (`/sequencerstep*`) and the pitch readout (`/oscpitchgui*`). Framed exactly like `in`, in its own stream |
 | `grab` | the GUI telling the patch to stop echoing an address back while a finger is on that widget (`/grab/<address> 1` on touch, `0` on release; see `f.util.guiinhibit` in the patch). Not a parameter change, so it is kept out of `param` — and it is the GUI's own account of when each touch began and ended, so `down`/`up` can be checked against it |
 | `snap` | every widget's value: when a tablet connects, every 5 minutes, after a preset load |
 | `spec` | **spectral descriptors**: every engine channel's level (`db`) and its spectral centroid, spread, flatness, irregularity and skewness, at `FORMULS_UXLOG_SPEC_HZ` frames a second (default 5). Written by the app, not the tablet. `spec-start` records the frame rate, window size, channel count and sample rate. See `docs/uxlog-spectral/README.md` |
 | `preset` | a preset load from the app window |
+| `clock` | a tablet's clock offset, `st - ft`: add `off` to that session's `t` to put its events on the computer's clock. Written the first time the offset is known and whenever it improves by more than 100 ms |
+| `stats` | written when the log server shuts down: `internal_param` and `internal_in` (`/GET` and the like, dropped), `collapsed_param` (duplicate sends written once). Nothing is silently discarded |
 | `client`, `hidden`/`visible`, `resize`, `orientation` | session context |
 
 ### Session audio
@@ -54,6 +63,30 @@ batch was sent, so gestures from any tablet land in the right place in the audio
 
 No personal data are recorded, apart from the session audio itself. The browser's user-agent string is
 recorded, though. Tell participants the session is being logged.
+
+### What the logger drops, and why
+
+Three kinds of noise were measured in the 10 November 2026 session and are
+dealt with at the source rather than downstream:
+
+- **`/GET`** — a client asking the server for the state of a tab. 7641 of that
+  session's 12553 `param` events, 61 %, over five distinct payloads, all
+  `["root", n]`. No value the player set, no value the engine produced.
+- **Duplicate sends** — 1335 further events were an identical `(address,
+  value)` from one client inside 50 ms, the same message passing the filter
+  once per send target. All of them were in the connect-time state dump; the
+  1004 events of actual playing that followed contained none.
+- **A write per line** — the dump cost 12554 stream writes and 999 KB in a
+  couple of seconds, on the one thread that also receives the app's 5 Hz `spec`
+  frames. The two worst gaps in that session's spectral stream, 2.6 s and
+  3.6 s, fall on the dump; every other gap is under a quarter second. Lines are
+  now buffered and written in one go at 10 Hz or every 64 KB
+  (`FORMULS_UXLOG_WRITE_HZ`): the same traffic becomes 5 writes and 310 KB.
+
+Replaying that session through the module gives 3577 `param` lines where there
+were 12553, and the dropped and collapsed counts in `stats` account for every
+one of the rest. `analyse-uxlog.py` drops `/GET` as it reads, too, so a log from
+either side of this change counts the same.
 
 ## Analyse
 

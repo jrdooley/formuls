@@ -114,16 +114,34 @@ import re
 import statistics
 
 
+# Open Stage Control's own housekeeping, dropped at the source from
+# 2026-11-10. /GET is a client asking for the state of a tab: it is no value
+# the player set, and it was 61 % of the param events in logs before that
+# change. Dropped here too, so a log from either side of it counts the same.
+# Keep in step with OSC_INTERNAL in formuls-uxlog-module.js.
+OSC_INTERNAL = (
+    re.compile(r'^/GET$'),
+)
+
+
+def is_osc_internal(address):
+    return any(r.match(address) for r in OSC_INTERNAL)
+
+
 def load(paths):
     for p in paths:
         with open(p) as f:
             for line in f:
                 line = line.strip()
-                if line:
-                    try:
-                        yield json.loads(line)
-                    except json.JSONDecodeError:
-                        pass  # a line cut short when the app was killed
+                if not line:
+                    continue
+                try:
+                    e = json.loads(line)
+                except json.JSONDecodeError:
+                    continue  # a line cut short when the app was killed
+                if e.get('k') == 'param' and is_osc_internal(e.get('a', '')):
+                    continue
+                yield e
 
 
 # What the module writes to the "disp" stream from 2026-10-27 (28439b1): values
@@ -495,7 +513,17 @@ def main():
 
 
 def clock_offsets(events):
+    """Each tablet session's clock offset: add it to "t" to get this
+    computer's clock. The module records it as a "clock" event from
+    2026-11-10; before that it has to be derived, and the smallest st - ft
+    seen is the estimate, because the network delay in that difference is
+    small and never negative."""
     off = {}
+    for e in events:
+        if e.get('k') == 'clock' and 's' in e and 'off' in e:
+            off[e['s']] = min(off.get(e['s'], float('inf')), e['off'])
+    if off:
+        return off
     for e in events:
         if 't' in e and 's' in e and 'st' in e:
             off[e['s']] = min(off.get(e['s'], float('inf')), e['st'] - e.get('ft', e['t']))

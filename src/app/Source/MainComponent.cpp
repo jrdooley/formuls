@@ -862,7 +862,15 @@ void MainComponent::spectralTimerCallback()
 void MainComponent::sendUxLogEvent (const juce::var& event)
 {
     // formuls-uxlog-module.js takes this address out of the OSC stream,
-    // stamps it with its own clock and writes it into the session log.
+    // stamps it with its own clock and writes it into the session log. That
+    // stamp is when the line was written, not when this happened, and the
+    // two came 3.6 s apart in the 10 November session while a connecting
+    // tablet kept the log server busy. So carry our own clock as well: with
+    // "at" beside the module's "st", a gap in a fixed-rate stream says
+    // whether this app stopped sending or the server stopped writing.
+    if (auto* obj = event.getDynamicObject())
+        obj->setProperty ("at", juce::Time::currentTimeMillis());
+
     sendOscToOsc ("/formuls/uxlog/event", juce::JSON::toString (event, true));
 }
 
