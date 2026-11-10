@@ -19,7 +19,7 @@
 
 set -e
 
-VERSION="0.3.2"
+VERSION="0.3.3"
 
 # Target architecture, named the way Node's downloads name it. Everything
 # else is compiled natively, so it matches too. Used for the Node download
