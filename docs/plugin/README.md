@@ -17,6 +17,11 @@ the flattened `gui/` from the app bundle, leaves node out, and puts libpd in
 each bundle's `Contents/Frameworks`. `FORMULS_APP=/path/to/formuls.app`
 points it at another app build.
 
+By default both bundles are signed ad hoc, which loads them only on the Mac that
+built them. With `SIGN_IDENTITY` set (and optionally `NOTARY_PROFILE`) they are
+signed with a Developer ID, notarised and packed into a release zip instead; see
+`docs/release.md` section 4.
+
 On Linux, VST3 and LV2:
 
 ```bash
