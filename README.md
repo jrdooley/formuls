@@ -53,4 +53,7 @@ under a commercial JUCE licence rather than its AGPL option, so no JUCE source
 obligation passes to you; to build formuls yourself you need your own JUCE
 licence, which may be the free AGPLv3 one.
 
+Patches are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md), which explains the
+sign-off requirement and why it exists.
+
 Copyright (C) 2014-2026 James Dooley aka formuls.

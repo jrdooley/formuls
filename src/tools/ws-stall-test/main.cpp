@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 /*
  * ws-stall-test: does WebSocketServer block the thread that sends to a tablet
  * which has stopped reading (poor Wi-Fi, a frozen browser tab)?

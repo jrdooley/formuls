@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Compile formuls' multi-widget compounds into single canvas widgets (build step).
 
 Runs after flatten-session.py, on its output. Each `slider` compound -- 15 stacked

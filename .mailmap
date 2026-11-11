@@ -1,0 +1,8 @@
+# Canonical identity for the project's single author. Four addresses appear in
+# the history; `git shortlog`, `git log --author` and blame should resolve them
+# all to one person, because sole copyright is what keeps formuls' licensing
+# options open (see CONTRIBUTING.md).
+James Dooley (formuls) <info@formuls.studio> <info@formuls.studio>
+James Dooley (formuls) <info@formuls.studio> <info@formuls.co.uk>
+James Dooley (formuls) <info@formuls.studio> <formulsav@proton.me>
+James Dooley (formuls) <info@formuls.studio> jrdooley <info@formuls.co.uk>

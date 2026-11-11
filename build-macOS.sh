@@ -1,4 +1,7 @@
 #!/bin/zsh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # macOS build script for the formuls JUCE app.
 # Builds for the native architecture (Apple Silicon or Intel).
 #

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // formuls 128-step sequencer panel, drawn and touched as ONE canvas widget.
 //
 // Installed once into `globals.FS` by the root's onCreate (compile-compounds.py

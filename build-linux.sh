@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # Linux build script for the formuls JUCE app.
 #
 # This is the script the appliance images are built with: formuls-embedded's

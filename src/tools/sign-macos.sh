@@ -1,4 +1,7 @@
 #!/bin/zsh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # Sign (and optionally notarise) a built formuls.app for distribution.
 #
 #   SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
