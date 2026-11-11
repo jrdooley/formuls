@@ -1,10 +1,22 @@
-# formuls — Agent Guide (juce-port branch)
+# formuls — Agent Guide
 
 Electronic musical instrument: 6-operator FM synth with touchscreen GUI.
 Stack: JUCE (native app), libpd (embedded audio), Faust (DSP), Pure Data (patches), Open Stage Control (web GUI).
 
-**This branch replaces the Python/Tkinter + RtAudio architecture on `main`.**
-Python is no longer a build or runtime dependency. See `docs/README.md` for the full branch history.
+**This is `main`.** The JUCE rewrite replaced the old Python/Tkinter + RtAudio
+architecture and was merged long ago; the `juce-port` branch no longer exists, so
+anything describing this as a side branch is out of date. `docs/README.md` has
+the history.
+
+The app's own runtime is C++ only — no Python, no Tkinter. **Python 3 is still a
+build dependency on every platform**, though, so "Python is no longer a
+dependency" (as older notes put it) is only true of the runtime:
+
+| script | runs |
+|---|---|
+| `build-macOS.sh`, `build-linux.sh` | `patch-osc-perf.py`, `flatten-session.py`, `compile-compounds.py` |
+| `build-plugin-macOS.sh` | `bind-externals-to-libpd.py` |
+| `build-windows.bat`, `build-plugin-windows.bat` | `jucer-module-path.py` (and need `python` or `python3` on PATH) |
 
 ## Licensing
 
@@ -129,7 +141,7 @@ To refresh: install via Pure Data's Deken package manager, copy here, **verify**
 `faust2puredata -vec -lv 0 -vs 4 -clang` — set in the build scripts. Don't change without understanding vectorisation implications.
 
 ### Only 3 Faust files are compiled
-This branch removed OTT, digitaliser, widener, and limiter from the master bus. The build compiles only: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`. `f_looper.dsp` was also deleted (unreferenced).
+The JUCE rewrite removed OTT, digitaliser, widener, and limiter from the master bus. The build compiles only: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`. `f_looper.dsp` was also deleted (unreferenced).
 
 ### The app runs a COPY of the Pd patch
 `build-macOS.sh` copies `src/pd/` into the app bundle. Editing `src/pd/_main.pd` has **no effect on an already-built app** until you rebuild or copy manually:
@@ -180,13 +192,25 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 - Pd patch sends `formuls-quit` to close the app (not `pd quit`)
 - Style all JUCE widgets in `src/app/Source/FormulsLookAndFeel.h` — it is the single place for colours, fonts, layout
 
-## Branch context
+## History and other branches
 
-- `docs/README.md` is the index to all juce-port work: efficiency refactor, GUI performance, recording, master bus cuts, branch map
+- `docs/README.md` is the index to the JUCE rewrite's work: efficiency refactor, GUI performance, recording, master bus cuts, branch map
 - `docs/efficiency/` — Faust + Pd efficiency refactor with measured results
 - `docs/gui/` — why the control GUI disconnects, what each fix is worth, the load rig
 - `docs/claude/memory/` — working notes a Claude session keeps for itself, copied
   into the repo; a snapshot of `~/.claude/projects/<project>/memory/`, so it can drift
-- `git log juce-port..main` shows four duplicate commits, not missing work
-- `alacarte-prototype` branch was never merged and can be deleted
-- The `FORMULS_TRACE` env var belongs to the discarded à la carte branch, not this one
+- The `juce-port` branch is gone (merged into `main`), so any `juce-port..main`
+  comparison in older notes cannot be run. The four duplicate commits it used to
+  show were duplicates, not missing work.
+- **Do not delete `alacarte-prototype`.** An older note here said it could go.
+  It holds **21 commits that exist on no other branch** (checked 11 Nov 2026:
+  `git rev-list origin/alacarte-prototype --not <every other origin ref>`), so
+  deleting it loses them. Every other remote branch also still has unmerged
+  work; `main`, `uxlog` and `uxlog-fx-strip-backup` are the live ones, and
+  `uxlog` is load-bearing for `formuls-embedded`, which pins `origin/uxlog`.
+- Before deleting any branch, test containment with
+  `git rev-list <branch> --not --remotes=origin`, not just
+  `git merge-base --is-ancestor`: the ancestor test only asks about the tip and
+  has under-reported unmerged commits here before.
+- The `FORMULS_TRACE` env var belongs to the discarded à la carte branch; it is
+  referenced nowhere in this tree's code and does nothing here.

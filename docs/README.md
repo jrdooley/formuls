@@ -382,11 +382,20 @@ instrument that the code deliberately leaves to its author.
 | **`$2-trig` never fires** | `efficiency/option-C-wire-up-automater-trig.patch` | A live latent bug. Fixing it switches on dormant behaviour. |
 | **`oscinparse` half-wired** | [`efficiency/README.md`](efficiency/README.md) | Three of five `[sel 1]`→`[pipe 30]` chains have no output connection — an edit that stopped halfway. Reported, not removed. |
 
-## Before `juce-port` becomes `main`
+## When `juce-port` became `main` (done)
 
-- `git log juce-port..main` lists four commits that are **duplicates, not missing
-  work** (see Branch map). Verify by content, not by ancestry.
-- `alacarte-prototype` has never been merged into anything and can be deleted.
+This section was a pre-merge checklist. `juce-port` is `main` now and the branch
+is gone, so the comparisons below cannot be run; they are kept for the record.
+
+- `git log juce-port..main` listed four commits that were **duplicates, not
+  missing work** (see Branch map). Verified by content, not by ancestry.
+- `alacarte-prototype` has never been merged into anything. An earlier version of
+  this line concluded it could therefore be deleted — **it cannot.** Never merged
+  means its commits exist *only* there: 21 of them are on no other branch
+  (checked 11 Nov 2026 with
+  `git rev-list origin/alacarte-prototype --not <every other origin ref>`).
+  Deleting the branch loses them. Test containment that way, not with
+  `git merge-base --is-ancestor`, which only asks about the tip.
 - `src/pd` is copied into the app bundle at build time, so editing `src/pd/_main.pd`
   has no effect on an already-built app — see the note in
   [`../src/tools/README.md`](../src/tools/README.md).
