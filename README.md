@@ -42,6 +42,15 @@ Listen to music made with formuls (the instrument) by formuls (the artist who ma
 [https://www.subvert.fm/formuls](https://www.subvert.fm/formuls)
 
 ***
-This work is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-nc-sa/4.0/).
+formuls is free software, licensed under the [GNU General Public License v3.0 or
+later](https://www.gnu.org/licenses/gpl-3.0.html). You may use, study, change and
+redistribute it, including commercially; if you distribute it, modified or not,
+you must pass on the same freedoms and the source. See [LICENSE](LICENSE).
 
-James Dooley aka formuls 2014-26.
+It is built on other people's work under their own licences, some of it copyleft:
+see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The JUCE framework is used
+under a commercial JUCE licence rather than its AGPL option, so no JUCE source
+obligation passes to you; to build formuls yourself you need your own JUCE
+licence, which may be the free AGPLv3 one.
+
+Copyright (C) 2014-2026 James Dooley aka formuls.
