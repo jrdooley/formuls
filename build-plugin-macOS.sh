@@ -11,6 +11,14 @@
 #   FORMULS_APP=/path/to/formuls.app ./build-plugin-macOS.sh
 #   INSTALL=1 ./build-plugin-macOS.sh       # also copies both into ~/Library/Audio/Plug-Ins
 #
+# With SIGN_IDENTITY set (and optionally NOTARY_PROFILE) the plugins are signed
+# for distribution and a release zip is written; see src/tools/sign-macos-plugin.sh
+# and docs/release.md. Otherwise they are signed ad hoc, which loads on this Mac
+# only.
+#
+#   SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+#   NOTARY_PROFILE=formuls-notary ./build-plugin-macOS.sh
+#
 # Produces formuls-$VERSION.vst3 and formuls-$VERSION.component in the repo root.
 # See docs/plugin/README.md.
 
@@ -21,6 +29,8 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP="${FORMULS_APP:-$ROOT/formuls-$VERSION.app}"
 PROJUCER="${PROJUCER:-$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer}"
 LIBPD="$ROOT/src/libs/libpd/libs/libpd.dylib"
+SIGN_IDENTITY="${SIGN_IDENTITY:-}"
+BUNDLES=()
 
 RES="$APP/Contents/Resources"
 if [[ ! -f "$RES/pd/_main.pd" || ! -f "$RES/gui/_main.json" || ! -d "$RES/gui/open-stage-control/client" ]]; then
@@ -75,12 +85,23 @@ for ext in vst3 component; do
     python3 "$ROOT/src/tools/bind-externals-to-libpd.py" --arch "$(uname -m)" \
         "$BUNDLE/Contents/Frameworks/libpd.dylib" @loader_path/../../../Frameworks/libpd.dylib \
         "$BUNDLE"/Contents/Resources/pd/externals/*.pd_darwin
-    # --deep below does not reach code under Resources/, and rebinding removed
-    # the externals' signatures: unsigned, arm64 refuses to load them.
-    codesign --force -s - "$BUNDLE"/Contents/Resources/pd/externals/*.pd_darwin
-    codesign --force --deep -s - "$BUNDLE"
+    BUNDLES+=("$BUNDLE")
     echo "Built $BUNDLE"
 done
+
+# Signing comes after the rebinding above, never before it: rebinding rewrites
+# each external's Mach-O in place, which invalidates any signature it had, and
+# arm64 refuses to load unsigned code.
+if [[ -n "$SIGN_IDENTITY" ]]; then
+    "$ROOT/src/tools/sign-macos-plugin.sh" "${BUNDLES[@]}"
+else
+    for BUNDLE in "${BUNDLES[@]}"; do
+        # --deep does not reach code under Resources/, so the externals are
+        # signed on their own first.
+        codesign --force -s - "$BUNDLE"/Contents/Resources/pd/externals/*.pd_darwin
+        codesign --force --deep -s - "$BUNDLE"
+    done
+fi
 
 if [[ "${INSTALL:-0}" == "1" ]]; then
     mkdir -p "$HOME/Library/Audio/Plug-Ins/VST3" "$HOME/Library/Audio/Plug-Ins/Components"

@@ -12,9 +12,10 @@ nothing personal is written down either.
 |---|---|---|---|
 | macOS (Apple Silicon) | on your Mac, `build-macOS.sh` | Developer ID + notarised, on your Mac | `formuls-<version>-macOS-arm64.zip` |
 | macOS (Apple Silicon), CI build | GitHub Actions | ad hoc only | `formuls-<version>-macOS-arm64-unsigned.zip` |
-| macOS plugins (VST3, AU) | GitHub Actions | ad hoc only | `formuls-<version>-macOS-arm64-plugins-unsigned.zip` |
+| macOS plugins (VST3, AU) | on your Mac, `build-plugin-macOS.sh` | Developer ID + notarised, on your Mac | `formuls-<version>-macOS-arm64-plugins.zip` |
+| macOS plugins (VST3, AU), CI build | GitHub Actions | ad hoc only | `formuls-<version>-macOS-arm64-plugins-unsigned.zip` |
 | Linux x64 | GitHub Actions | not needed | `formuls-<version>-linux-x64.tar.gz` |
-| Windows x64 | GitHub Actions | no (see [Windows](#7-windows)) | `formuls-<version>-windows-x64.zip` |
+| Windows x64 | GitHub Actions | no (see [Windows](#8-windows)) | `formuls-<version>-windows-x64.zip` |
 | Linux x64 plugins (VST3, LV2) | GitHub Actions | not needed | `formuls-<version>-linux-x64-plugins.tar.gz` |
 | Windows x64 plugin (VST3) | GitHub Actions | no | `formuls-<version>-windows-x64-plugins.zip` |
 
@@ -23,8 +24,8 @@ GitHub builds all three platforms, but the Mac builds it makes are signed ad hoc
 never leaves your own Mac. Gatekeeper blocks an ad-hoc app downloaded from the
 web (right-click → Open, or `xattr -dr com.apple.quarantine`, gets past it), so
 their zips are named `-unsigned`. They prove the Mac build works and are handy
-for testing. The Mac app players download is the one you sign and notarise
-yourself (section 2).
+for testing. The Mac downloads players get — the app and the two plugins — are
+the ones you sign and notarise yourself (section 2).
 
 ---
 
@@ -151,24 +152,32 @@ never in a file, a command line or the repository.
    asks once per file and the build waits for you. It writes
    `formuls-<version>.app` and `formuls-<version>-macOS-arm64.zip`.
 
-4. **Test the zip on a Mac with Gatekeeper on** (see
-   [Checking a signed build](#checking-a-signed-build)): download it, unzip,
-   double-click. It should open with no warning.
-
-5. **Swap the Mac app zip in the draft**: add the signed one and delete CI's
-   unsigned one, then write the notes and publish on GitHub:
+4. **Build, sign and notarise the Mac plugins**, which reuse the app bundle
+   just built:
 
    ```bash
-   gh release upload v0.3.2 formuls-0.3.2-macOS-arm64.zip
+   SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" NOTARY_PROFILE=formuls-notary ./build-plugin-macOS.sh
+   ```
+
+   It writes `formuls-<version>.vst3`, `formuls-<version>.component` and
+   `formuls-<version>-macOS-arm64-plugins.zip`, in the same folder layout as
+   CI's zip. See [section 4](#4-mac-plugin-signing-in-detail-srctoolssign-macos-pluginsh).
+
+5. **Test the zips on a Mac with Gatekeeper on** (see
+   [Checking a signed build](#checking-a-signed-build)): download the app zip,
+   unzip, double-click. It should open with no warning. For the plugins, unzip
+   into `~/Library/Audio/Plug-Ins/` and load them in a host.
+
+6. **Swap the Mac zips in the draft**: add the signed ones and delete CI's
+   unsigned ones, then write the notes and publish on GitHub:
+
+   ```bash
+   gh release upload v0.3.2 formuls-0.3.2-macOS-arm64.zip formuls-0.3.2-macOS-arm64-plugins.zip
    ```
 
    ```bash
-   gh release delete-asset v0.3.2 formuls-0.3.2-macOS-arm64-unsigned.zip
+   gh release delete-asset v0.3.2 formuls-0.3.2-macOS-arm64-unsigned.zip formuls-0.3.2-macOS-arm64-plugins-unsigned.zip
    ```
-
-   The Mac plugins have no Developer ID build yet, so
-   `formuls-0.3.2-macOS-arm64-plugins-unsigned.zip` is the only one; keep it, or
-   remove it the same way if only signed Mac downloads should be published.
 
 Release zips, `.tar.gz` files and the Linux/Windows output folders are in
 `.gitignore`, so they cannot be committed by accident.
@@ -251,7 +260,87 @@ players will see. Test on a Mac with Gatekeeper on, or turn it back on with
 
 ---
 
-## 4. Troubleshooting the Mac build
+## 4. Mac plugin signing in detail (`src/tools/sign-macos-plugin.sh`)
+
+`build-plugin-macOS.sh` calls this when `SIGN_IDENTITY` is set; without it the
+plugins are signed ad hoc, which loads them only on the Mac that built them. To
+sign plugins that are already built:
+
+```bash
+SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" NOTARY_PROFILE=formuls-notary src/tools/sign-macos-plugin.sh formuls-0.3.3.vst3 formuls-0.3.3.component
+```
+
+Both bundles are passed together so Apple gets one submission rather than two.
+Without `NOTARY_PROFILE` it signs and zips but does not notarise.
+`SIGN_IDENTITY=-` signs ad hoc with the same hardened runtime, for testing
+without a certificate.
+
+### What it does, in order
+
+1. **Signs each binary on its own, innermost first**, with the hardened runtime
+   (`--options runtime`) and a secure timestamp (`--timestamp`), for each
+   bundle: the four `Resources/pd/externals/*.pd_darwin`, then
+   `Frameworks/libpd.dylib`, then the bundle itself.
+2. **Verifies** each with `codesign --verify --strict --deep`.
+3. **Stages and zips** both bundles into one
+   `formuls-<version>-macOS-<arch>-plugins.zip`, in the same folder layout CI's
+   unsigned zip uses (`formuls-<version>-macOS-<arch>-plugins/formuls.vst3` and
+   `/formuls.component`), so `docs/plugin/README.md`'s install instructions hold
+   for either download.
+4. **Notarises** that zip, then **staples** the ticket to each bundle and
+   assesses it with `spctl --assess --type install` — `install`, not `execute`:
+   a plugin is loaded, not launched.
+5. **Zips again**, because the zip that was sent has no tickets in it.
+
+### Order matters: rebind, then sign
+
+`build-plugin-macOS.sh` runs `src/tools/bind-externals-to-libpd.py` over the
+externals before signing, to bind their Pd symbols to the bundle's own libpd
+(otherwise, in a Max-based host, they bind to Max's exports and every external
+fails). Rebinding rewrites each Mach-O in place, which invalidates any signature
+it had, and arm64 refuses to load unsigned code. **Signing must come after
+rebinding, never before.** That is why the old ad-hoc `codesign -s -` sat where
+it did: it was repairing the damage, not decorating the bundle.
+
+### No entitlements, and why that is correct
+
+The app's binaries are signed with entitlements; the plugins' are not, and this
+is not an oversight.
+
+Entitlements are granted to a **process** when it launches. A plugin's
+`Contents/MacOS/formuls` is a Mach-O *bundle* (`MH_BUNDLE`) — it is loaded into
+the host's address space and never becomes a process of its own, so the host's
+entitlements govern it. `codesign` bears this out and gives no warning about it:
+handed `--entitlements`, it embeds them in an `.app` and silently drops them
+from a `.vst3` or `.component`. A flag that does nothing is worse than no flag,
+so there is none.
+
+In particular, `disable-library-validation` — which the app needs so libpd can
+load the Pd externals — is the **host's** choice for a plugin. Audio hosts that
+load third-party plugins generally disable library validation already. Where it
+is on, a Developer ID build is in better shape than the old ad-hoc one anyway:
+the externals now carry the same Team ID as the plugin that loads them.
+
+`src/app/entitlements/` is for the app only.
+
+### Checking signed plugins
+
+```bash
+codesign -dvvv formuls-0.3.3.vst3                      # Authority=Developer ID…, TeamIdentifier, flags=…(runtime)
+xcrun stapler validate formuls-0.3.3.vst3              # ticket attached
+spctl --assess --type install -vv formuls-0.3.3.vst3
+codesign -dv formuls-0.3.3.vst3/Contents/Resources/pd/externals/formuls~.pd_darwin
+```
+
+`codesign -d --entitlements -` prints nothing for a plugin, as above. And
+`codesign -v` passing proves only that the signature is *valid* — an ad-hoc
+signature passes it too. The proof of a distributable build is
+`Authority=Developer ID Application` with `TeamIdentifier` set; check for those,
+not for "valid".
+
+---
+
+## 5. Troubleshooting the Mac build
 
 Every problem below happened while setting this up.
 
@@ -299,7 +388,7 @@ Choose **Always Allow** in the dialog, not Allow.
 
 ---
 
-## 5. CI in detail (`.github/workflows/release.yml`)
+## 6. CI in detail (`.github/workflows/release.yml`)
 
 ### When it runs
 
@@ -354,7 +443,7 @@ gh run download <run id> -n macos-arm64
 
 ---
 
-## 6. Linux
+## 7. Linux
 
 - **The Faust externals are built without `faust2puredata`.** On Linux it always
   compiles with `-march=native`, overriding any `CXXFLAGS`. On GitHub's machines,
@@ -375,7 +464,7 @@ gh run download <run id> -n macos-arm64
   loads all four externals, and serves the GUI on port 9001. No system libraries
   were missing (`ldd`), though that VM already had JUCE's dependencies installed.
 
-## 7. Windows
+## 8. Windows
 
 Windows differs from the other two in ways worth knowing before changing
 `build-windows.bat`:
@@ -411,17 +500,23 @@ Windows differs from the other two in ways worth knowing before changing
 
 ---
 
-## 8. Limits and what is untested
+## 9. Limits and what is untested
 
 - **The Mac build is Apple Silicon only.** `node` and libpd are built for the
   Mac's own architecture, and the prebuilt `abl_link~` is arm64 only (see
   `src/prebuilt/README.md`). An Intel or universal build needs all three for
   x86_64 as well.
 - **Linux has been run headless, Windows only inspected.** The Linux build starts,
-  loads every external and serves the GUI (section 6). The Windows package has been
+  loads every external and serves the GUI (section 7). The Windows package has been
   checked to contain every file, with the externals importing `libpd.dll`. Neither
   has been played with sound; someone needs to play each new build once.
 - **Mac signing was checked end to end:** an ad-hoc signature with the same runtime
   and entitlements started the engine, loaded every external and served the GUI,
   and the Developer ID build was notarised (*Accepted*), stapled and passed
   `spctl`.
+- **The signed Mac plugins have not been loaded in a host on a second Mac.** Both
+  bundles were signed with the Developer ID, notarised (*Accepted*), stapled and
+  verified from the extracted release zip, and a signed build was probed on the
+  build Mac. What is untested is a host on a Mac that did not build them, with
+  Gatekeeper on — the case the signing exists for. Someone with a second Mac
+  needs to install the zip and load both plugins once.
