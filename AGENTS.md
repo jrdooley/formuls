@@ -6,6 +6,22 @@ Stack: JUCE (native app), libpd (embedded audio), Faust (DSP), Pure Data (patche
 **This branch replaces the Python/Tkinter + RtAudio architecture on `main`.**
 Python is no longer a build or runtime dependency. See `docs/README.md` for the full branch history.
 
+## Licensing
+
+GPL-3.0-or-later (`LICENSE`). Third-party components and why each copyleft one is
+compatible: `THIRD-PARTY-NOTICES.md`. JUCE is used under a **commercial** JUCE
+licence, not its AGPL option — that is why GPLv3 rather than AGPLv3 is possible.
+
+- New source files get a two-line SPDX notice after any shebang: see
+  `CONTRIBUTING.md`. `#` for shell and Python, `REM` for `.bat`, `//` for C++,
+  JavaScript and Faust.
+- `src/libs/` (submodules) and `src/prebuilt/` are upstream work: never stamp or
+  reformat them. `docs/**/tools/` are one-off analysis scripts and are not stamped.
+- Commits need `git commit -s` (DCO sign-off). Sole copyright is what keeps the
+  relicensing options open, so this is not decoration.
+- Ableton Link (GPLv2-or-later, inside `abl_link~`) is the binding copyleft
+  dependency and is **not** optional: `src/pd/_main.pd` instantiates it.
+
 ## Build
 
 **Prerequisites**: Xcode + CLI tools, JUCE at `~/JUCE` (with Projucer), faust, wget. Clone with submodules:

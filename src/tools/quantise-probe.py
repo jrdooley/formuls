@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Drive the pitch quantiser (f.util.keyselector) and check what it snaps to.
 
 Builds a throwaway Pd patch that does what NOTE_SNAP in f.util.oscinparse

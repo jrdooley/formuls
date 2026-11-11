@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // Minimal libpd harness: loads a patch containing only abl_link~, sends it a
 // series of tempo changes, and reports the beat rate it actually produces
 // after each one. No formuls patch involved, so anything that goes wrong

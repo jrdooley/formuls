@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Flatten an Open Stage Control session at build time.
 
 src/gui/_main.json is authored with clones whose contents get their ids and

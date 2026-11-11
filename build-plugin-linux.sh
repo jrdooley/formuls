@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # Builds the formuls instrument plugin (VST3 + LV2) for Linux.
 #
 # The plugin runs the same Pd patch and serves the same control GUI as the

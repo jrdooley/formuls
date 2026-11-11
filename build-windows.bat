@@ -1,5 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
+REM SPDX-License-Identifier: GPL-3.0-or-later
+REM Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 REM Windows build script for the formuls JUCE app.
 REM
 REM Requirements:

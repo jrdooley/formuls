@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 /*
  * OscBridge.cpp -- see OscBridge.h for why this exists at all.
  */

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Check the reset parameter table against the interface it resets.
 
 Every parameter with chaos/LFO/mod sub-widgets is declared twice: once in
