@@ -76,7 +76,7 @@
 #X obj 60 245 delay 10;
 #X msg 60 267 1;
 #X obj 140 110 pipe 15;
-#X text 120 160 A press is spread over 10 ms so no one step holds Pd long enough to make the audio late: \$0-reset now \, \$1-reset after 5 ms \, the snap gate (\$0-\$1-reset 1) after 10 ms. A button release is held 15 ms so it always follows the press. The global reset closes the gate first \, as before \, and its release comes 190 ms later (RESET_STAGGER in _main.pd).;
+#X text 120 160 A press is spread over 10 ms so no one step holds Pd long enough to make the audio late: \$0-reset now \, \$1-reset after 5 ms \, the snap gate (\$0-\$1-reset 1) after 10 ms. A button release is held 15 ms so it always follows the press. The global reset closes the gate first \, as before \, and its release comes 190 ms later (RESET_STAGGER__ in _main.pd).;
 #X connect 0 0 1 0;
 #X connect 1 0 9 0;
 #X connect 1 1 8 0;
