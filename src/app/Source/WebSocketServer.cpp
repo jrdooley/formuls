@@ -88,6 +88,23 @@ namespace
        #endif
     }
 
+    // A client that vanishes without a WebSocket close frame -- a tablet whose
+    // screen has gone to sleep, say -- leaves the writer sending to a dead
+    // peer. That raises SIGPIPE, whose default disposition kills the process:
+    // in a plugin, that is the host, with no crash the host can attribute.
+    // JUCE's StreamingSocket::write passes no MSG_NOSIGNAL and asks for
+    // SO_NOSIGPIPE only in its Linux backend (juce_Network_linux.cpp), so set
+    // it here for every accepted socket. write() then fails with EPIPE and
+    // writeFully gives up, which is the path a dropped client already takes.
+    void suppressSigPipe ([[maybe_unused]] juce::StreamingSocket& socket)
+    {
+       #if defined (SO_NOSIGPIPE)
+        int on = 1;
+        ::setsockopt (socket.getRawSocketHandle(), SOL_SOCKET, SO_NOSIGPIPE,
+                      &on, (socklen_t) sizeof (on));
+       #endif
+    }
+
     int waitWritable (juce::StreamingSocket& socket, int timeoutMs)
     {
        #if defined (_WIN32)
@@ -323,7 +340,12 @@ class WebSocketServer::ConnectionThread : public juce::Thread
 {
 public:
     ConnectionThread (WebSocketServer& o, std::unique_ptr<juce::StreamingSocket> s)
-        : juce::Thread ("formuls GUI connection"), owner (o), socket (std::move (s)) {}
+        : juce::Thread ("formuls GUI connection"), owner (o), socket (std::move (s))
+    {
+        // Before any write: this covers the HTTP response as well as frames.
+        if (socket != nullptr)
+            suppressSigPipe (*socket);
+    }
 
     ~ConnectionThread() override
     {
