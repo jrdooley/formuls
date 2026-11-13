@@ -228,6 +228,47 @@ Run it after adding a parameter or renaming a widget. It exits non-zero and
 names the fix for each mismatch.
 
 
+## osc-contract.py
+
+Writes down the OSC addresses the control interface exposes, as
+`docs/gui/osc-contract.csv`, and checks the file is still current:
+
+```bash
+python3 src/tools/osc-contract.py           # regenerate
+python3 src/tools/osc-contract.py --check   # exits non-zero if out of date
+```
+
+Addresses are **widget ids**: 943 of the 964 authored widgets have
+`address: "auto"`, which Open Stage Control resolves to `/` + the widget's
+id. Nothing declares that agreement anywhere, so renaming a widget renames a
+parameter, and a message sent to an address no widget owns fails silently at
+both ends -- the same drift `check-reset-coverage.py` exists for, in the
+other direction.
+
+One row per address: how many widgets sit on it, whether anything can send it
+(`both`) or only Pd writes to it (`pd->gui`), its parameter stem and
+modulation layer, its range, quantisation and rounding, and its default from
+the state file. It imports `flatten-session.py` and runs the real flattener
+with the build scripts' template tabs, because most widgets are named
+`attack@{parent.variables.n}` inside a clone and those ids do not exist until
+o-s-c resolves them.
+
+As for `flatten-session.py` and `compile-compounds.py`, anything it cannot
+model is a hard failure rather than a silent row: an unknown widget type, an
+id still carrying `@{...}` after flattening, or an id that cannot be an OSC
+address segment at all. The last one is not hypothetical -- in the session as
+it stood at `a5396e7`, the `velocity` family's cloned widgets came out named
+`velocityact{"n":1,"colour":"#e53db8"}`, the clone's whole variables object
+spliced into the id by the resolution quirk `flatten-session.py` documents.
+That is 90 addresses no message could ever reach. The 0.3.2 session resolves
+them properly; run the checker against an older one and it stops.
+
+`--check` names every address added, removed or changed, so a widget rename
+that silently moves a parameter's address stops a build instead of a
+performance. `.github/workflows/checks.yml` runs it on every push and pull
+request, with `check-reset-coverage.py`.
+
+
 ## bpm-probe
 
 Loads the real `pd/_main.pd` under libpd, drives BPM over genuine OSC to
