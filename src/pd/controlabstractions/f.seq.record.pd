@@ -159,7 +159,7 @@
 #X restore 38 451 pd AUTOMATER_PLAYBACK_MODULE_____;
 #N canvas 602 348 420 520 SEQUENCER_PLAYBACK_MODULE_____ 0;
 #X obj 42 39 r \$0-beat;
-#X obj 42 91 spigot;
+#X obj 42 91 spigot 1;
 #X obj 95 65 r \$0-seq-play;
 #X obj 42 139 spigot;
 #X obj 95 113 r \$0-seq-has-locks;

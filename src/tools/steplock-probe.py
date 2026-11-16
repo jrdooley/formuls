@@ -119,7 +119,11 @@ def build_patch(path, events, until):
         elif kind == "bus":
             p.connect(d, 0, p.msg(x, y, f"\\; {text}"), 0)
         elif kind == "beat":
-            p.connect(d, 0, p.msg(x, y, f"\\; {ID}-probe-beat {text} \\; {ID}-seq-beat {text}"), 0)
+            # the note sequencer's step reaches an automater as a 0-based
+            # `seqposition`, from the f.util.oscformat that hosts it
+            p.connect(d, 0, p.msg(x, y, f"\\; {ID}-probe-beat {text}"), 0)
+            p.connect(d, 0, p.msg(x, y + 20, f"seqposition {int(text) - 1}"), 0)
+            p.connect(len(p.objs) - 1, 0, auto, 0)
         else:
             p.connect(d, 0, p.msg(x, y, r"\; pd quit"), 0)
     p.write(path)
