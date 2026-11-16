@@ -745,7 +745,7 @@
 #X msg 113 348 record 1;
 #X msg 94 371 0;
 #X msg 75 395 1;
-#X text 298 136 Lazy record arming. A record press used to reach every automater (421 of them) \, and each ran its record logic \, ~3 ms per press in total that held Pd while the audio waited. Now each one only notes the arm state. When a value arrives while armed \, it sends itself record 1 just before that value \, as the press used to \, and on disarm only those it told get record 0 Untouched automaters behaved as no-ops before too: their recording path only starts on a value. GUI_THROTTLE and RECORD_GUI_UPDATE_PAUSE follow automateRecord directly \, so every widget still pauses during a take.;
+#X text 298 136 Lazy record arming. A record press used to reach every automater (421 of them) \, and each ran its record logic \, ~3 ms per press in total that held Pd while the audio waited. Now each one only notes the arm state. When a value arrives while armed \, it sends itself record 1 just before that value \, as the press used to \, and on disarm only those it told get record 0. Untouched automaters behaved as no-ops before too: their recording path only starts on a value. GUI_THROTTLE and RECORD_GUI_UPDATE_PAUSE follow automateRecord directly \, so every widget still pauses during a take.;
 #X obj 185 436 t a;
 #X obj 47 43 inlet;
 #X obj 185 491 outlet;
