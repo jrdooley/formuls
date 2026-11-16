@@ -634,11 +634,14 @@
 #X obj 230 201 + 1;
 #X msg 230 222 beat \$1;
 #X text 230 250 The note sequencer's step (0-based \, and only sent while the sequencer is on) is what recalls a lock.;
+#X obj 230 300 r \$0-seq-lock-written;
+#X obj 230 321 s \$1-seq-lock-written;
 #X connect 28 0 17 0;
 #X connect 29 0 30 0;
 #X connect 32 0 33 0;
 #X connect 33 0 34 0;
 #X connect 34 0 17 0;
+#X connect 36 0 37 0;
 #X connect 30 0 17 0;
 #X connect 1 0 6 0;
 #X connect 2 0 21 0;

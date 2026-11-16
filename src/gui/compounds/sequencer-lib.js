@@ -24,6 +24,15 @@
 // Value layout (256): 0..127 step toggles, 128..255 step fader values.
 // Dimming is not state today (an OSC{} receiver), so it lives in the widget variable
 // `op`, written by the mailbox: getVar('this', 'op')[i], default M.op0[i].
+//
+// Step locks (optional: only when the session has the widgets, M.lk and friends).
+// While the lock button (M.lk) is on, the button layer selects instead of toggling:
+// a tap sets the selected-step widget (M.ls, 1..128, 0 for none) and sends
+// /steplockstepN (M.sa); a tap on the selected step lets go of it. With the mute
+// button (M.lm) held as well, a tap on a step that holds a lock sends
+// /steplockmuteN <step> <0/1> (M.ma). What each step holds is not state either: Pd
+// reports it on /steplockhasN-i and the mailbox writes it to the variable `lk`
+// (1 locked, 0.5 locked but muted, 0 or absent nothing).
 (function () {
   var COLS = 8, ROWS = 16, N = 128, OFF = 128;
   var F = { gp: 3, A: 10, steps: 10 };
@@ -91,6 +100,8 @@
     var stroke = validColor(ctx, cs.colorStroke) || fill;
     ctx.clearRect(0, 0, W, H);
     var op = api.getVar('this', 'op') || {};
+    var lk = api.getVar('this', 'lk') || {};
+    var sel = M.ls && M.lk && active(api, M.lk) ? num(api.get(M.ls)) : 0;
     ctx.font = '500 11px Roboto, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if ('letterSpacing' in ctx) ctx.letterSpacing = '1px';
     for (var i = 0; i < N; i++) {
@@ -107,6 +118,18 @@
       ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(0,0,0,1)';                   // the fader's knob
       var p = clip(num(v[OFF + i]), 0, 1);
       ctx.fillRect(c.x + F.gp + p * (c.fw - 2 * F.gp - F.A), c.y + F.gp, F.A, c.fh - 2 * F.gp);
+      var held = num(lk[i]);
+      if (held > 0) {                                                        // a lock: corner flag
+        var m = Math.min(c.w, c.h) * 0.45, rx = c.x + c.w - 4, ty = c.y + 4;
+        ctx.beginPath(); ctx.moveTo(rx - m, ty); ctx.lineTo(rx, ty); ctx.lineTo(rx, ty + m); ctx.closePath();
+        ctx.globalAlpha = 1; ctx.lineWidth = 2; ctx.strokeStyle = text;
+        if (held >= 1) { ctx.fillStyle = text; ctx.fill(); }                  // muted: outline only
+        ctx.stroke();
+      }
+      if (sel === i + 1) {                                                   // the step being written
+        ctx.globalAlpha = 1; ctx.strokeStyle = text; ctx.lineWidth = 4;
+        ctx.strokeRect(c.x + 2, c.y + 2, c.w - 4, c.h - 4);
+      }
     }
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
@@ -137,6 +160,18 @@
       var i = cellAt(W, H, hx, hy);
       if (i < 0) return;
       var faders = active(api, M.q), c = cell(W, H, i);
+      if (!faders && M.lk && active(api, M.lk)) {                // step lock: select, or mute
+        t[id] = { kind: 'lock' };
+        if (M.lm && active(api, M.lm)) {
+          var h = num((api.getVar('this', 'lk') || {})[i]);
+          if (h > 0) api.send(M.ma, i + 1, h >= 1 ? 0 : 1);      // Pd answers on /steplockhasN-i
+        } else {
+          var step = num(api.get(M.ls)) === i + 1 ? 0 : i + 1;
+          api.set(M.ls, step, { send: false });                  // a variable widget does not send
+          api.send(M.sa, step);
+        }
+        return;
+      }
       var st = t[id] = { kind: faders ? 'fader' : 'button', first: i, cur: i, seen: {}, value: value };
       st.seen[i] = 1;
       if (!faders) {
@@ -160,6 +195,7 @@
     var s = t[id];
     if (!s) return;
     if (event.type === 'stop') { delete t[id]; return; }
+    if (s.kind === 'lock') return;                             // no traversing while selecting
     var j = cellAt(W, H, hx, hy);
     if (j >= 0 && j !== s.cur && !s.seen[j]) {                 // traversing into a new cell
       s.seen[j] = 1; s.cur = j;

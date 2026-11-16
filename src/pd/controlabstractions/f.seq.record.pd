@@ -254,6 +254,7 @@
 #X obj 400 320 array define \$0-this-2-on 128;
 #X obj 400 350 array define \$0-this-2 128;
 #X text 40 390 Step locks. seqstep <step> <1/0> selects (or lets go of) the step being written \, seqrecord <1/0> is the lock mode \, and seqvalue is every value the performer gives the parameter. The value array holds -1 where a step has no lock. The second array is the per-step mask \, so seqstepon <step> <0/1> silences a lock without losing its value. Writing a value to a step switches its mask back on.;
+#X obj 180 350 s \$1-seq-lock-written;
 #X connect 0 0 1 0;
 #X connect 1 0 3 0;
 #X connect 2 0 1 1;
@@ -261,6 +262,7 @@
 #X connect 4 0 5 0;
 #X connect 5 0 6 0;
 #X connect 5 1 3 1;
+#X connect 11 0 28 0;
 #X connect 6 0 8 1;
 #X connect 6 0 10 1;
 #X connect 7 0 11 0;
