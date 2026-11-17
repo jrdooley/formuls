@@ -6,7 +6,7 @@
 #
 #   SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 #   NOTARY_PROFILE=formuls-notary \
-#     src/tools/sign-macos-plugin.sh formuls-0.3.3.vst3 formuls-0.3.3.component
+#     src/tools/sign-macos-plugin.sh formuls-0.3.4.vst3 formuls-0.3.4.component
 #
 # build-plugin-macOS.sh calls this when SIGN_IDENTITY is set, with both
 # bundles, so the two are notarised in one submission.

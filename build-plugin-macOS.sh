@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-VERSION=0.3.3
+VERSION=0.3.4
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 APP="${FORMULS_APP:-$ROOT/formuls-$VERSION.app}"
 PROJUCER="${PROJUCER:-$HOME/JUCE/Projucer.app/Contents/MacOS/Projucer}"
