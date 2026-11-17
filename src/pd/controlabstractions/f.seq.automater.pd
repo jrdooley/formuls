@@ -626,6 +626,23 @@
 #X obj 169 446 spigot 0;
 #X obj 214 423 == 2;
 #X obj 112 512 spigot;
+#X obj 230 470 r \$0-seq-msgs;
+#X obj 230 100 r \$0-input-1;
+#X msg 230 121 seqvalue \$1;
+#X text 230 20 Step locks: every value the performer gives the parameter is offered to f.seq.record as seqvalue. It is only kept while lock mode is on and a step is selected.;
+#X obj 230 180 r \$0-seqposition;
+#X obj 230 201 + 1;
+#X msg 230 222 beat \$1;
+#X text 230 250 The note sequencer's step (0-based \, and only sent while the sequencer is on) is what recalls a lock.;
+#X obj 230 300 r \$0-seq-lock-written;
+#X obj 230 321 s \$1-seq-lock-written;
+#X connect 28 0 17 0;
+#X connect 29 0 30 0;
+#X connect 32 0 33 0;
+#X connect 33 0 34 0;
+#X connect 34 0 17 0;
+#X connect 36 0 37 0;
+#X connect 30 0 17 0;
 #X connect 1 0 6 0;
 #X connect 2 0 21 0;
 #X connect 3 0 5 0;
@@ -774,6 +791,8 @@
 #X connect 18 0 20 0;
 #X connect 19 0 11 0;
 #X restore 111 495 pd LAZY_RECORD_ARMING;
+#X obj 420 110 s \$0-seq-msgs;
+#X text 420 131 Whatever the route above does not claim goes on to f.seq.record \, which keeps the step-lock messages (seqrecord \, seqstep \, seqstepon \, beat \, seqplay \, seqtranstime \, seqreset) and drops the rest.;
 #X connect 0 0 60 0;
 #X connect 2 0 1 0;
 #X connect 2 1 19 0;
@@ -810,3 +829,4 @@
 #X connect 60 19 55 0;
 #X connect 60 20 57 0;
 #X connect 61 0 60 0;
+#X connect 60 22 62 0;
