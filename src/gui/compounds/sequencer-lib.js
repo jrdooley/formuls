@@ -29,7 +29,7 @@
 // While the lock button (M.lk) is on, the button layer selects instead of toggling:
 // a tap sets the selected-step widget (M.ls, 1..128, 0 for none) and sends
 // /steplockstepN (M.sa); a tap on the selected step lets go of it. With the mute
-// button (M.lm) held as well, a tap on a step that holds a lock sends
+// button (M.lm) held, whether or not the lock button is on, a tap on a step that holds a lock sends
 // /steplockmuteN <step> <0/1> (M.ma). What each step holds is not state either: Pd
 // reports it on /steplockhasN-i and the mailbox writes it to the variable `lk`
 // (1 locked, 0.5 locked but muted, 0 or absent nothing).
@@ -160,16 +160,17 @@
       var i = cellAt(W, H, hx, hy);
       if (i < 0) return;
       var faders = active(api, M.q), c = cell(W, H, i);
-      if (!faders && M.lk && active(api, M.lk)) {                // step lock: select, or mute
+      if (!faders && M.lm && active(api, M.lm)) {                // STEP MUTE held: mute, with or without STEP WRITE
         t[id] = { kind: 'lock' };
-        if (M.lm && active(api, M.lm)) {
-          var h = num((api.getVar('this', 'lk') || {})[i]);
-          if (h > 0) api.send(M.ma, i + 1, h >= 1 ? 0 : 1);      // Pd answers on /steplockhasN-i
-        } else {
-          var step = num(api.get(M.ls)) === i + 1 ? 0 : i + 1;
-          api.set(M.ls, step, { send: false });                  // a variable widget does not send
-          api.send(M.sa, step);
-        }
+        var h = num((api.getVar('this', 'lk') || {})[i]);
+        if (h > 0) api.send(M.ma, i + 1, h >= 1 ? 0 : 1);        // Pd answers on /steplockhasN-i
+        return;
+      }
+      if (!faders && M.lk && active(api, M.lk)) {                // STEP WRITE: select a step
+        t[id] = { kind: 'lock' };
+        var step = num(api.get(M.ls)) === i + 1 ? 0 : i + 1;
+        api.set(M.ls, step, { send: false });                    // a variable widget does not send
+        api.send(M.sa, step);
         return;
       }
       var st = t[id] = { kind: faders ? 'fader' : 'button', first: i, cur: i, seen: {}, value: value };

@@ -26707,7 +26707,7 @@
                 "on": 1,
                 "off": 0,
                 "mode": "push",
-                "comments": "Held with STEP WRITE on: a tap on a marked step switches its locks off or on. Not sent to Pd",
+                "comments": "Held (STEP WRITE need not be on): a tap on a marked step switches its locks off or on. Not sent to Pd",
                 "onValue": "",
                 "onCreate": "",
                 "lock": false,
