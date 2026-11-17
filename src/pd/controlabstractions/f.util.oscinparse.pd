@@ -360,8 +360,8 @@
 #X obj 249 315 outlet;
 #X obj 41 253 pack f \$1;
 #X obj 62 115 r \$1-reset;
-#X obj 88 182 pack f \$1;
-#X msg 88 203 fxsend\$2 \$1;
+#X obj 88 182 t f;
+#X obj 88 203 oscformat fxsend\$1;
 #X obj 88 224 s \$1-message-collect;
 #X msg 41 274 formuls\$2 fxsend \$1;
 #X msg 62 136 0;
