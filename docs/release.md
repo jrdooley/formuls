@@ -131,6 +131,15 @@ never in a file, a command line or the repository.
    `build-plugin-windows.bat`) and merge that to `main`. CI refuses to build if
    they differ.
 
+   Every pull request to `main` runs **`version-check`**
+   (`.github/workflows/version.yml`), which is `main`'s only required status
+   check. It has no path filter, unlike `release.yml`, so it runs on every PR.
+   Requiring `release.yml`'s jobs instead would leave a PR that touches only
+   `src/pd`, `src/faust`, `src/app` or `docs` waiting forever for checks that
+   never start. Because a check is required, `gh pr merge --auto` now waits for
+   it; with none required, it merged at once, which is how the 0.3.3 bump landed
+   before its platform builds had finished.
+
 2. **Tag and push.** CI checks the tag matches `VERSION`, builds the macOS,
    Linux and Windows apps and plugins, checks the plugins in a test host, and
    creates a **draft** release with all six archives attached (the two Mac ones

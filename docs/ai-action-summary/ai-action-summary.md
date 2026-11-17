@@ -1252,3 +1252,80 @@ investigation passes over a large context.
    transcript records no command durations to total up.
 
 *(Units: watts are power, kWh are energy. The kWh rows are what was consumed.)*
+
+---
+
+## 16–17 November 2026 — step locks, and an fx-send reset that never reached the GUI
+
+Three pull requests to `main`: #56 (the fx-send fix), #57 (step locks), and the
+documentation catch-up that carries this entry.
+
+### Step locks (PR #57, merge `7026431`)
+
+A synth's parameters can now hold a value per note-sequencer step. The full
+write-up is [`docs/step-locks/README.md`](../step-locks/README.md). In short:
+
+- The disconnected "sequencer record/playback" pair inside `f.seq.record` was
+  rewritten to hold two 128-step tables per parameter, a value and a mute mask.
+  `f.seq.automater` passes it every value the parameter receives and turns the
+  note sequencer's `seqposition` into a step number.
+- The GUI has three buttons per synth: **STEP WRITE**, **STEP MUTE** and **STEP
+  CLEAR**. The step panel shows a filled flag (playing) or an outline (muted).
+  The names began as LOCK / LOCK MUTE / LOCK CLEAR. "Lock" reads as "can't be
+  moved" to anyone who doesn't know Elektron's parameter locks.
+- `src/tools/steplock-probe.py` tests it headless in six cycles.
+
+Found along the way:
+
+- **A reset closed lock playback for good.** In the app, locks never played.
+  The headless probe had missed it, because it never sent a reset before
+  playback. Fixed in `bc38fef`.
+- **LOCK CLEAR reset the whole synth's automation.** It sent on `seq-reset`, a
+  name `f.seq.record` already used for the record/loop automation. It now has
+  its own symbol, `seq-lock-clear`, and the probe checks both ways round.
+- **STEP MUTE needed STEP WRITE on.** The tap handler checked mute inside the
+  write branch. It is now independent, as asked, and checked with a finger hold
+  on a tablet.
+
+### The fx-send reset (PR #56, `0b76855`)
+
+Every synth reset logged `oscparse: no method for 'fxsend1'` and the same from
+`formuls_oscout`. The `FXSEND` subpatch in `f.util.oscinparse.pd` sent the bare
+message `fxsend1 0` to `message-collect`. Every other sender there goes through
+`[oscformat]` first. So the GUI's fx send was never told it had gone back to 0;
+the audio was fine, because that reset goes through `to-faust`. Reproduced
+headless on `main` and fixed by swapping the message box for
+`[oscformat fxsend$1]`.
+
+### Rebasing a Pd patch
+
+Rebasing step locks onto `main` conflicted in `f.seq.automater.pd`. `b1184fa` had
+moved loose boxes into a `LAZY_RECORD_ARMING` subpatch, which renumbered the
+top-level objects: the route went from 61 to 60, and the new `send` from 79 to 62.
+Pd connects objects by position, so the branch's edit was rebuilt on `main`'s
+file with the new numbers and checked by object, not just by text. A patch edit
+that merges cleanly can still point at the wrong object, so check what each new
+connection lands on.
+
+### Documentation catch-up
+
+A check of the week's commits against `docs/` found these gaps, now filled:
+
+- step locks: undocumented
+- the SIGPIPE fix: in its commit message only
+- `version-check` as `main`'s required check: not in `release.md`
+- `AGENTS.md` still described the GUI server as a node child process on UDP 9000
+- `docs/headroom/README.md` still opened "Nothing here has been implemented" and
+  pointed at the deleted `POLYPHONY_PARSE` subpatch
+- the `docs/README.md` branch map still called `juce-port` live and the effects
+  order unmerged
+
+`docs/README.md` now has a section 12 listing each November change and where it
+is written up.
+
+### Not done
+
+- CPU cost of step locks with many locks set.
+- Whether locks survive a saved state. Nothing saves them.
+- Linux, Windows and the plugins: built for neither feature, and CI's platform
+  builds don't run for PRs that touch only `src/pd` or `src/gui`.
