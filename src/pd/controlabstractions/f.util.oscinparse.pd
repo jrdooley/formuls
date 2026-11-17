@@ -460,6 +460,16 @@
 #X obj 383 197 t f f;
 #X obj 383 217 sel 1;
 #X obj 374 238 f;
+#X obj 455 157 r \$0-adsr-on;
+#X obj 455 178 == 0;
+#X obj 374 200 spigot 1;
+#X obj 455 300 r \$0-freq-follow-target;
+#X obj 374 360 f;
+#X obj 374 280 r to-faust-\$1;
+#X obj 374 301 route formuls\$1;
+#X obj 374 322 route triggerx;
+#X obj 374 343 spigot 0;
+#X text 300 620 Pitch track with the ADSR on: the oscillator only takes a new pitch when the envelope triggers (fsynth.lib samples it then) \, so the filter does the same. The continuous follow is shut and the pitch target (before its 5 ms glide) is held \, then applied on each triggerx this synth sends to Faust. With the ADSR off the filter follows the pitch continuously \, as before.;
 #X connect 0 0 20 0;
 #X connect 1 0 13 0;
 #X connect 1 1 26 0;
@@ -497,7 +507,6 @@
 #X connect 26 0 9 0;
 #X connect 27 0 8 0;
 #X connect 28 1 4 0;
-#X connect 29 0 34 0;
 #X connect 30 0 21 1;
 #X connect 31 0 32 0;
 #X connect 32 0 33 0;
@@ -505,6 +514,17 @@
 #X connect 33 0 34 0;
 #X connect 33 1 21 1;
 #X connect 34 0 30 0;
+#X connect 29 0 37 0;
+#X connect 37 0 34 0;
+#X connect 35 0 36 0;
+#X connect 36 0 37 1;
+#X connect 35 0 43 1;
+#X connect 38 0 39 1;
+#X connect 40 0 41 0;
+#X connect 41 0 42 0;
+#X connect 42 0 43 0;
+#X connect 43 0 39 0;
+#X connect 39 0 34 0;
 #X restore 17 272 pd RESONANT_FILTER____;
 #X obj 17 87 f.util.oscformat \$0 \$1 amphasereset 0;
 #X obj 17 66 f.util.oscformat \$0 \$1 amwave 0 3;
@@ -1678,6 +1698,7 @@
 #X connect 24 1 26 0;
 #X connect 24 2 27 0;
 #X restore 37 330 pd MIDI_KEYBOARD___;
+#X obj 293 63 s \$0-adsr-on;
 #X connect 0 0 2 0;
 #X connect 2 0 11 0;
 #X connect 3 0 17 0;
@@ -1695,6 +1716,7 @@
 #X connect 14 0 10 0;
 #X connect 14 2 15 0;
 #X connect 17 0 4 0;
+#X connect 2 2 18 0;
 #X restore 41 105 pd ADSR_VEL_TRIG_________;
 #N canvas 725 428 411 420 GEN_EUC_______________ 0;
 #X obj 38 29 inlet;
@@ -2092,6 +2114,7 @@
 #X obj 83 108 f.util.trigslewmessage \$0;
 #X obj 197 517 print;
 #X obj 127 386 r \$0-key-trig;
+#X obj 290 312 s \$0-freq-follow-target;
 #X connect 0 0 1 0;
 #X connect 0 1 20 0;
 #X connect 0 2 30 0;
@@ -2128,6 +2151,7 @@
 #X connect 31 0 29 0;
 #X connect 32 0 21 0;
 #X connect 34 0 7 0;
+#X connect 0 2 35 0;
 #X restore 87 564 pd OP1FREQ_PITCH_QUANTISE;
 #X obj 87 660 s \$1-message-collect;
 #X obj 87 592 f.util.pak;

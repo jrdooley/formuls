@@ -388,6 +388,8 @@ What changed on `main` between 9 and 17 November 2026, and where each is written
 | 16 Nov | Record arming and FX order wrapped in subpatches (`LAZY_RECORD_ARMING`, `FX_ORDER`); no behaviour change | `b1184fa`, `a6eeef9` | commit message; the behaviour is in [`audio-dropouts/README.md`](audio-dropouts/README.md) "Fix 3" |
 | 17 Nov | FX send reset reaches the GUI as OSC (it logged `no method for 'fxsend1'` on every synth reset) | `0b76855` (PR #56) | commit message; summary in [`ai-action-summary`](ai-action-summary/ai-action-summary.md) |
 | 16–17 Nov | **Step locks** | PR #57, `9f92639`..`7e9b175` | [`step-locks/README.md`](step-locks/README.md) |
+| 17 Nov | With ADSR on, Filter Pitch Track moves the filter only when the envelope triggers, matching the pitch Faust samples then | PR #59 | the commit message and the `RESONANT_FILTER____` comment in `f.util.oscinparse.pd` |
+| 17 Nov | STEP SEQUENCER modal 98% of the screen height (was 90%), so its mode buttons are about 9% taller | PR #59 | the commit message |
 
 ---
 
