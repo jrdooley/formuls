@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-VERSION=0.3.3
+VERSION=0.3.4
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 case "$(uname -m)" in

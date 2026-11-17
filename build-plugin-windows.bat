@@ -24,7 +24,7 @@ REM The plugin delay-loads libpd.dll and loads this copy by full path
 REM (SharedEngine.cpp); ResourceLocator finds Contents\Resources.
 REM See docs/plugin/README.md.
 
-set VERSION=0.3.3
+set VERSION=0.3.4
 set PYTHONUTF8=1
 set "ROOT=%CD%"
 
