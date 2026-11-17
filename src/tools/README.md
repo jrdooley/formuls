@@ -375,6 +375,24 @@ silently changing the result.
   straight through; whether a step is audible depends entirely on whether the
   Faust parameter carries `si.smoo`.
 
+## steplock-probe.py
+
+Writes step locks into one `f.seq.automater` headless in Pd, the way a synth's
+GUI would (per-synth `seq-*` messages plus bare value floats), then walks an
+8-step sequence six times and compares the value each step leaves the parameter
+at with what the locks say: written, muted, unmuted, playback off, after an
+automation reset (locks must survive) and after a lock clear (they must be gone).
+Exits non-zero on any mismatch.
+
+```bash
+python3 src/tools/steplock-probe.py
+python3 src/tools/steplock-probe.py --trace     # every value and beat, timed
+```
+
+It borrows `automation-probe.py`'s patch writer and Pd runner, so the same `--pd`
+and `--path` apply. The feature is described in
+[`../../docs/step-locks/README.md`](../../docs/step-locks/README.md).
+
 ## quantise-probe.py
 
 Checks what the pitch quantiser (`f.util.keyselector`) snaps each note to,

@@ -90,14 +90,19 @@ Supports env vars: `FORMULS_TEST_SAMPLERATE`, `FORMULS_TEST_CHANNELS`, `FORMULS_
 
 ## Architecture
 
-### Runtime (JUCE app spawns one child process)
+### Runtime (one process: the GUI server is in-process)
 ```
-formuls (JUCE app, embeds libpd)  →  spawns:
-  node + Open Stage Control (web GUI on port 9001)
+formuls (JUCE app, embeds libpd)
+  ├─ EmbeddedGuiServer  serves the Open Stage Control session on port 9001
+  └─ OscBridge          hands GUI OSC straight to libpd ("fed in-process (no udp)")
 ```
 The JUCE app handles audio device selection, libpd, recording, and GUI addresses.
-GUI sends OSC to `127.0.0.1:9000` (the Pd patch listens there).
-Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000).
+Since 0.3.2 the GUI server runs inside the app (`EmbeddedGuiServer.cpp`), and GUI
+OSC reaches the patch directly rather than over UDP. `FORMULS_NODE_GUI=1` (read in
+`MainComponent.h`) brings back the old bundled node + Open Stage Control child
+process, which still sends to `127.0.0.1:9000`; the `uxlog` branch relies on it.
+Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000, node path
+only).
 
 ### Source layout
 | Directory | Language | Purpose |
@@ -111,7 +116,7 @@ Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000).
 | `src/libs/libpd/` | submodule | libpd |
 | `src/libs/abl_link/` | submodule | Ableton Link Pd external |
 | `src/prebuilt/` | binary | Known-good `abl_link~.pd_darwin` (arm64) |
-| `src/tools/` | mixed | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py` (+ `osc-defaults-1.31.0.json`), `check-reset-coverage.py`, `automation-probe.py`, `bpm-probe`, `abl-link-repro` |
+| `src/tools/` | mixed | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py` (+ `osc-defaults-1.31.0.json`), `check-reset-coverage.py`, `automation-probe.py`, `steplock-probe.py`, `quantise-probe.py`, `limiter-probe.cpp`, `bpm-probe`, `abl-link-repro` |
 | `docs/` | markdown/html | Efficiency report, GUI performance write-up, session logs |
 
 ### Signal flow
@@ -179,6 +184,9 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 - **`src/tools/check-reset-coverage.py`**: Verifies every GUI parameter with chaos/LFO/mod sub-widgets is reset by `f.util.reset.pd`. Run after adding a parameter or renaming a widget. Exits non-zero on mismatch.
 - **`src/tools/automater-load-bench.py`**: CPU cost of N automaters with playback/LFO/chaos running, in deterministic `pd -batch`. Use `--rev` to compare against a commit.
 - **`src/tools/automation-probe.py`**: Records a gesture into one automater, reports value discontinuities. Use `--rev` to compare against a specific commit. No audio device or externals needed.
+- **`src/tools/steplock-probe.py`**: Writes, mutes and clears step locks on one automater headless and checks what each step plays back (six cycles). No audio device or externals needed. See `docs/step-locks/README.md`.
+- **`src/tools/quantise-probe.py`**: Checks the pitch quantiser against gamuts, headless.
+- **`src/tools/limiter-probe.cpp`**: Exercises `SafetyLimiter` with no JUCE or libpd (33 checks).
 - **`src/tools/bpm-probe`**: Loads `_main.pd` under libpd, drives BPM over OSC, measures actual beat rate. Needs a built app's externals. Build instructions in `src/tools/README.md`.
 - **`src/tools/brand-osc.sh`**: Rebrands Open Stage Control's header to formuls. Called by build scripts.
 - **`src/tools/abl-link-repro`**: Reproduction harness for the abl_link~ Xcode bug.

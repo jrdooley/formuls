@@ -1,8 +1,11 @@
 # Headroom: the master gain, clipping, and the polyphony count
 
-Written 9 September 2026, alongside the `AUDIO_SAFETY______` hotfix (`409b73a`).
-Nothing here has been implemented. It records what the patch currently does, why
-the obvious next step is not as easy as it looks, and what the options cost.
+Written 9 September 2026, alongside the `AUDIO_SAFETY______` hotfix (`409b73a`),
+as analysis only. **Since then, parts have shipped** (9 November 2026): 32-bit
+float recording, a safety limiter in the engine, the recorder tapping before the
+limiter, and a 20 dB pad per synth instance that replaces the patch's 6 dB. See the
+"Shipped since" sections and "The gain structure" below. The adaptive,
+polyphony-driven gain discussed in the first half was **not** built.
 
 ## What shipped
 
@@ -90,7 +93,9 @@ the control path, currently multiplying by one, and every writer passes through
 
 ## Why the existing polyphony count will not do
 
-`POLYPHONY_PARSE_______` in `controlabstractions/f.util.oscinparse.pd:2394`:
+`POLYPHONY_PARSE_______`, which was in `controlabstractions/f.util.oscinparse.pd`
+(it had been dead since April and was deleted on 13 November 2026, `156bf8f`; the
+reasoning below still holds for any count built the same way):
 
 ```
 [r $0-monopoly]      [r $0-chord-size]
