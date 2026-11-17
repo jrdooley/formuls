@@ -74,7 +74,9 @@ def timeline():
     cycle("playback off", {}, start=0.4)
     bus(t - 50, "play", 1)
     bus(t - 40, "reset", "bang")
-    cycle("after reset", {}, start=0.4)
+    cycle("after an automation reset (locks must survive)", {3: 0.8, 7: 0.4}, start=0.4)
+    bus(t - 50, "lock-clear", "bang")
+    cycle("after lock clear", {}, start=0.4)
     return ev, cycles, t
 
 

@@ -1119,7 +1119,7 @@
 #X obj 470 130 s \$0-seq-play;
 #X obj 570 110 s \$0-seq-trans-time;
 #X obj 680 100 t b;
-#X obj 680 330 s \$0-seq-reset;
+#X obj 680 330 s \$0-seq-lock-clear;
 #X obj 900 560 outlet;
 #X obj 760 100 r \$0-reset;
 #X obj 760 125 t b b;
@@ -1156,7 +1156,7 @@
 #X obj 90 190 s \$0-steplock-mark;
 #X obj 220 50 t b f;
 #X msg 220 80 set -1;
-#X obj 300 20 r \$0-seq-reset;
+#X obj 300 20 r \$0-seq-lock-clear;
 #X obj 300 50 r \$0-seq-step-on;
 #X text 40 240 Every value an automater keeps while a step is selected is announced on seq-lock-written. Only the first one after the selection changes (or after a mute or a clear) is passed on \, so dragging a parameter marks its step once.;
 #X obj 40 35 t b;
@@ -1194,7 +1194,7 @@
 #X connect 5 0 6 0;
 #X connect 6 0 7 0;
 #X restore 140 420 pd MARK;
-#X text 40 470 Step locks (see f.seq.record). steplock <0/1> is lock mode (leaving it lets go of the step) \, steplockstep <step> selects the step being written (0 for none) \, steplockmute <step> <0/1> switches a step's locks off or on \, steplockplay <0/1> stops or allows playback \, steplockglide <ms> glides to a locked value \, steplockclear (any message: the GUI's momentary button sends no value) forgets every lock on this synth. These go out on the per-synth symbols every f.seq.automater of this synth listens on \, so one selected step takes a value from whichever parameters are moved.;
+#X text 40 470 Step locks (see f.seq.record). steplock <0/1> is lock mode (leaving it lets go of the step) \, steplockstep <step> selects the step being written (0 for none) \, steplockmute <step> <0/1> switches a step's locks off or on \, steplockplay <0/1> stops or allows playback \, steplockglide <ms> glides to a locked value \, steplockclear (any message: the GUI's momentary button sends no value) forgets every lock on this synth and nothing else (its own symbol \, seq-lock-clear \, because seq-reset also resets each parameter's record/loop automation). These go out on the per-synth symbols every f.seq.automater of this synth listens on \, so one selected step takes a value from whichever parameters are moved.;
 #X obj 100 100 sel 0;
 #X msg 100 125 0;
 #X connect 0 0 1 0;
