@@ -48,12 +48,12 @@ def timeline():
     bus(240, "step", 3, 1)
     val(260, 0.6)
     val(270, 0.8)                       # the last value given wins
-    bus(300, "step", 3, 0)
+    bus(310, "step", 3, 0)              # after a GUI tick (50 ms), so 0.8 is shown
     bus(320, "step", 7, 1)
     val(340, 0.4)
     bus(360, "step", 7, 0)
     bus(380, "record", 0)
-    val(400, BASE)                      # lock mode off again: not stored
+    val(430, BASE)                      # lock mode off again: not stored
     bus(450, "play", 1)
 
     t = 600
@@ -100,6 +100,15 @@ def build_patch(path, events, until):
     p.connect(split, 0, pack, 0)
     p.connect(pack, 0, p.obj(20, 590, "print VAL"), 0)
 
+    # outlet 1 is what the automater sends back to the GUI
+    gsplit = p.obj(160, 530, "t f b")
+    gpack = p.obj(160, 560, "pack f 0")
+    p.connect(auto, 1, gsplit, 0)
+    p.connect(gsplit, 1, timer, 1)
+    p.connect(timer, 0, gpack, 1)
+    p.connect(gsplit, 0, gpack, 0)
+    p.connect(gpack, 0, p.obj(160, 590, "print GUI"), 0)
+
     # the step counter is logged with the same clock, just before it is sent
     blog = p.obj(300, 500, f"r {ID}-probe-beat")
     bsplit = p.obj(300, 530, "t f b")
@@ -134,7 +143,7 @@ def build_patch(path, events, until):
 def parse(log):
     out = []
     for line in log.splitlines():
-        m = re.match(r"(VAL|BEAT): (-?[\d.e+-]+) ([\d.]+)$", line.strip())
+        m = re.match(r"(VAL|BEAT|GUI): (-?[\d.e+-]+) ([\d.]+)$", line.strip())
         if m:
             out.append((float(m.group(3)), m.group(1), float(m.group(2))))
     return out
@@ -182,6 +191,33 @@ def main():
                 break
             cur = v
         return cur
+
+    # Silent writes: with lock mode on and a step selected (240-300 and
+    # 320-360 ms), the values given are stored but must not reach the output.
+    # Values given with no step selected (0.3 at 220 ms) still sound.
+    heard = [v for t, v in vals if 240 <= t < 380]
+    loud = [v for v in heard if v > 0.3 + 1e-4]
+    # 0.2 is the very first value: it once got lost when the gate's receiver
+    # fired before RECORD_GUI_UPDATE_PAUSE had opened its spigot
+    sounded = (any(abs(v - 0.3) < 1e-4 for t, v in vals if 220 <= t < 240)
+               and any(abs(v - 0.2) < 1e-4 for t, v in vals if 100 <= t < 120))
+    ok = not loud and sounded
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} edits while writing a step are silent")
+    print(f"         heard while writing: {' '.join(f'{v:g}' for v in heard) or 'nothing new'}"
+          f"; 0.2 (lock mode off) and 0.3 (no step selected) {'sounded' if sounded else 'did NOT both sound'}")
+
+    # ...but the GUI is told the written values, so the fader stays where it was
+    # put, and once the step is let go (360 ms) it is told the audible value again
+    gui = [(t, v) for t, k, v in rows if k == "GUI"]
+    shown = [v for t, v in gui if 240 <= t < 380]
+    back = [v for t, v in gui if 360 <= t < 430]
+    ok = (any(abs(v - 0.8) < 1e-4 for v in shown) and any(abs(v - 0.4) < 1e-4 for v in shown)
+          and back and abs(back[-1] - 0.3) < 1e-4)
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} the GUI shows the written values, then the audible one")
+    print(f"         GUI while writing: {' '.join(f'{v:g}' for v in shown) or '-'}"
+          f"; after: {' '.join(f'{v:g}' for v in back) or '-'}")
 
     for n, (label, start, expect, held) in enumerate(cycles):
         got, want, line = [], [], []
