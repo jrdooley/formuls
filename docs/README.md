@@ -392,6 +392,7 @@ What changed on `main` between 9 and 18 November 2026, and where each is written
 | 17 Nov | STEP SEQUENCER modal 98% of the screen height (was 90%), so its mode buttons are about 9% taller | PR #59 | the commit message |
 | 17 Nov | Version 0.3.4 (bump in 12 files) | `3fb2822` (PR #60) | [`release.md`](release.md) |
 | 18 Nov | **0.3.4 released**: Mac app and plugins notarised and stapled; formuls-embedded image `formuls-20261117-x86_64.img` built from the same commit | tag `v0.3.4` | [`ai-action-summary`](ai-action-summary/ai-action-summary.md), [GitHub release](https://github.com/jrdooley/formuls/releases/tag/v0.3.4) |
+| 18 Nov | Step locks: edits while writing a step are silent; an EDIT menu in the STEP SEQUENCER modal shows any synth parameter there | branch `param-step-seq-additions` | [`step-locks/README.md`](step-locks/README.md) |
 
 ---
 

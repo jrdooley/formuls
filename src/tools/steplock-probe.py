@@ -48,12 +48,12 @@ def timeline():
     bus(240, "step", 3, 1)
     val(260, 0.6)
     val(270, 0.8)                       # the last value given wins
-    bus(300, "step", 3, 0)
+    bus(310, "step", 3, 0)              # after a GUI tick (50 ms), so 0.8 is shown
     bus(320, "step", 7, 1)
     val(340, 0.4)
     bus(360, "step", 7, 0)
     bus(380, "record", 0)
-    val(400, BASE)                      # lock mode off again: not stored
+    val(430, BASE)                      # lock mode off again: not stored
     bus(450, "play", 1)
 
     t = 600
@@ -100,6 +100,33 @@ def build_patch(path, events, until):
     p.connect(split, 0, pack, 0)
     p.connect(pack, 0, p.obj(20, 590, "print VAL"), 0)
 
+    # outlet 1 is what the automater sends back to the GUI
+    gsplit = p.obj(160, 530, "t f b")
+    gpack = p.obj(160, 560, "pack f 0")
+    p.connect(auto, 1, gsplit, 0)
+    p.connect(gsplit, 1, timer, 1)
+    p.connect(timer, 0, gpack, 1)
+    p.connect(gsplit, 0, gpack, 0)
+    p.connect(gpack, 0, p.obj(160, 590, "print GUI"), 0)
+
+    # outlet 3 feeds readouts derived from the value (the osc pitch)
+    rsplit = p.obj(240, 530, "t f b")
+    rpack = p.obj(240, 560, "pack f 0")
+    p.connect(auto, 3, rsplit, 0)
+    p.connect(rsplit, 1, timer, 1)
+    p.connect(timer, 0, rpack, 1)
+    p.connect(rsplit, 0, rpack, 0)
+    p.connect(rpack, 0, p.obj(240, 590, "print READOUT"), 0)
+
+    # outlet 4 is the writing state, which mutes the normal readout meanwhile
+    wsplit = p.obj(320, 530, "t f b")
+    wpack = p.obj(320, 560, "pack f 0")
+    p.connect(auto, 4, wsplit, 0)
+    p.connect(wsplit, 1, timer, 1)
+    p.connect(timer, 0, wpack, 1)
+    p.connect(wsplit, 0, wpack, 0)
+    p.connect(wpack, 0, p.obj(320, 590, "print WRITING"), 0)
+
     # the step counter is logged with the same clock, just before it is sent
     blog = p.obj(300, 500, f"r {ID}-probe-beat")
     bsplit = p.obj(300, 530, "t f b")
@@ -134,7 +161,7 @@ def build_patch(path, events, until):
 def parse(log):
     out = []
     for line in log.splitlines():
-        m = re.match(r"(VAL|BEAT): (-?[\d.e+-]+) ([\d.]+)$", line.strip())
+        m = re.match(r"(VAL|BEAT|GUI|READOUT|WRITING): (-?[\d.e+-]+) ([\d.]+)$", line.strip())
         if m:
             out.append((float(m.group(3)), m.group(1), float(m.group(2))))
     return out
@@ -165,6 +192,20 @@ def main():
             print(f"  pd: {line.strip()}")
             bad += 1
     rows = parse(log)
+
+    # A parameter nobody has touched must stay silent through a write: ending
+    # a write once re-sent [change -1]'s initial -1, which set velocity,
+    # panning, steps and rate on every untouched parameter of the synth.
+    untouched = [(200, "bus", f"{ID}-seq-record 1 "), (240, "bus", f"{ID}-seq-step 3 1"),
+                 (300, "bus", f"{ID}-seq-step 3 0"), (400, "bus", f"{ID}-seq-record 0")]
+    tmp2 = tempfile.mkdtemp(prefix="steplock-probe-")
+    try:
+        patch2 = os.path.join(tmp2, "untouched.pd")
+        build_patch(patch2, untouched, 600)
+        log2 = ap_mod.run(pd, patch2, args.path, timeout=10)
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+    stray = [(t, k, v) for t, k, v in parse(log2) if k in ("VAL", "GUI", "READOUT")]
     vals = [(t, v) for t, k, v in rows if k == "VAL"]
     beats = [(t, int(v)) for t, k, v in rows if k == "BEAT"]
     if args.trace:
@@ -182,6 +223,57 @@ def main():
                 break
             cur = v
         return cur
+
+    # Silent writes: with lock mode on and a step selected (240-300 and
+    # 320-360 ms), the values given are stored but must not reach the output.
+    # Values given with no step selected (0.3 at 220 ms) still sound.
+    heard = [v for t, v in vals if 240 <= t < 380]
+    loud = [v for v in heard if v > 0.3 + 1e-4]
+    # 0.2 is the very first value: it once got lost when the gate's receiver
+    # fired before RECORD_GUI_UPDATE_PAUSE had opened its spigot
+    sounded = (any(abs(v - 0.3) < 1e-4 for t, v in vals if 220 <= t < 240)
+               and any(abs(v - 0.2) < 1e-4 for t, v in vals if 100 <= t < 120))
+    ok = not loud and sounded
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} edits while writing a step are silent")
+    print(f"         heard while writing: {' '.join(f'{v:g}' for v in heard) or 'nothing new'}"
+          f"; 0.2 (lock mode off) and 0.3 (no step selected) {'sounded' if sounded else 'did NOT both sound'}")
+
+    # ...but the GUI is told the written values, so the fader stays where it was
+    # put, and once the step is let go (360 ms) it is told the audible value again
+    gui = [(t, v) for t, k, v in rows if k == "GUI"]
+    shown = [v for t, v in gui if 240 <= t < 380]
+    back = [v for t, v in gui if 360 <= t < 430]
+    ok = (any(abs(v - 0.8) < 1e-4 for v in shown) and any(abs(v - 0.4) < 1e-4 for v in shown)
+          and back and abs(back[-1] - 0.3) < 1e-4)
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} the GUI shows the written values, then the audible one")
+    print(f"         GUI while writing: {' '.join(f'{v:g}' for v in shown) or '-'}"
+          f"; after: {' '.join(f'{v:g}' for v in back) or '-'}")
+
+    # Outlet 3 drives readouts such as the osc pitch: the written values while
+    # writing, the audible value once as each step is let go (310, 360 ms),
+    # and nothing at any other time (so it cannot fight the normal readout).
+    rd = [(t, v) for t, k, v in rows if k == "READOUT"]
+    inside = [v for t, v in rd if 240 <= t < 380]
+    outside = [v for t, v in rd if t < 240 or t >= 380]
+    ok = (any(abs(v - 0.8) < 1e-4 for v in inside) and any(abs(v - 0.4) < 1e-4 for v in inside)
+          and sum(abs(v - 0.3) < 1e-4 for v in inside) == 2 and not outside)
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} the readout outlet carries the written values, then the audible one")
+    print(f"         while writing: {' '.join(f'{v:g}' for v in inside) or '-'}"
+          f"; at other times: {' '.join(f'{v:g}' for v in outside) or 'nothing'}")
+
+    ok = not stray
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} an untouched parameter sends nothing when a write ends")
+    print(f"         {' '.join(f'{k} {v:g}@{t:.0f}' for t, k, v in stray) or 'nothing sent'}")
+
+    flags = [(round(t), int(v)) for t, k, v in rows if k == "WRITING"]
+    ok = flags == [(240, 1), (310, 0), (320, 1), (360, 0)]
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} the writing outlet: 1 while a step is selected in lock mode")
+    print(f"         {' '.join(f'{v}@{t}' for t, v in flags) or '-'}")
 
     for n, (label, start, expect, held) in enumerate(cycles):
         got, want, line = [], [], []
