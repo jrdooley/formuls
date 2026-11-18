@@ -109,6 +109,24 @@ def build_patch(path, events, until):
     p.connect(gsplit, 0, gpack, 0)
     p.connect(gpack, 0, p.obj(160, 590, "print GUI"), 0)
 
+    # outlet 3 feeds readouts derived from the value (the osc pitch)
+    rsplit = p.obj(240, 530, "t f b")
+    rpack = p.obj(240, 560, "pack f 0")
+    p.connect(auto, 3, rsplit, 0)
+    p.connect(rsplit, 1, timer, 1)
+    p.connect(timer, 0, rpack, 1)
+    p.connect(rsplit, 0, rpack, 0)
+    p.connect(rpack, 0, p.obj(240, 590, "print READOUT"), 0)
+
+    # outlet 4 is the writing state, which mutes the normal readout meanwhile
+    wsplit = p.obj(320, 530, "t f b")
+    wpack = p.obj(320, 560, "pack f 0")
+    p.connect(auto, 4, wsplit, 0)
+    p.connect(wsplit, 1, timer, 1)
+    p.connect(timer, 0, wpack, 1)
+    p.connect(wsplit, 0, wpack, 0)
+    p.connect(wpack, 0, p.obj(320, 590, "print WRITING"), 0)
+
     # the step counter is logged with the same clock, just before it is sent
     blog = p.obj(300, 500, f"r {ID}-probe-beat")
     bsplit = p.obj(300, 530, "t f b")
@@ -143,7 +161,7 @@ def build_patch(path, events, until):
 def parse(log):
     out = []
     for line in log.splitlines():
-        m = re.match(r"(VAL|BEAT|GUI): (-?[\d.e+-]+) ([\d.]+)$", line.strip())
+        m = re.match(r"(VAL|BEAT|GUI|READOUT|WRITING): (-?[\d.e+-]+) ([\d.]+)$", line.strip())
         if m:
             out.append((float(m.group(3)), m.group(1), float(m.group(2))))
     return out
@@ -218,6 +236,25 @@ def main():
     print(f"  {'ok  ' if ok else 'FAIL'} the GUI shows the written values, then the audible one")
     print(f"         GUI while writing: {' '.join(f'{v:g}' for v in shown) or '-'}"
           f"; after: {' '.join(f'{v:g}' for v in back) or '-'}")
+
+    # Outlet 3 drives readouts such as the osc pitch: the written values while
+    # writing, the audible value once as each step is let go (310, 360 ms),
+    # and nothing at any other time (so it cannot fight the normal readout).
+    rd = [(t, v) for t, k, v in rows if k == "READOUT"]
+    inside = [v for t, v in rd if 240 <= t < 380]
+    outside = [v for t, v in rd if t < 240 or t >= 380]
+    ok = (any(abs(v - 0.8) < 1e-4 for v in inside) and any(abs(v - 0.4) < 1e-4 for v in inside)
+          and sum(abs(v - 0.3) < 1e-4 for v in inside) == 2 and not outside)
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} the readout outlet carries the written values, then the audible one")
+    print(f"         while writing: {' '.join(f'{v:g}' for v in inside) or '-'}"
+          f"; at other times: {' '.join(f'{v:g}' for v in outside) or 'nothing'}")
+
+    flags = [(round(t), int(v)) for t, k, v in rows if k == "WRITING"]
+    ok = flags == [(240, 1), (310, 0), (320, 1), (360, 0)]
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} the writing outlet: 1 while a step is selected in lock mode")
+    print(f"         {' '.join(f'{v}@{t}' for t, v in flags) or '-'}")
 
     for n, (label, start, expect, held) in enumerate(cycles):
         got, want, line = [], [], []

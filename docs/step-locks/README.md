@@ -113,6 +113,16 @@ receiver. Pd calls the newest `[r]` first, and `RECORD_GUI_UPDATE_PAUSE` must op
 its spigot before a value reaches it. A relay receiver created later lost the
 first value given to every parameter.
 
+**Readouts derived from a value.** The osc pitch readout (`oscpitchgui`) is
+computed from the automater's audio output, so a silent write never reached it.
+The automater now has two more outlets: outlet 3 carries the written values while
+a step is written and the audible value once when writing ends; outlet 4 is the
+writing state. In `OP1FREQ_PITCH_QUANTISE`, outlet 3 feeds
+`PITCH_READOUT_WHILE_WRITING`, a copy of `FREQ_SNAP_NOTE_GEN__` whose generator,
+key-pitch and gamut re-send receivers are renamed away so it never fires on its
+own, and outlet 4 mutes the normal readout while writing, since the audible value
+would overwrite the written one.
+
 ## Two traps found while building it
 
 **`seq-reset` was already taken.** The first STEP CLEAR sent on
@@ -139,7 +149,7 @@ built app). It sends the same per-synth messages the GUI would and walks an
 5. an automation reset (`seq-reset`), after which the locks must survive
 6. STEP CLEAR, after which they must be gone
 
-Two more checks cover silent writes: nothing new is heard while a step is written, and the GUI shows the written values and then the audible one. All eight pass. Against the commit before step locks, the probe fails.
+Two more checks cover silent writes: nothing new is heard while a step is written, and the GUI shows the written values and then the audible one. Two more check the readout and writing outlets. All ten pass. Against the commit before step locks, the probe fails.
 
 Checked in the app (macOS, 17 Nov 2026): a lock written by dragging the
 Sequencer Swing fader, marking, playback on exactly the locked steps, mute with
