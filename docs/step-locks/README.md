@@ -32,7 +32,10 @@ synth's 25 parameters: everything on the synth page except the sequencer control
 already in the modal. Choosing one shows that parameter's own widget under the
 menu, so a step can be written without going back to the synth page. Sequencer
 Add,Drop, Flam Hits,Spread and Swing/Step Delay/Warp were reduced from a third
-each to 22% of the column to make room.
+each to 22% of the column to make room. Osc Frequency,Wave also shows its pitch
+readout and waveshape labels, as on the synth page. The menu is a drag menu:
+press it, drag onto a parameter and let go. Its pop-up is 300 × 500 px (o-s-c's
+default is 200 × 200), two columns, opening up and to the left from the corner.
 
 The widget shown is a second copy of the one on the synth page (`seqparameditor`
 in `src/gui/_main.json`, one holder panel per parameter, shown when the menu
