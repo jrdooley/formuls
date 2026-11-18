@@ -192,6 +192,20 @@ def main():
             print(f"  pd: {line.strip()}")
             bad += 1
     rows = parse(log)
+
+    # A parameter nobody has touched must stay silent through a write: ending
+    # a write once re-sent [change -1]'s initial -1, which set velocity,
+    # panning, steps and rate on every untouched parameter of the synth.
+    untouched = [(200, "bus", f"{ID}-seq-record 1 "), (240, "bus", f"{ID}-seq-step 3 1"),
+                 (300, "bus", f"{ID}-seq-step 3 0"), (400, "bus", f"{ID}-seq-record 0")]
+    tmp2 = tempfile.mkdtemp(prefix="steplock-probe-")
+    try:
+        patch2 = os.path.join(tmp2, "untouched.pd")
+        build_patch(patch2, untouched, 600)
+        log2 = ap_mod.run(pd, patch2, args.path, timeout=10)
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+    stray = [(t, k, v) for t, k, v in parse(log2) if k in ("VAL", "GUI", "READOUT")]
     vals = [(t, v) for t, k, v in rows if k == "VAL"]
     beats = [(t, int(v)) for t, k, v in rows if k == "BEAT"]
     if args.trace:
@@ -249,6 +263,11 @@ def main():
     print(f"  {'ok  ' if ok else 'FAIL'} the readout outlet carries the written values, then the audible one")
     print(f"         while writing: {' '.join(f'{v:g}' for v in inside) or '-'}"
           f"; at other times: {' '.join(f'{v:g}' for v in outside) or 'nothing'}")
+
+    ok = not stray
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} an untouched parameter sends nothing when a write ends")
+    print(f"         {' '.join(f'{k} {v:g}@{t:.0f}' for t, k, v in stray) or 'nothing sent'}")
 
     flags = [(round(t), int(v)) for t, k, v in rows if k == "WRITING"]
     ok = flags == [(240, 1), (310, 0), (320, 1), (360, 0)]

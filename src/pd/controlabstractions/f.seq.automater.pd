@@ -496,7 +496,6 @@
 #X connect 30 0 34 0;
 #X connect 34 2 35 0;
 #X connect 35 0 37 1;
-#X connect 34 1 21 0;
 #X connect 34 0 36 0;
 #X connect 36 0 37 1;
 #X connect 21 0 37 0;
@@ -505,6 +504,17 @@
 #X obj 480 464 outlet;
 #X text 480 485 writing state (1 while a step is written);
 #X connect 25 1 39 0;
+#X obj 400 160 f;
+#X obj 400 138 spigot 0;
+#X msg 470 138 1;
+#X text 300 200 At the end of writing the GUI and readouts get the last value the automater sent to the audio (41) \, and only if it has sent one: [change -1] holds -1 until a value passes \, and banging it set untouched parameters to -1. The audio is not re-sent.;
+#X connect 21 0 41 1;
+#X connect 21 0 43 0;
+#X connect 43 0 42 1;
+#X connect 34 1 42 0;
+#X connect 42 0 41 0;
+#X connect 41 0 28 0;
+#X connect 41 0 37 0;
 #X restore 32 740 pd VALUE_READ_EVOLUTION_SEND;
 #N canvas 187 388 857 545 TIMING_+_SCHEDULING______ 0;
 #X obj 47 374 spigot;

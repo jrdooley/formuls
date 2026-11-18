@@ -113,6 +113,14 @@ receiver. Pd calls the newest `[r]` first, and `RECORD_GUI_UPDATE_PAUSE` must op
 its spigot before a value reaches it. A relay receiver created later lost the
 first value given to every parameter.
 
+**Ending a write must not re-send an untouched value.** The first version banged
+`[change -1]` when writing ended, to send the audible value again. A `[change -1]`
+that has never passed a value holds -1, so every untouched parameter of the synth
+got -1: velocity and panning jumped to the left, steps and rate to 1, the
+Add,Drop pad sent randomadd -1 and randomdrop -1 to the sequencer, and the synth
+went almost silent. Now a separate `[f]` remembers the last value the automater
+actually sent, and only that is re-sent, and only to the GUI and readouts.
+
 **Readouts derived from a value.** The osc pitch readout (`oscpitchgui`) is
 computed from the automater's audio output, so a silent write never reached it.
 The automater now has two more outlets: outlet 3 carries the written values while
@@ -149,7 +157,7 @@ built app). It sends the same per-synth messages the GUI would and walks an
 5. an automation reset (`seq-reset`), after which the locks must survive
 6. STEP CLEAR, after which they must be gone
 
-Two more checks cover silent writes: nothing new is heard while a step is written, and the GUI shows the written values and then the audible one. Two more check the readout and writing outlets. All ten pass. Against the commit before step locks, the probe fails.
+Two more checks cover silent writes: nothing new is heard while a step is written, and the GUI shows the written values and then the audible one. Two more check the readout and writing outlets. Another checks that an untouched parameter stays silent through a write. All eleven pass. Against the commit before step locks, the probe fails.
 
 Checked in the app (macOS, 17 Nov 2026): a lock written by dragging the
 Sequencer Swing fader, marking, playback on exactly the locked steps, mute with
