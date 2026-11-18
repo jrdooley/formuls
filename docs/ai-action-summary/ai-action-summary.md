@@ -1329,3 +1329,37 @@ is written up.
 - Whether locks survive a saved state. Nothing saves them.
 - Linux, Windows and the plugins: built for neither feature, and CI's platform
   builds don't run for PRs that touch only `src/pd` or `src/gui`.
+
+## 17–18 November 2026 — the 0.3.4 release
+
+[formuls 0.3.4](https://github.com/jrdooley/formuls/releases/tag/v0.3.4) was
+published on 18 November 2026. It carries step locks (PR #57), the fx-send reset
+fix (PR #56) and the PR #59 changes: filter pitch track with ADSR on, and the
+taller sequencer modal.
+
+- **Version bump.** PR #60 (merge `3fb2822`) changed 12 files, not the 11 in
+  the usual list: `src/tools/sign-macos-plugin.sh` has the version in its usage
+  comment too. Tag `v0.3.4` passed CI on all platforms, and CI drafted the
+  release with six archives.
+- **Notarisation.** `notarytool` refused with HTTP 403 "A required agreement is
+  missing or has expired" until Apple's updated developer agreement was
+  accepted. Even then, the error took about a day to clear, with nothing
+  changed on the Mac. `xcrun notarytool history --keychain-profile <profile>`
+  is a read-only check of whether the account is unblocked.
+- **Signing without a rebuild.** The app and plugins were already built and
+  signed, so `src/tools/sign-macos.sh` and `src/tools/sign-macos-plugin.sh`
+  notarised them in place, then stapled and zipped them again. Each bundle was
+  checked inside the final zip (`stapler validate`, `codesign --verify --deep
+  --strict`, `Authority=Developer ID Application`). Each zip was downloaded back
+  from the release and its hash matched the local file. The zips replaced CI's
+  `-unsigned` Mac zips.
+- **Appliance image.** formuls-embedded PR #5 (merge `45e691a`) pins
+  `upstream/formuls` at `3fb2822`. Image `formuls-20261117-x86_64.img` (sha256
+  `8ba58c6a…6c9d`) boots in QEMU, the formuls service runs, and it reports
+  commit `3fb2822`. It isn't attached to the GitHub release.
+
+### Not done
+
+- Opening the notarised app, or loading the plugins, on a Mac that didn't build
+  them. The build Mac has Gatekeeper turned off.
+- The image on real appliance hardware.
