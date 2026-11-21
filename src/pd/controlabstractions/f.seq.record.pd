@@ -299,6 +299,22 @@
 #X connect 31 0 32 0;
 #X connect 32 0 33 0;
 #X connect 33 0 34 0;
+#X obj 330 400 r \$0-seq-step-clear;
+#X obj 330 422 - 1;
+#X obj 330 444 t b b f;
+#X msg 330 470 -1;
+#X msg 380 470 1;
+#X obj 330 495 tabwrite \$0-this-2;
+#X obj 450 495 tabwrite \$0-this-2-on;
+#X text 330 520 seqstepclear <step> forgets one step: no value (-1) and not muted. STEP CLEAR held + a tap on a step sends it to every parameter of the synth.;
+#X connect 36 0 37 0;
+#X connect 37 0 38 0;
+#X connect 38 2 41 1;
+#X connect 38 2 42 1;
+#X connect 38 1 40 0;
+#X connect 40 0 42 0;
+#X connect 38 0 39 0;
+#X connect 39 0 41 0;
 #X restore 252 429 pd SEQUENCER_RECORD_MODULE_______;
 #X obj 209 255 s \$0-seq-step;
 #X obj 267 214 s \$0-mode;
@@ -313,7 +329,7 @@
 #X obj 352 117 s \$0-seq-value;
 #X obj 266 137 s \$0-seq-play;
 #X obj 452 172 r \$1-reset;
-#X obj 37 53 route record value tempo reverse trigger seqrecord seqstep beat mode seqplay seqtranstime seqreset seqvalue active seqstepon seqlockclear;
+#X obj 37 53 route record value tempo reverse trigger seqrecord seqstep beat mode seqplay seqtranstime seqreset seqvalue active seqstepon seqlockclear seqstepclear;
 #X text 286 409 Step locks: see the two SEQUENCER modules. A reset stops automation playback but no longer switches lock playback off (it did \, which left it off from start-up on): the reset clears the locks instead \, from f.util.oscinparse.;
 #X obj 380 255 s \$0-seq-step-on;
 #X obj 480 255 s \$0-seq-lock-clear;
@@ -344,3 +360,5 @@
 #X connect 32 13 25 0;
 #X connect 32 14 34 0;
 #X connect 32 15 35 0;
+#X obj 400 120 s \$0-seq-step-clear;
+#X connect 32 16 36 0;

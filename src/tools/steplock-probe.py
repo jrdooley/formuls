@@ -75,6 +75,14 @@ def timeline():
     bus(t - 50, "play", 1)
     bus(t - 40, "reset", "bang")
     cycle("after an automation reset (locks must survive)", {3: 0.8, 7: 0.4}, start=0.4)
+    # STEP CLEAR held + a tap on step 3: that step only (1-based, as the GUI sends it)
+    # The parameter is moved to 0.1 first, so only step 7's lock can bring back 0.4.
+    bus(t - 50, "step-clear", 3)
+    val(t - 30, 0.1)
+    cycle("step 3 cleared (step 7 must keep its lock)", {7: 0.4}, start=0.1)
+    bus(t - 50, "step-clear", 3)                 # clearing an empty step is harmless
+    val(t - 30, 0.1)
+    cycle("step 3 cleared again", {7: 0.4}, start=0.1)
     bus(t - 50, "lock-clear", "bang")
     cycle("after lock clear", {}, start=0.4)
     return ev, cycles, t
