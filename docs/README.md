@@ -393,6 +393,8 @@ What changed on `main` between 9 and 18 November 2026, and where each is written
 | 17 Nov | Version 0.3.4 (bump in 12 files) | `3fb2822` (PR #60) | [`release.md`](release.md) |
 | 18 Nov | **0.3.4 released**: Mac app and plugins notarised and stapled; formuls-embedded image `formuls-20261117-x86_64.img` built from the same commit | tag `v0.3.4` | [`ai-action-summary`](ai-action-summary/ai-action-summary.md), [GitHub release](https://github.com/jrdooley/formuls/releases/tag/v0.3.4) |
 | 18 Nov | Step locks: edits while writing a step are silent; an EDIT menu in the STEP SEQUENCER modal shows any synth parameter there | branch `param-step-seq-additions` | [`step-locks/README.md`](step-locks/README.md) |
+| 21 Nov | Quantise acts after the automation (delay time, AM frequency, attack/decay/release; FM's quantiser gets equal bins); decay quantise reached Faust for the first time | branch `fixes-0.3.5` | Pd comments in `f.util.oscformat.pd` and `f.util.oscinparse.pd`; [`ai-action-summary`](ai-action-summary/ai-action-summary.md) |
+| 21 Nov | STEP CLEAR is held + tap, one step; the three step buttons moved above FREQ SNAP; X/Y hold in the sequencer modal; menus kept inside it; reset-row layout; TEST TONE button removed; KEYS hidden; version 0.3.5 | branch `fixes-0.3.5` | [`step-locks/README.md`](step-locks/README.md), [`ai-action-summary`](ai-action-summary/ai-action-summary.md) |
 
 ---
 

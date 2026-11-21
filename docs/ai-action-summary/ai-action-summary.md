@@ -1363,3 +1363,38 @@ taller sequencer modal.
 - Opening the notarised app, or loading the plugins, on a Mac that didn't build
   them. The build Mac has Gatekeeper turned off.
 - The image on real appliance hardware.
+
+## 21 November 2026 — fixes for 0.3.5
+
+Branch `fixes-0.3.5`, from `cd4db22`.
+
+- **Quantise after the automation.** The bpm-synced quantisers (delay time, AM
+  frequency, attack, decay, release) acted on the GUI value *before*
+  `f.seq.automater`, so a recorded gesture was stored already snapped and
+  switching quantise afterwards changed nothing. `f.util.oscformat` gained an
+  eighth argument: `1` routes the automater's output out on
+  `$1-$3-hook-out` and takes the Faust-bound value back on `$1-$3-hook-in`,
+  and the quantisers now sit there. The automater itself quantises to the
+  list's levels, so the GUI echo snaps to equidistant positions (6 for AM, 5
+  for delay, 7 for A/D/R). The automater's own quantiser now uses steps+1
+  equal bins; before, its top level was reachable only at exactly 1 (FM
+  frequency: now 11 levels).
+  - Measured headless, `f.util.oscinparse` with a recorded ramp, then quantise
+    switched on: `main` sent 100 raw values to Faust; the change sends only the
+    quantised set. Live quantise (nothing recorded) gives the same Faust values
+    as `main` for all six parameters.
+  - Found on the way: **decay quantise never reached Faust** on `main` (the
+    quantised path's `[spigot]` was unconnected). Delay and AM resent a stale
+    quantised value on any bpm change while quantise was off; now gated.
+- **STEP CLEAR is a held mode.** Held, a tap on a marked step forgets that
+  step on every parameter (`/steplockclearN <step>` → `seq-step-clear` →
+  `seqstepclear` in `f.seq.record`). RESET still forgets every step.
+  `steplock-probe.py` gained the case; it fails on `main` and passes here.
+- **GUI**: AUDIO RECORD at the left of the reset row, POWER OFF at its right;
+  TEST TONE button removed (its address was `/testone`, a typo, so it never
+  played); KEYS hidden (MIDI IN, which lives inside it, is hidden with it);
+  sequencer-modal menus anchored left and aligned vertically to stay inside
+  the modal (three had the key misspelt `alighH`); STEP WRITE/MUTE/CLEAR in a
+  half-height row above FREQ SNAP / play / ASYNC; X and Y hold added to the
+  modal's mode column. `docs/gui/osc-contract.csv` regenerated.
+- Version 0.3.5 (12 files).

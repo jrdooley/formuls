@@ -10,14 +10,15 @@ lock" on Elektron machines.
 
 ## Using it
 
-The three buttons are in each synth's STEP SEQUENCER modal, below the mode
-buttons:
+The three buttons are in each synth's STEP SEQUENCER modal, in a half-height
+row above FREQ SNAP, play and ASYNC (until 0.3.5 they were at the bottom of the
+mode column):
 
 | button | kind | what it does |
 |---|---|---|
 | **STEP WRITE** | toggle | While on, tapping a step **selects** it instead of switching its note on or off. The modal heading reads "WRITING STEP n". Any parameter of that synth moved now is written to that step. Tap the step again, or turn STEP WRITE off, to release it. **While a step is selected, edits are silent**: the control moves and the value is stored, but the sound changes only when the sequence plays that step. When the step is released, the control returns to the value you can hear. |
 | **STEP MUTE** | hold | While held, tapping a step that has values **mutes or unmutes** them, keeping the values. Works whether or not STEP WRITE is on. A tap on a step with no values does nothing. |
-| **STEP CLEAR** | press | Forgets every step value on this synth. **Nothing else is touched**: notes, the parameters' own record/loop automation, and their current values all stay as they are. |
+| **STEP CLEAR** | hold | While held, tapping a step that has values **forgets** that step's values, on every parameter of the synth. Other steps keep theirs. Works whether or not STEP WRITE is on. **Nothing else is touched**: notes, the parameters' own record/loop automation, and their current values all stay as they are. To forget every step at once, use the synth's RESET. (Until 0.3.5 a press forgot every step.) |
 
 A step with values shows a corner flag: **filled** when they play, an
 **outline** when muted. A synth reset clears that synth's locks too.
@@ -58,7 +59,8 @@ GUI button / step tap
   -> /steplock*N  (OSC)
   -> f.util.oscinparse  STEPLOCK subpatch
   -> per-synth symbols  <synth $0>-seq-record / -seq-step / -seq-step-on /
-                        -seq-play / -seq-trans-time / -seq-lock-clear
+                        -seq-play / -seq-trans-time / -seq-lock-clear /
+                        -seq-step-clear (0.3.5: one step, 1-based)
   -> f.seq.automatermessage (one per parameter) turns each into a message
   -> f.seq.automater: anything its own route does not claim goes on to
   -> f.seq.record: SEQUENCER_RECORD_MODULE / SEQUENCER_PLAYBACK_MODULE
@@ -67,6 +69,7 @@ GUI button / step tap
 - **Storage**: two 128-entry tables per parameter, `$0-this-2` (the value, `-1`
   meaning no lock) and `$0-this-2-on` (the mute mask). Muting writes only the
   mask, so the value survives. Writing a value switches the step's mask back on.
+  Clearing one step (`seqstepclear <step>`) writes `-1` and switches the mask on.
 - **Writing**: `f.seq.automater` offers every value the parameter receives
   (`$0-input-1`) to `f.seq.record` as `seqvalue`. It is stored only while lock
   mode is on **and** a step is selected.
@@ -95,7 +98,7 @@ GUI button / step tap
 | `/steplockmuteN` | step, `0`/`1` | mute (`0`) or unmute (`1`) a step's values |
 | `/steplockplayN` | `0`/`1` | stop or allow lock playback (on by default) |
 | `/steplockglideN` | ms | glide time to a locked value |
-| `/steplockclearN` | anything | forget this synth's locks |
+| `/steplockclearN` | step `1..128` | forget that step's values on every parameter (sent by the step panel while STEP CLEAR is held; the button itself, `/steplockclearmodeN`, is not sent to Pd) |
 | `/steplockhasN-i` | `0`, `0.5`, `1` | Pd to GUI: what step `i` (0-based) holds |
 
 ### Silent writes
@@ -155,7 +158,9 @@ built app). It sends the same per-synth messages the GUI would and walks an
 3. step 3 unmuted, with its value intact
 4. playback off
 5. an automation reset (`seq-reset`), after which the locks must survive
-6. STEP CLEAR, after which they must be gone
+6. step 3 cleared on its own (`seq-step-clear 3`), after which step 7 must keep its value (the parameter is moved to 0.1 first, so only step 7's lock can bring back 0.4)
+7. the same clear again, which must change nothing
+8. a clear of every lock (`seq-lock-clear`, what RESET does), after which they must be gone
 
 Two more checks cover silent writes: nothing new is heard while a step is written, and the GUI shows the written values and then the audible one. Two more check the readout and writing outlets. Another checks that an untouched parameter stays silent through a write. All eleven pass. Against the commit before step locks, the probe fails.
 

@@ -5400,12 +5400,12 @@ address,views,types,direction,param,layer,instance,range,steps,decimals,in_state
 /steplock4,1,button,both,steplock4,,4,"{""min"": 0, ""max"": 1}",,2,no,
 /steplock5,1,button,both,steplock5,,5,"{""min"": 0, ""max"": 1}",,2,no,
 /steplock6,1,button,both,steplock6,,6,"{""min"": 0, ""max"": 1}",,2,no,
-/steplockclear1,1,button,both,steplockclear1,,1,"{""min"": 0, ""max"": 1}",,2,no,
-/steplockclear2,1,button,both,steplockclear2,,2,"{""min"": 0, ""max"": 1}",,2,no,
-/steplockclear3,1,button,both,steplockclear3,,3,"{""min"": 0, ""max"": 1}",,2,no,
-/steplockclear4,1,button,both,steplockclear4,,4,"{""min"": 0, ""max"": 1}",,2,no,
-/steplockclear5,1,button,both,steplockclear5,,5,"{""min"": 0, ""max"": 1}",,2,no,
-/steplockclear6,1,button,both,steplockclear6,,6,"{""min"": 0, ""max"": 1}",,2,no,
+/steplockclearmode1,1,button,both,steplockclearmode1,,1,"{""min"": 0, ""max"": 1}",,2,no,
+/steplockclearmode2,1,button,both,steplockclearmode2,,2,"{""min"": 0, ""max"": 1}",,2,no,
+/steplockclearmode3,1,button,both,steplockclearmode3,,3,"{""min"": 0, ""max"": 1}",,2,no,
+/steplockclearmode4,1,button,both,steplockclearmode4,,4,"{""min"": 0, ""max"": 1}",,2,no,
+/steplockclearmode5,1,button,both,steplockclearmode5,,5,"{""min"": 0, ""max"": 1}",,2,no,
+/steplockclearmode6,1,button,both,steplockclearmode6,,6,"{""min"": 0, ""max"": 1}",,2,no,
 /steplockmutemode1,1,button,both,steplockmutemode1,,1,"{""min"": 0, ""max"": 1}",,2,no,
 /steplockmutemode2,1,button,both,steplockmutemode2,,2,"{""min"": 0, ""max"": 1}",,2,no,
 /steplockmutemode3,1,button,both,steplockmutemode3,,3,"{""min"": 0, ""max"": 1}",,2,no,
@@ -5508,7 +5508,6 @@ address,views,types,direction,param,layer,instance,range,steps,decimals,in_state
 /sustainymodlabel4,2,switch,pd->gui,sustainymod,label,4,"{""min"": 0, ""max"": 1}",,2,no,
 /sustainymodlabel5,2,switch,pd->gui,sustainymod,label,5,"{""min"": 0, ""max"": 1}",,2,no,
 /sustainymodlabel6,2,switch,pd->gui,sustainymod,label,6,"{""min"": 0, ""max"": 1}",,2,no,
-/testone,1,button,both,testone,,,"{""min"": 0, ""max"": 1}",,2,no,
 /text_1,1,text,both,text_1,,1,"{""min"": 0, ""max"": 1}",,2,yes,"""Master Volume"""
 /text_2,1,text,both,text_2,,2,"{""min"": 0, ""max"": 1}",,2,yes,"""Master Volume"""
 /text_3,1,text,both,text_3,,3,"{""min"": 0, ""max"": 1}",,2,yes,"""Master Volume"""
@@ -5651,5 +5650,5 @@ address,views,types,direction,param,layer,instance,range,steps,decimals,in_state
 /volume5,2,fader,both,volume5,,5,"{""min"": 0, ""max"": 1}",,2,yes,0
 /volume6,2,fader,both,volume6,,6,"{""min"": 0, ""max"": 1}",,2,yes,0
 /volumemaster,1,fader,both,volumemaster,,,"{""min"": 0, ""max"": 1}",,2,no,
-/xglobal,6,button,both,xglobal,,,"{""min"": 0, ""max"": 1}",,2,yes,0
-/yglobal,6,button,both,yglobal,,,"{""min"": 0, ""max"": 1}",,2,yes,0
+/xglobal,12,button,both,xglobal,,,"{""min"": 0, ""max"": 1}",,2,yes,0
+/yglobal,12,button,both,yglobal,,,"{""min"": 0, ""max"": 1}",,2,yes,0

@@ -267,6 +267,10 @@ def run(a):
             M.update(lock_ids)
             M['ma'] = f'/steplockmute{n}'
             M['sa'] = f'/steplockstep{n}'
+            # STEP CLEAR (0.3.5): a held mode, like STEP MUTE; a tap clears one step
+            if f'steplockclearmode{n}' in used_ids:
+                M['lc'] = f'steplockclearmode{n}'
+                M['ca'] = f'/steplockclear{n}'
             for key in ('lk', 'ls'):
                 seq_redraw.setdefault(lock_ids[key], []).append(cid)
             lock_marks.append((n, cid))
