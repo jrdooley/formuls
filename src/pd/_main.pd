@@ -146,16 +146,17 @@
 #N canvas 122 390 249 300 CONNECT___ 0;
 #X msg 78 133 disconnect;
 #X obj 59 65 sel 1 0;
-#X obj 68 88 loadbang;
 #X obj 59 35 tgl 15 1 empty empty empty 17 7 0 10 #fcfcfc #000000 #000000 1 1;
 #X obj 59 260 outlet;
 #X msg 59 111 connect 127.0.0.1 9001;
-#X connect 0 0 4 0;
-#X connect 1 0 5 0;
+#X text 110 35 The toggle's init flag fires this on load \, which is what
+connects. A [loadbang] here as well sent "connect" a second time and Pd
+logged "netsend: already connected" on every start.;
+#X connect 0 0 3 0;
+#X connect 1 0 4 0;
 #X connect 1 1 0 0;
-#X connect 2 0 5 0;
-#X connect 3 0 1 0;
-#X connect 5 0 4 0;
+#X connect 2 0 1 0;
+#X connect 4 0 3 0;
 #X restore 60 187 pd CONNECT___;
 #X obj 278 39 r \$0-master-bus-fx;
 #X obj 278 60 list prepend fmasterbusfx;
