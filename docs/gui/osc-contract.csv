@@ -1937,6 +1937,7 @@ address,views,types,direction,param,layer,instance,range,steps,decimals,in_state
 /lfofreqglobal4,4,button,both,lfofreqglobal4,,4,"{""min"": 0, ""max"": 1}",,2,yes,0
 /lfofreqglobal5,4,button,both,lfofreqglobal5,,5,"{""min"": 0, ""max"": 1}",,2,yes,0
 /lfofreqglobal6,4,button,both,lfofreqglobal6,,6,"{""min"": 0, ""max"": 1}",,2,yes,0
+/linkconnect,1,button,both,linkconnect,,,"{""min"": 0, ""max"": 1}",,2,no,
 /midikeyboard1,1,button,both,midikeyboard1,,1,"{""min"": 0, ""max"": 1}",,2,no,
 /midikeyboard2,1,button,both,midikeyboard2,,2,"{""min"": 0, ""max"": 1}",,2,no,
 /midikeyboard3,1,button,both,midikeyboard3,,3,"{""min"": 0, ""max"": 1}",,2,no,
