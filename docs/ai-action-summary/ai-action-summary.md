@@ -1398,3 +1398,14 @@ Branch `fixes-0.3.5`, from `cd4db22`.
   half-height row above FREQ SNAP / play / ASYNC; X and Y hold added to the
   modal's mode column. `docs/gui/osc-contract.csv` regenerated.
 - Version 0.3.5 (12 files).
+- **Follow-up after James tried it.** (1) The step row was too small: STEP
+  WRITE/MUTE/CLEAR and FREQ SNAP/play/ASYNC are now equal rows, 7.5% of the
+  modal each. (2) Attack/decay/release quantise now gives beat multiples at
+  the master tempo (0.125, 0.25, 0.5, 0.75, 1, 2, 4 beats, left to right).
+  Before, it fed `multiple x 120/bpm` straight in as Faust's 0..1 value, which
+  Faust reads as `20 x (0.9999 x + 0.0001)` seconds after a `pow 3.5/3.1`
+  SCALE, so most positions were nowhere near the beat and 1, 2 and 4 all
+  clipped to 20 s. Now `60/bpm` seconds per beat and an `[expr]` inverting
+  both. Measured headless: the seconds reaching Faust, divided by the beat,
+  are exactly the seven multiples at 120 and at 90 bpm, and a tempo change
+  re-times a held value.
