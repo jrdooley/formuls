@@ -1363,3 +1363,49 @@ taller sequencer modal.
 - Opening the notarised app, or loading the plugins, on a Mac that didn't build
   them. The build Mac has Gatekeeper turned off.
 - The image on real appliance hardware.
+
+## 21 November 2026 — fixes for 0.3.5
+
+Branch `fixes-0.3.5`, from `cd4db22`.
+
+- **Quantise after the automation.** The bpm-synced quantisers (delay time, AM
+  frequency, attack, decay, release) acted on the GUI value *before*
+  `f.seq.automater`, so a recorded gesture was stored already snapped and
+  switching quantise afterwards changed nothing. `f.util.oscformat` gained an
+  eighth argument: `1` routes the automater's output out on
+  `$1-$3-hook-out` and takes the Faust-bound value back on `$1-$3-hook-in`,
+  and the quantisers now sit there. The automater itself quantises to the
+  list's levels, so the GUI echo snaps to equidistant positions (6 for AM, 5
+  for delay, 7 for A/D/R). The automater's own quantiser now uses steps+1
+  equal bins; before, its top level was reachable only at exactly 1 (FM
+  frequency: now 11 levels).
+  - Measured headless, `f.util.oscinparse` with a recorded ramp, then quantise
+    switched on: `main` sent 100 raw values to Faust; the change sends only the
+    quantised set. Live quantise (nothing recorded) gives the same Faust values
+    as `main` for all six parameters.
+  - Found on the way: **decay quantise never reached Faust** on `main` (the
+    quantised path's `[spigot]` was unconnected). Delay and AM resent a stale
+    quantised value on any bpm change while quantise was off; now gated.
+- **STEP CLEAR is a held mode.** Held, a tap on a marked step forgets that
+  step on every parameter (`/steplockclearN <step>` → `seq-step-clear` →
+  `seqstepclear` in `f.seq.record`). RESET still forgets every step.
+  `steplock-probe.py` gained the case; it fails on `main` and passes here.
+- **GUI**: AUDIO RECORD at the left of the reset row, POWER OFF at its right;
+  TEST TONE button removed (its address was `/testone`, a typo, so it never
+  played); KEYS hidden (MIDI IN, which lives inside it, is hidden with it);
+  sequencer-modal menus anchored left and aligned vertically to stay inside
+  the modal (three had the key misspelt `alighH`); STEP WRITE/MUTE/CLEAR in a
+  half-height row above FREQ SNAP / play / ASYNC; X and Y hold added to the
+  modal's mode column. `docs/gui/osc-contract.csv` regenerated.
+- Version 0.3.5 (12 files).
+- **Follow-up after James tried it.** (1) The step row was too small: STEP
+  WRITE/MUTE/CLEAR and FREQ SNAP/play/ASYNC are now equal rows, 7.5% of the
+  modal each. (2) Attack/decay/release quantise now gives beat multiples at
+  the master tempo (0.125, 0.25, 0.5, 0.75, 1, 2, 4 beats, left to right).
+  Before, it fed `multiple x 120/bpm` straight in as Faust's 0..1 value, which
+  Faust reads as `20 x (0.9999 x + 0.0001)` seconds after a `pow 3.5/3.1`
+  SCALE, so most positions were nowhere near the beat and 1, 2 and 4 all
+  clipped to 20 s. Now `60/bpm` seconds per beat and an `[expr]` inverting
+  both. Measured headless: the seconds reaching Faust, divided by the beat,
+  are exactly the seven multiples at 120 and at 90 bpm, and a tempo change
+  re-times a held value.

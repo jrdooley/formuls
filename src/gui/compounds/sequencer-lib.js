@@ -30,7 +30,9 @@
 // a tap sets the selected-step widget (M.ls, 1..128, 0 for none) and sends
 // /steplockstepN (M.sa); a tap on the selected step lets go of it. With the mute
 // button (M.lm) held, whether or not the lock button is on, a tap on a step that holds a lock sends
-// /steplockmuteN <step> <0/1> (M.ma). What each step holds is not state either: Pd
+// /steplockmuteN <step> <0/1> (M.ma). With the clear button (M.lc) held, a tap on a
+// step that holds a lock sends /steplockclearN <step> (M.ca): Pd forgets that step on
+// every parameter. What each step holds is not state either: Pd
 // reports it on /steplockhasN-i and the mailbox writes it to the variable `lk`
 // (1 locked, 0.5 locked but muted, 0 or absent nothing).
 (function () {
@@ -160,6 +162,11 @@
       var i = cellAt(W, H, hx, hy);
       if (i < 0) return;
       var faders = active(api, M.q), c = cell(W, H, i);
+      if (!faders && M.lc && active(api, M.lc)) {                // STEP CLEAR held: forget this step's locks
+        t[id] = { kind: 'lock' };
+        if (num((api.getVar('this', 'lk') || {})[i]) > 0) api.send(M.ca, i + 1);   // Pd answers on /steplockhasN-i
+        return;
+      }
       if (!faders && M.lm && active(api, M.lm)) {                // STEP MUTE held: mute, with or without STEP WRITE
         t[id] = { kind: 'lock' };
         var h = num((api.getVar('this', 'lk') || {})[i]);

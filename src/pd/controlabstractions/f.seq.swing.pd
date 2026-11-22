@@ -9,7 +9,7 @@
 #X msg 127 230 0;
 #X obj 127 357 == 0;
 #X obj 127 31 inlet swing-amount;
-#X obj 94 384 spigot 1;
+#X obj 82 384 spigot 1;
 #X floatatom 127 71 5 0 0 0 - - - 0;
 #X obj 165 431 del;
 #X obj 127 209 moses 1;
