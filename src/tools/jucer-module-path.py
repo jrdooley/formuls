@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Point every JUCE module path in a .jucer file at one folder.
 
     jucer-module-path.py src/app/formuls.jucer C:/Users/me/JUCE/modules

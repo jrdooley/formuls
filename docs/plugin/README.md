@@ -8,7 +8,7 @@ on a tablet; the plugin's window shows where to open it.
 
 ```bash
 ./build-macOS.sh            # once: the app, whose pd/ and gui/ the plugin reuses
-./build-plugin-macOS.sh     # formuls-0.3.2.vst3 and formuls-0.3.2.component
+./build-plugin-macOS.sh     # formuls-0.3.5.vst3 and formuls-0.3.5.component
 INSTALL=1 ./build-plugin-macOS.sh   # also copies them into ~/Library/Audio/Plug-Ins
 ```
 
@@ -17,16 +17,21 @@ the flattened `gui/` from the app bundle, leaves node out, and puts libpd in
 each bundle's `Contents/Frameworks`. `FORMULS_APP=/path/to/formuls.app`
 points it at another app build.
 
+By default both bundles are signed ad hoc, which loads them only on the Mac that
+built them. With `SIGN_IDENTITY` set (and optionally `NOTARY_PROFILE`) they are
+signed with a Developer ID, notarised and packed into a release zip instead; see
+`docs/release.md` section 4.
+
 On Linux, VST3 and LV2:
 
 ```bash
 ./build-linux.sh            # once: the app folder, whose pd/ and gui/ the plugin reuses
-./build-plugin-linux.sh     # formuls-0.3.2-linux-<arch>-plugins/{formuls.vst3, formuls.lv2}
+./build-plugin-linux.sh     # formuls-0.3.5-linux-<arch>-plugins/{formuls.vst3, formuls.lv2}
 INSTALL=1 ./build-plugin-linux.sh   # also copies them into ~/.vst3 and ~/.lv2
 ```
 
 It takes `pd/` (with the `.pd_linux` externals) and `gui/` from
-`formuls-0.3.2-linux-<arch>/` (or `FORMULS_APP=`), and puts `libpd.so` next
+`formuls-0.3.5-linux-<arch>/` (or `FORMULS_APP=`), and puts `libpd.so` next
 to the plugin binary in each bundle, found through the `$ORIGIN` rpath:
 
 - `formuls.vst3/Contents/<arch>-linux/{formuls.so, libpd.so}`, resources in
@@ -42,7 +47,7 @@ On Windows, VST3, from a Developer Command Prompt for VS 2022:
 
 ```bat
 build-windows.bat           :: once: the app folder, whose pd\ and gui\ the plugin reuses
-build-plugin-windows.bat    :: formuls-0.3.2-windows-x64-plugins\formuls.vst3
+build-plugin-windows.bat    :: formuls-0.3.5-windows-x64-plugins\formuls.vst3
 ```
 
 `set INSTALL=1` first also copies it into

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Compile formuls' multi-widget compounds into single canvas widgets (build step).
 
 Runs after flatten-session.py, on its output. Each `slider` compound -- 15 stacked
@@ -212,6 +215,8 @@ def run(a):
 
     # --- option C: sequencer step panels --------------------------------------------
     seqs = []
+    seq_redraw = {}                                  # widget id -> [canvas ids] it redraws
+    lock_marks = []                                  # (n, canvas id)
     def find_seq(w, parent):
         for i, c in enumerate(w.get('widgets') or []):
             if c.get('type') == 'panel' and c.get('id') == 'seqsteppanel':
@@ -256,6 +261,19 @@ def run(a):
         if first:
             new_state_entries.setdefault(first, []).append((cid, values))
         M = {'b': baddr, 'w': waddr, 'q': quant.pop(), 'op0': op0}
+        # step locks: optional widgets beside the panel (see sequencer-lib.js)
+        lock_ids = {'lk': f'steplock{n}', 'ls': f'steplockstep{n}', 'lm': f'steplockmutemode{n}'}
+        if all(i in used_ids for i in lock_ids.values()):
+            M.update(lock_ids)
+            M['ma'] = f'/steplockmute{n}'
+            M['sa'] = f'/steplockstep{n}'
+            # STEP CLEAR (0.3.5): a held mode, like STEP MUTE; a tap clears one step
+            if f'steplockclearmode{n}' in used_ids:
+                M['lc'] = f'steplockclearmode{n}'
+                M['ca'] = f'/steplockclear{n}'
+            for key in ('lk', 'ls'):
+                seq_redraw.setdefault(lock_ids[key], []).append(cid)
+            lock_marks.append((n, cid))
         mjs = json.dumps(M, ensure_ascii=False)
         canvas = {
             'type': 'canvas', 'id': cid, 'address': caddr,
@@ -263,7 +281,7 @@ def run(a):
             'width': panel.get('width', 'auto'), 'height': panel.get('height', 'auto'),
             'valueLength': 256, 'default': values, 'autoClear': False, 'padding': 0,
             'onDraw': f'var M = {mjs};\nglobals.FS && globals.FS.draw(ctx, width, height, value, cssVars, M, {{get: get, getVar: getVar}}, locals)',
-            'onTouch': f'var M = {mjs};\nglobals.FS && globals.FS.touch(event, value, width, height, M, locals, {{get: get, set: set, send: send}})',
+            'onTouch': f'var M = {mjs};\nglobals.FS && globals.FS.touch(event, value, width, height, M, locals, {{get: get, getVar: getVar, set: set, send: send}})',
         }
         for prop in ('expand', 'visible', 'css', 'interaction'):
             if prop in panel:
@@ -279,6 +297,16 @@ def run(a):
             mapping['inbound'].setdefault(all_addr[slot], []).append([cid, slot, 1] + ([10] if slot >= 128 else []))
         for i, a2 in enumerate(opaddr):
             mapping['inbound'].setdefault(a2, []).append([cid, 'op', i])
+    # what each step holds, reported by Pd: a widget variable, as the dimming is
+    for n, cid in lock_marks:
+        for i in range(128):
+            mapping['inbound'].setdefault(f'/steplockhas{n}-{i}', []).append([cid, 'lk', i])
+    def redraw_hook(w, p):
+        for cid in seq_redraw.get(str(w.get('id')), []):
+            prev = w.get('onValue', '')
+            w['onValue'] = (prev + '\n' if prev else '') + \
+                f'// compile-compounds: redraw the step panel\nupdateCanvas({json.dumps(cid)});'
+    walk(root, redraw_hook)
 
     if not compounds and not seqs:
         raise CompileError('no compounds found')

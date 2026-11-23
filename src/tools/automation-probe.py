@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Record an automation gesture into f.seq.automater and log what comes back out.
 
 Builds a throwaway Pd patch that drives one automater the way the running app

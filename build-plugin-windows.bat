@@ -1,5 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
+REM SPDX-License-Identifier: GPL-3.0-or-later
+REM Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 REM Builds the formuls instrument plugin (VST3) for Windows.
 REM
 REM The plugin runs the same Pd patch and serves the same control GUI as the
@@ -21,7 +24,7 @@ REM The plugin delay-loads libpd.dll and loads this copy by full path
 REM (SharedEngine.cpp); ResourceLocator finds Contents\Resources.
 REM See docs/plugin/README.md.
 
-set VERSION=0.3.2
+set VERSION=0.3.5
 set PYTHONUTF8=1
 set "ROOT=%CD%"
 

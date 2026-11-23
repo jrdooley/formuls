@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 /*
  * OpenStageControlProcess.cpp -- see OpenStageControlProcess.h for an overview,
  * and in particular for why this file goes to the trouble of enumerating the

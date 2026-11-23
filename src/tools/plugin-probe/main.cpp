@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // Loads a plugin like a DAW would, renders a few seconds, reports peak level.
 // See src/tools/README.md (plugin-probe). Built with CMake against JUCE at ~/JUCE.
 #include <juce_audio_processors/juce_audio_processors.h>

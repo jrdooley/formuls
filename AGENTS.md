@@ -1,10 +1,38 @@
-# formuls — Agent Guide (juce-port branch)
+# formuls — Agent Guide
 
 Electronic musical instrument: 6-operator FM synth with touchscreen GUI.
 Stack: JUCE (native app), libpd (embedded audio), Faust (DSP), Pure Data (patches), Open Stage Control (web GUI).
 
-**This branch replaces the Python/Tkinter + RtAudio architecture on `main`.**
-Python is no longer a build or runtime dependency. See `docs/README.md` for the full branch history.
+**This is `main`.** The JUCE rewrite replaced the old Python/Tkinter + RtAudio
+architecture and was merged long ago; the `juce-port` branch no longer exists, so
+anything describing this as a side branch is out of date. `docs/README.md` has
+the history.
+
+The app's own runtime is C++ only — no Python, no Tkinter. **Python 3 is still a
+build dependency on every platform**, though, so "Python is no longer a
+dependency" (as older notes put it) is only true of the runtime:
+
+| script | runs |
+|---|---|
+| `build-macOS.sh`, `build-linux.sh` | `patch-osc-perf.py`, `flatten-session.py`, `compile-compounds.py` |
+| `build-plugin-macOS.sh` | `bind-externals-to-libpd.py` |
+| `build-windows.bat`, `build-plugin-windows.bat` | `jucer-module-path.py` (and need `python` or `python3` on PATH) |
+
+## Licensing
+
+GPL-3.0-or-later (`LICENSE`). Third-party components and why each copyleft one is
+compatible: `THIRD-PARTY-NOTICES.md`. JUCE is used under a **commercial** JUCE
+licence, not its AGPL option — that is why GPLv3 rather than AGPLv3 is possible.
+
+- New source files get a two-line SPDX notice after any shebang: see
+  `CONTRIBUTING.md`. `#` for shell and Python, `REM` for `.bat`, `//` for C++,
+  JavaScript and Faust.
+- `src/libs/` (submodules) and `src/prebuilt/` are upstream work: never stamp or
+  reformat them. `docs/**/tools/` are one-off analysis scripts and are not stamped.
+- Commits need `git commit -s` (DCO sign-off). Sole copyright is what keeps the
+  relicensing options open, so this is not decoration.
+- Ableton Link (GPLv2-or-later, inside `abl_link~`) is the binding copyleft
+  dependency and is **not** optional: `src/pd/_main.pd` instantiates it.
 
 ## Build
 
@@ -18,7 +46,7 @@ git clone --recurse-submodules https://github.com/jrdooley/formuls.git
 ./build-macOS.sh
 ```
 Produces `formuls-<VERSION>.app` in the repo root, where `VERSION` is set at
-the top of the build script (currently `0.3.2`). Steps:
+the top of the build script (currently `0.3.5`). Steps:
 1. Compiles 3 Faust externals: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`
 2. Copies **prebuilt** `abl_link~.pd_darwin` (never builds from source on macOS)
 3. Downloads Open Stage Control 1.31.0 + Node 22.17.0
@@ -62,14 +90,19 @@ Supports env vars: `FORMULS_TEST_SAMPLERATE`, `FORMULS_TEST_CHANNELS`, `FORMULS_
 
 ## Architecture
 
-### Runtime (JUCE app spawns one child process)
+### Runtime (one process: the GUI server is in-process)
 ```
-formuls (JUCE app, embeds libpd)  →  spawns:
-  node + Open Stage Control (web GUI on port 9001)
+formuls (JUCE app, embeds libpd)
+  ├─ EmbeddedGuiServer  serves the Open Stage Control session on port 9001
+  └─ OscBridge          hands GUI OSC straight to libpd ("fed in-process (no udp)")
 ```
 The JUCE app handles audio device selection, libpd, recording, and GUI addresses.
-GUI sends OSC to `127.0.0.1:9000` (the Pd patch listens there).
-Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000).
+Since 0.3.2 the GUI server runs inside the app (`EmbeddedGuiServer.cpp`), and GUI
+OSC reaches the patch directly rather than over UDP. `FORMULS_NODE_GUI=1` (read in
+`MainComponent.h`) brings back the old bundled node + Open Stage Control child
+process, which still sends to `127.0.0.1:9000`; the `uxlog` branch relies on it.
+Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000, node path
+only).
 
 ### Source layout
 | Directory | Language | Purpose |
@@ -83,7 +116,7 @@ Ports: `OpenStageControlProcess::guiPort` (9001), `patchOscPort` (9000).
 | `src/libs/libpd/` | submodule | libpd |
 | `src/libs/abl_link/` | submodule | Ableton Link Pd external |
 | `src/prebuilt/` | binary | Known-good `abl_link~.pd_darwin` (arm64) |
-| `src/tools/` | mixed | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py` (+ `osc-defaults-1.31.0.json`), `check-reset-coverage.py`, `automation-probe.py`, `bpm-probe`, `abl-link-repro` |
+| `src/tools/` | mixed | `brand-osc.sh`, `patch-osc-perf.py`, `flatten-session.py` (+ `osc-defaults-1.31.0.json`), `check-reset-coverage.py`, `automation-probe.py`, `steplock-probe.py`, `quantise-probe.py`, `limiter-probe.cpp`, `bpm-probe`, `abl-link-repro` |
 | `docs/` | markdown/html | Efficiency report, GUI performance write-up, session logs |
 
 ### Signal flow
@@ -117,7 +150,7 @@ To refresh: install via Pure Data's Deken package manager, copy here, **verify**
 `faust2puredata -vec -lv 0 -vs 4 -clang` — set in the build scripts. Don't change without understanding vectorisation implications.
 
 ### Only 3 Faust files are compiled
-This branch removed OTT, digitaliser, widener, and limiter from the master bus. The build compiles only: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`. `f_looper.dsp` was also deleted (unreferenced).
+The JUCE rewrite removed OTT, digitaliser, widener, and limiter from the master bus. The build compiles only: `f_repeater.dsp`, `f_reverb.dsp`, `formuls.dsp`. `f_looper.dsp` was also deleted (unreferenced).
 
 ### The app runs a COPY of the Pd patch
 `build-macOS.sh` copies `src/pd/` into the app bundle. Editing `src/pd/_main.pd` has **no effect on an already-built app** until you rebuild or copy manually:
@@ -155,6 +188,9 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 - **`src/tools/check-reset-coverage.py`**: Verifies every GUI parameter with chaos/LFO/mod sub-widgets is reset by `f.util.reset.pd`. Run after adding a parameter or renaming a widget. Exits non-zero on mismatch.
 - **`src/tools/automater-load-bench.py`**: CPU cost of N automaters with playback/LFO/chaos running, in deterministic `pd -batch`. Use `--rev` to compare against a commit.
 - **`src/tools/automation-probe.py`**: Records a gesture into one automater, reports value discontinuities. Use `--rev` to compare against a specific commit. No audio device or externals needed.
+- **`src/tools/steplock-probe.py`**: Writes, mutes and clears step locks on one automater headless and checks what each step plays back (six cycles). No audio device or externals needed. See `docs/step-locks/README.md`.
+- **`src/tools/quantise-probe.py`**: Checks the pitch quantiser against gamuts, headless.
+- **`src/tools/limiter-probe.cpp`**: Exercises `SafetyLimiter` with no JUCE or libpd (33 checks).
 - **`src/tools/bpm-probe`**: Loads `_main.pd` under libpd, drives BPM over OSC, measures actual beat rate. Needs a built app's externals. Build instructions in `src/tools/README.md`.
 - **`src/tools/brand-osc.sh`**: Rebrands Open Stage Control's header to formuls. Called by build scripts.
 - **`src/tools/abl-link-repro`**: Reproduction harness for the abl_link~ Xcode bug.
@@ -168,13 +204,25 @@ The message arrives on the JUCE message thread via libpd's queued interface.
 - Pd patch sends `formuls-quit` to close the app (not `pd quit`)
 - Style all JUCE widgets in `src/app/Source/FormulsLookAndFeel.h` — it is the single place for colours, fonts, layout
 
-## Branch context
+## History and other branches
 
-- `docs/README.md` is the index to all juce-port work: efficiency refactor, GUI performance, recording, master bus cuts, branch map
+- `docs/README.md` is the index to the JUCE rewrite's work: efficiency refactor, GUI performance, recording, master bus cuts, branch map
 - `docs/efficiency/` — Faust + Pd efficiency refactor with measured results
 - `docs/gui/` — why the control GUI disconnects, what each fix is worth, the load rig
 - `docs/claude/memory/` — working notes a Claude session keeps for itself, copied
   into the repo; a snapshot of `~/.claude/projects/<project>/memory/`, so it can drift
-- `git log juce-port..main` shows four duplicate commits, not missing work
-- `alacarte-prototype` branch was never merged and can be deleted
-- The `FORMULS_TRACE` env var belongs to the discarded à la carte branch, not this one
+- The `juce-port` branch is gone (merged into `main`), so any `juce-port..main`
+  comparison in older notes cannot be run. The four duplicate commits it used to
+  show were duplicates, not missing work.
+- **Do not delete `alacarte-prototype`.** An older note here said it could go.
+  It holds **21 commits that exist on no other branch** (checked 11 Nov 2026:
+  `git rev-list origin/alacarte-prototype --not <every other origin ref>`), so
+  deleting it loses them. Every other remote branch also still has unmerged
+  work; `main`, `uxlog` and `uxlog-fx-strip-backup` are the live ones, and
+  `uxlog` is load-bearing for `formuls-embedded`, which pins `origin/uxlog`.
+- Before deleting any branch, test containment with
+  `git rev-list <branch> --not --remotes=origin`, not just
+  `git merge-base --is-ancestor`: the ancestor test only asks about the tip and
+  has under-reported unmerged commits here before.
+- The `FORMULS_TRACE` env var belongs to the discarded à la carte branch; it is
+  referenced nowhere in this tree's code and does nothing here.

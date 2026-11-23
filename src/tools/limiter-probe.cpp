@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // Checks the guarantees SafetyLimiter.h claims, with no JUCE, no libpd and no
 // audio device -- it compiles the header on its own. See src/tools/README.md.
 //

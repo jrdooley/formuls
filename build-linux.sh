@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # Linux build script for the formuls JUCE app.
 #
 # This is the script the appliance images are built with: formuls-embedded's
@@ -19,7 +22,7 @@
 
 set -e
 
-VERSION="0.3.2"
+VERSION="0.3.5"
 # FORMULS_UXLOG=1 ./build-linux.sh builds the user-study variant: it logs
 # touch interaction to ~/Music/formuls/uxlog/ and has Replay mode (see
 # src/tools/uxlog/README.md), and is named, and branded in the GUI header,

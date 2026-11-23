@@ -101,7 +101,7 @@ This is the counterpart of `OscBridge`, for the sending direction:
 libpd's own queued message path wasn't used: its ring buffer is 16 KB, and a
 reset is several megabytes of OSC, so most of the burst would be dropped.
 
-### Fix 2: the reset is staggered (`_main.pd`, `RESET_STAGGER`)
+### Fix 2: the reset is staggered (`_main.pd`, `RESET_STAGGER__`)
 
 Both senders, the GUI button and `INIT_PARAMETER_SET` at start-up, now send
 `resetglobal-in`. The dispatcher handles it in two halves:
@@ -196,7 +196,7 @@ messages at once. Now a button press sends:
 
 The release (`$0-$1-reset 0`) is held 15 ms so it always follows the press. The
 global reset keeps its order (gate first) and its release still comes 190 ms
-later from `RESET_STAGGER`. The 5 ms steps are about half an audio callback, so
+later from `RESET_STAGGER__`. The 5 ms steps are about half an audio callback, so
 they usually land in different callbacks.
 
 Checked against `main`:

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 """Measure what N busy f.seq.automater instances cost while they modulate.
 
 Builds a throwaway patch holding N automaters, each followed by a copy of the

@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # brand-osc.sh <open-stage-control-dir> <version>
 #
 # Rebrands the Open Stage Control client's greeting header, which ships as:

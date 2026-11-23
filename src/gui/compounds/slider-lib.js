@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // formuls slider compound, drawn and touched as ONE canvas widget.
 //
 // Installed once into `globals.FC` by the root's onCreate (src/tools/compile-compounds.py

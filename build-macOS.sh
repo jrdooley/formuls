@@ -1,4 +1,7 @@
 #!/bin/zsh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 # macOS build script for the formuls JUCE app.
 # Builds for the native architecture (Apple Silicon or Intel).
 #
@@ -8,7 +11,7 @@
 
 set -e
 
-VERSION="0.3.2"
+VERSION="0.3.5"
 # FORMULS_UXLOG=1 ./build-macOS.sh builds the user-study variant: it logs
 # touch interaction to ~/Music/formuls/uxlog/, records the session audio and
 # has Replay mode (see src/tools/uxlog/README.md). It is named, and branded in

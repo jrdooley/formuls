@@ -75,6 +75,23 @@ mid-reset. It waited the full 5 s only when it hit the gap between reads.
 The writer now waits with `poll`/`WSAPoll` on the raw handle.
 `src/tools/ws-stall-test` checks all of this.
 
+### A tablet that vanishes (`d1ee7d5`, 13 November 2026)
+
+A client that disappears without a WebSocket close frame (a tablet whose screen
+sleeps, or is switched off) left the writer thread sending to a dead peer. On
+macOS that raises **SIGPIPE**, whose default action kills the process: the
+standalone app, or in a plugin the **host**. That is why Sounddesk quit outright.
+JUCE's `StreamingSocket::write` sends without `MSG_NOSIGNAL` and asks for
+`SO_NOSIGPIPE` only in its Linux backend.
+
+Every accepted socket now gets `SO_NOSIGPIPE` in the `ConnectionThread`
+constructor, so it covers the HTTP response as well as frames.
+`WebSocketServer.cpp` is the only file changed. A write to a dead peer now
+fails with `EPIPE`, and the give-up path above runs, logging "stopped accepting
+data; disconnecting". Measured on the standalone app: before, a client vanishing
+by FIN or RST killed it (exit 141); after, both are survived, followed by
+reconnect and resync.
+
 ## Resync on reconnect
 
 The o-s-c client asks for the session and state (`open`) only when its page

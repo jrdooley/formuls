@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // Loads the REAL formuls _main.pd and drives BPM the way the GUI does,
 // measuring the beat rate abl_link~ actually produces after each change.
 #include "PdBase.hpp"

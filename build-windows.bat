@@ -1,5 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
+REM SPDX-License-Identifier: GPL-3.0-or-later
+REM Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 REM Windows build script for the formuls JUCE app.
 REM
 REM Requirements:
@@ -16,7 +19,7 @@ REM
 REM Run from the repository root inside a Developer Command Prompt for VS 2022:
 REM   build-windows.bat
 
-set VERSION=0.3.2
+set VERSION=0.3.5
 REM set FORMULS_UXLOG=1 before running to build the user-study variant: it
 REM logs touch interaction to Music\formuls\uxlog and has Replay mode (see
 REM src\tools\uxlog\README.md), and is named and branded so it cannot pass

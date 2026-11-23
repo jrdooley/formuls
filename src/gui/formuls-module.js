@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2014-2026 James Dooley (aka formuls)
+
 // Open Stage Control server module for formuls (loaded with --custom-module).
 //
 // The shipped session draws each `slider` compound as ONE canvas holding 20 values

@@ -1,8 +1,11 @@
 # Headroom: the master gain, clipping, and the polyphony count
 
-Written 9 September 2026, alongside the `AUDIO_SAFETY______` hotfix (`409b73a`).
-Nothing here has been implemented. It records what the patch currently does, why
-the obvious next step is not as easy as it looks, and what the options cost.
+Written 9 September 2026, alongside the `AUDIO_SAFETY______` hotfix (`409b73a`),
+as analysis only. **Since then, parts have shipped** (9 November 2026): 32-bit
+float recording, a safety limiter in the engine, the recorder tapping before the
+limiter, and a 20 dB pad per synth instance that replaces the patch's 6 dB. See the
+"Shipped since" sections and "The gain structure" below. The adaptive,
+polyphony-driven gain discussed in the first half was **not** built.
 
 ## What shipped
 
@@ -90,7 +93,9 @@ the control path, currently multiplying by one, and every writer passes through
 
 ## Why the existing polyphony count will not do
 
-`POLYPHONY_PARSE_______` in `controlabstractions/f.util.oscinparse.pd:2394`:
+`POLYPHONY_PARSE_______`, which was in `controlabstractions/f.util.oscinparse.pd`
+(it had been dead since April and was deleted on 13 November 2026, `156bf8f`; the
+reasoning below still holds for any count built the same way):
 
 ```
 [r $0-monopoly]      [r $0-chord-size]
@@ -440,8 +445,38 @@ print("4.41f:",h.count(struct.pack("<f",4.41).hex()))' \
   formuls-0.3.2.app/Contents/Resources/pd/externals/formuls~.pd_darwin
 ```
 
-One occurrence means the 20 dB pad is in; zero means the build shipped a
-pre-pad external, whatever its hash and whatever the log said.
+One occurrence means the 20 dB pad is in -- **but only on x86_64**. That check
+is architecture-dependent, and it reads as a failure on Apple silicon even when
+the pad is there: the app's own arm64 slice has zero occurrences while its
+x86_64 slice has one, from the same universal binary.
+
+| | 4.41f | 44.1f |
+|---|---|---|
+| app, x86_64 slice | 1 | 1 |
+| app, arm64 slice | **0** | **0** |
+| plugin (thinned to arm64) | **0** | **0** |
+
+x86_64 materialises a constant like 4.41 from a literal in `__TEXT,__const`;
+arm64 builds it in registers with a `movz`/`movk` immediate sequence and
+`fmov`, so the bytes never appear contiguously. The Linux appliance check above
+is sound because that build is x86_64. The macOS plugins are thinned to arm64
+by `bind-externals-to-libpd.py`, so the check cannot be used on them at all.
+
+**On arm64, measure instead.** `src/tools/plugin-probe` hosts the built plugin
+and renders the real patch:
+
+```sh
+PROBE_NO_EDITOR=1 PROBE_REALTIME=1 PROBE_READY_ON=/amphasereset1 \
+  PROBE_GUI_AT="0.2:/midikeyboard1:1,0.4:/volume1:1,0.6:/masteramp:1" \
+  PROBE_NOTES_AT="1.00:36,1.06:40,...,2.26:91" \
+  plugin_probe formuls-0.3.2.vst3 12 9001
+```
+
+22 stacked notes on the default preset read **0.348509** before any of this
+work. On 9 November 2026 the same preset read **0.0662557**, against 0.0697
+predicted from 0.348509 x 0.1 (the pad) / 0.5 (the patch's 6 dB, removed) --
+a 5% residual from the note timing, and the only architecture-independent proof
+that a given binary carries the pad.
 
 ## Measured after the pad, 9 November 2026
 

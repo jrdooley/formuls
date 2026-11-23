@@ -29,6 +29,7 @@ on:
       - 'build-plugin-macOS.sh'
       - 'build-plugin-windows.bat'
       - 'src/tools/sign-macos.sh'
+      - 'src/tools/sign-macos-plugin.sh'
       - 'src/plugin/**'
       - 'src/tools/plugin-probe/**'
       - '.github/workflows/release.yml'
@@ -255,7 +256,7 @@ jobs:
 
   macos:
     needs: version
-    runs-on: macos-15   # Apple Silicon, as the hand-made build (docs/release.md section 8)
+    runs-on: macos-15   # Apple Silicon, as the hand-made build (docs/release.md section 9)
     env:
       V: ${{ needs.version.outputs.version }}
     steps:
